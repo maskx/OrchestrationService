@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace maskx.OrchestrationService
+namespace maskx.OrchestrationService.Worker
 {
     public class Orchestration
     {
-        public string Name { get; set; }
+        public string Uri { get; set; }
         public string Version { get; set; }
         public string Content { get; set; }
         public string Creator { get; set; }

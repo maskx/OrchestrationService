@@ -1,4 +1,6 @@
+using maskx.OrchestrationService.Worker;
 using System;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OrchestrationService.Tests
@@ -9,7 +11,19 @@ namespace OrchestrationService.Tests
         [Fact]
         public void CreateOne()
         {
-            //TestHelpers.TaskHubClient.c
+            JobProvider.Jobs.Add(new Job()
+            {
+                InstanceId = Guid.NewGuid().ToString("N"),
+                Orchestration = new maskx.OrchestrationService.Worker.Orchestration()
+                {
+                    Creator = "DefaultObjectCreator",
+                    Uri = "OrchestrationService.Tests.Orchestration.PrepareVMTemplateAuthorizeOrchestration"
+                }
+            });
+            while (true)
+            {
+                Task.Delay(1000).Wait();
+            }
         }
     }
 }

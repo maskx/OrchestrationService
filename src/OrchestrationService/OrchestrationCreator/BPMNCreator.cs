@@ -1,4 +1,5 @@
 ﻿using DurableTask.Core;
+using maskx.OrchestrationService.Worker;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -8,10 +9,10 @@ namespace maskx.OrchestrationService.OrchestrationCreator
     public class BPMNCreator : ObjectCreator<TaskOrchestration>
     {
         private Type prototype;
-        private readonly Orchestration orchestration;
+        private readonly maskx.OrchestrationService.Worker.Orchestration orchestration;
         private readonly object thisLock = new object();
 
-        public BPMNCreator(Orchestration orchestration)
+        public BPMNCreator(maskx.OrchestrationService.Worker.Orchestration orchestration)
         {
             this.orchestration = orchestration;
         }

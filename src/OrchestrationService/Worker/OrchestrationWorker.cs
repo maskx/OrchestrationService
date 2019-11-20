@@ -5,12 +5,13 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using DurableTask.Core;
+using DurableTask.Core.History;
 using maskx.OrchestrationService.OrchestrationCreator;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace maskx.OrchestrationService
+namespace maskx.OrchestrationService.Worker
 {
     public class OrchestrationWorker : BackgroundService
     {
@@ -20,6 +21,7 @@ namespace maskx.OrchestrationService
         private readonly IJobProvider jobProvider;
         private readonly OrchestrationWorkerOptions options;
         private readonly Dictionary<string, Orchestration> OrchestrationDefine;
+        private readonly IServiceProvider serviceProvider;
 
         // hold orchestrationManager and activityManager, so we can remove unused orchestration
         private readonly DynamicNameVersionObjectManager<TaskOrchestration> orchestrationManager;
@@ -30,8 +32,10 @@ namespace maskx.OrchestrationService
             IOrchestrationService orchestrationService,
             IOrchestrationServiceClient orchestrationServiceClient,
             IJobProvider jobProvider,
-            IOptions<OrchestrationWorkerOptions> options)
+            IOptions<OrchestrationWorkerOptions> options,
+            IServiceProvider serviceProvider)
         {
+            this.serviceProvider = serviceProvider;
             this.logger = logger;
             this.options = options.Value;
             this.jobProvider = jobProvider;
@@ -40,6 +44,21 @@ namespace maskx.OrchestrationService
             this.taskHubWorker = new TaskHubWorker(orchestrationService,
                 this.orchestrationManager,
                 this.activityManager);
+            this.taskHubWorker.AddOrchestrationDispatcherMiddleware((cxt, next) =>
+            {
+                var orchestration = cxt.GetProperty<TaskOrchestration>();
+                var state = cxt.GetProperty<OrchestrationRuntimeState>();
+                var instance1 = cxt.GetProperty<OrchestrationInstance>();
+                return next();
+            });
+            this.taskHubWorker.AddActivityDispatcherMiddleware((cxt, next) =>
+            {
+                var activity = cxt.GetProperty<TaskActivity>();
+                var taskScheduledEvent = cxt.GetProperty<TaskScheduledEvent>();
+                var instance2 = cxt.GetProperty<OrchestrationInstance>();
+                return next();
+            });
+
             this.taskHubClient = new TaskHubClient(orchestrationServiceClient);
             this.OrchestrationDefine = new Dictionary<string, Orchestration>();
         }
@@ -54,7 +73,8 @@ namespace maskx.OrchestrationService
             {
                 this.orchestrationManager.TryAdd(new DefaultObjectCreator<TaskOrchestration>(orchestrator));
             }
-            this.taskHubWorker.StartAsync();
+            this.taskHubWorker.orchestrationService.CreateIfNotExistsAsync().Wait();
+            this.taskHubWorker.StartAsync().Wait();
             return base.StartAsync(cancellationToken);
         }
 
@@ -92,7 +112,8 @@ namespace maskx.OrchestrationService
 
         private async Task JumpStartOrchestrationAsync(Job job)
         {
-            var creator = new ARMCreator(job.Orchestration);
+            //   ObjectCreator<TaskOrchestration> creator = this.serviceProvider.GetService(typeof(int)) as ObjectCreator<TaskOrchestration>;
+            var creator = this.options.GetOrchestrationCreator(job.Orchestration);
             this.orchestrationManager.TryAdd(creator);
             var instance = await this.taskHubClient.CreateOrchestrationInstanceAsync(
                 creator.Name,

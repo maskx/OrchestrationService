@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace maskx.OrchestrationService
+namespace maskx.OrchestrationService.Worker
 {
     public interface IJobProvider
     {

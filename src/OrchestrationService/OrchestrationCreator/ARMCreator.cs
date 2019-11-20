@@ -1,4 +1,5 @@
 ﻿using DurableTask.Core;
+using maskx.OrchestrationService.Worker;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -8,16 +9,16 @@ namespace maskx.OrchestrationService.OrchestrationCreator
     public class ARMCreator : ObjectCreator<TaskOrchestration>
     {
         private Type prototype;
-        private readonly Orchestration orchestration;
+        private readonly maskx.OrchestrationService.Worker.Orchestration orchestration;
         private readonly object thisLock = new object();
 
-        public ARMCreator(Orchestration orchestration)
+        public ARMCreator(maskx.OrchestrationService.Worker.Orchestration orchestration)
         {
             this.orchestration = orchestration;
-            if (string.IsNullOrEmpty(orchestration.Name))
+            if (string.IsNullOrEmpty(orchestration.Uri))
                 this.Name = Guid.NewGuid().ToString("N");
             else
-                this.Name = orchestration.Name;
+                this.Name = orchestration.Uri;
             this.Version = orchestration.Version;
         }
 

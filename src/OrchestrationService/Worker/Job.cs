@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace maskx.OrchestrationService
+namespace maskx.OrchestrationService.Worker
 {
     public class Job
     {
