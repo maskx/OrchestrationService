@@ -1,27 +1,17 @@
 ﻿using DurableTask.Core;
-using DurableTask.Core.Common;
-using DurableTask.Core.Settings;
-using maskx.DurableTask.SQLServer;
-using maskx.DurableTask.SQLServer.Settings;
-using maskx.DurableTask.SQLServer.Tracking;
-using maskx.OrchestrationService;
-using maskx.OrchestrationService.Activity;
 using maskx.OrchestrationService.Worker;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using OrchestrationService.Tests.Orchestration;
 using System;
 using System.Collections.Generic;
-using System.Data.Common;
-using System.Data.SqlClient;
-using System.IO;
-using System.Text;
-using System.Threading.Tasks;
 using Xunit;
 using System.Linq;
 using maskx.OrchestrationService.OrchestrationCreator;
+using OrchestrationService.Tests.Activity;
+using OrchestrationService.Tests.Worker;
+using OrchestrationService.Tests.Extensions;
 
 namespace OrchestrationService.Tests
 {
@@ -32,6 +22,9 @@ namespace OrchestrationService.Tests
         public WorkerHostFixture()
         {
             WorkerHost = CreateHostBuilder().Build();
+            OrchestrationContextExtension.ServiceProvider = WorkerHost.Services;
+            TaskContextExtension.ServiceProvider = WorkerHost.Services;
+
             WorkerHost.RunAsync();
         }
 
@@ -45,16 +38,21 @@ namespace OrchestrationService.Tests
           Host.CreateDefaultBuilder()
               .ConfigureAppConfiguration((hostingContext, config) =>
               {
-                  config.AddJsonFile("appsettings.json", optional: true);
+                  config
+                  .AddJsonFile("appsettings.json", optional: true)
+                  .AddUserSecrets("D2705D0C-A231-4B0D-84B4-FD2BFC6AD8F0");
               })
               .ConfigureServices((hostContext, services) =>
               {
+                  OrchestrationContextExtension.Configuration = hostContext.Configuration;
+                  TaskContextExtension.Configuration = hostContext.Configuration;
+
                   Dictionary<string, Type> orchestrationTypes = new Dictionary<string, Type>();
                   List<Type> activityTypes = new List<Type>();
 
                   orchestrationTypes.Add(typeof(PrepareVMTemplateAuthorizeOrchestration).FullName, typeof(PrepareVMTemplateAuthorizeOrchestration));
-                  CommunicationActivity.DbConnectionString = TestHelpers.ConnectionString;
-                  activityTypes.Add(typeof(CommunicationActivity));
+
+                  activityTypes.Add(typeof(AsyncRequestActivity));
 
                   services.Configure<CommunicationWorkerOptions>(options => TestHelpers.Configuration.GetSection("CommunicationWorker").Bind(options));
 

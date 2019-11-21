@@ -18,7 +18,8 @@ namespace OrchestrationService.Tests
                 {
                     Creator = "DefaultObjectCreator",
                     Uri = "OrchestrationService.Tests.Orchestration.PrepareVMTemplateAuthorizeOrchestration"
-                }
+                },
+                Input = "Input:" + Guid.NewGuid().ToString()
             });
             while (true)
             {

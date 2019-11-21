@@ -10,6 +10,8 @@ using maskx.OrchestrationService.OrchestrationCreator;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.DependencyInjection;
+using DurableTask.Core.Common;
 
 namespace maskx.OrchestrationService.Worker
 {
@@ -44,21 +46,6 @@ namespace maskx.OrchestrationService.Worker
             this.taskHubWorker = new TaskHubWorker(orchestrationService,
                 this.orchestrationManager,
                 this.activityManager);
-            this.taskHubWorker.AddOrchestrationDispatcherMiddleware((cxt, next) =>
-            {
-                var orchestration = cxt.GetProperty<TaskOrchestration>();
-                var state = cxt.GetProperty<OrchestrationRuntimeState>();
-                var instance1 = cxt.GetProperty<OrchestrationInstance>();
-                return next();
-            });
-            this.taskHubWorker.AddActivityDispatcherMiddleware((cxt, next) =>
-            {
-                var activity = cxt.GetProperty<TaskActivity>();
-                var taskScheduledEvent = cxt.GetProperty<TaskScheduledEvent>();
-                var instance2 = cxt.GetProperty<OrchestrationInstance>();
-                return next();
-            });
-
             this.taskHubClient = new TaskHubClient(orchestrationServiceClient);
             this.OrchestrationDefine = new Dictionary<string, Orchestration>();
         }
@@ -75,6 +62,7 @@ namespace maskx.OrchestrationService.Worker
             }
             this.taskHubWorker.orchestrationService.CreateIfNotExistsAsync().Wait();
             this.taskHubWorker.StartAsync().Wait();
+
             return base.StartAsync(cancellationToken);
         }
 
@@ -112,7 +100,6 @@ namespace maskx.OrchestrationService.Worker
 
         private async Task JumpStartOrchestrationAsync(Job job)
         {
-            //   ObjectCreator<TaskOrchestration> creator = this.serviceProvider.GetService(typeof(int)) as ObjectCreator<TaskOrchestration>;
             var creator = this.options.GetOrchestrationCreator(job.Orchestration);
             this.orchestrationManager.TryAdd(creator);
             var instance = await this.taskHubClient.CreateOrchestrationInstanceAsync(

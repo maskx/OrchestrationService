@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace maskx.OrchestrationService.Worker
+namespace OrchestrationService.Tests.Worker
 {
     public class CommunicationWorkerOptions
     {

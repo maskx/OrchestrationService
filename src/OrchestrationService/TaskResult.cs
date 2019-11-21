@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace maskx.OrchestrationService.Orchestration
+namespace maskx.OrchestrationService
 {
-    public class HttpResponse
+    public class TaskResult
     {
         public int Code { get; set; }
         public string Content { get; set; }

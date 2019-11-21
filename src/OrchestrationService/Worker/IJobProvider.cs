@@ -13,7 +13,5 @@ namespace maskx.OrchestrationService.Worker
         int Interval { get; set; }
 
         Task<IList<Job>> FetchAsync(int top);
-
-        Task UpdateAsync(Job orchestration);
     }
 }

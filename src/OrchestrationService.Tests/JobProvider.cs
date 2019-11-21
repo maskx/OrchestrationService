@@ -23,10 +23,5 @@ namespace OrchestrationService.Tests
             Jobs.RemoveRange(0, i);
             return jobs;
         }
-
-        public Task UpdateAsync(Job orchestration)
-        {
-            throw new NotImplementedException();
-        }
     }
 }

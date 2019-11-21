@@ -1,31 +1,71 @@
 ﻿using DurableTask.Core;
-using maskx.OrchestrationService.Activity;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using maskx.OrchestrationService;
+using Newtonsoft.Json.Linq;
+using OrchestrationService.Tests.Activity;
 using System.Threading.Tasks;
 
 namespace OrchestrationService.Tests.Orchestration
 {
-    public class PrepareVMTemplateAuthorizeOrchestration : TaskOrchestration<string, string>
+    public class PrepareVMTemplateAuthorizeOrchestration : TaskOrchestration<bool, string>
     {
-        private Dictionary<string, TaskCompletionSource<string>> waitHandlers = new Dictionary<string, TaskCompletionSource<string>>();
+        private const string queryEventName = "Query";
+        private TaskCompletionSource<string> queryWaitHandler = null;
+        private const string createEventName = "Create";
+        private TaskCompletionSource<string> createWaitHandle = null;
 
-        public override async Task<string> RunTask(OrchestrationContext context, string input)
+        public override async Task<bool> RunTask(OrchestrationContext context, string input)
         {
-            var name = this.waitHandlers.Count.ToString();
-            waitHandlers.Add(name, new TaskCompletionSource<string>());
-            await context.ScheduleTask<string>(typeof(CommunicationActivity), (name, input));
-            await waitHandlers[name].Task;
+            string cloudSubscriptionId = string.Empty;
 
-            return "done";
+            queryWaitHandler = new TaskCompletionSource<string>();
+            await context.ScheduleTask<string>(typeof(AsyncRequestActivity), (queryEventName, input));
+            await queryWaitHandler.Task;
+            var r = DataConverter.Deserialize<TaskResult>(queryWaitHandler.Task.Result);
+            if (r.Code == 200)
+            {
+                JArray grantedToList = null;// JObject.Parse(r.Content)["GrantedToList"] as JArray;
+                if (grantedToList == null)
+                    grantedToList = new JArray();
+                if (IsGranted(grantedToList, cloudSubscriptionId))
+                {
+                    return true;
+                }
+                else
+                {
+                    createWaitHandle = new TaskCompletionSource<string>();
+                    await context.ScheduleTask<string>(typeof(AsyncRequestActivity), (createEventName, input));
+                    await createWaitHandle.Task;
+                    var r1 = DataConverter.Deserialize<TaskResult>(createWaitHandle.Task.Result);
+                    if (r1.Code == 200)
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        private bool IsGranted(JArray grantedToList, string cloudSubscriptionId)
+        {
+            return false;
         }
 
         public override void OnEvent(OrchestrationContext context, string name, string input)
         {
-            if (this.waitHandlers.TryGetValue(name, out TaskCompletionSource<string> t))
+            if (this.queryWaitHandler != null && name == queryEventName)
             {
-                t.SetResult(input);
+                this.queryWaitHandler.SetResult(input);
+            }
+            else if (this.createWaitHandle != null && name == createEventName)
+            {
+                this.createWaitHandle.SetResult(input);
             }
         }
     }

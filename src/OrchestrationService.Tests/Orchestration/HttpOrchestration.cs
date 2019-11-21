@@ -1,23 +1,24 @@
 ﻿using DurableTask.Core;
+using maskx.OrchestrationService;
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace maskx.OrchestrationService.Orchestration
+namespace OrchestrationService.Tests.Orchestration
 {
-    public class HttpOrchestration : TaskOrchestration<HttpResponse, HttpRequest>
+    public class HttpOrchestration : TaskOrchestration<TaskResult, HttpRequestActivity>
     {
         // TODO: need rewrite
         public static string DbConnectionString { get; set; }
 
         private const string EventName = "Response";
-        private TaskCompletionSource<HttpResponse> waitHandler;
+        private TaskCompletionSource<TaskResult> waitHandler;
 
-        public override async Task<HttpResponse> RunTask(OrchestrationContext context, HttpRequest request)
+        public override async Task<TaskResult> RunTask(OrchestrationContext context, HttpRequestActivity request)
         {
-            waitHandler = new TaskCompletionSource<HttpResponse>();
+            waitHandler = new TaskCompletionSource<TaskResult>();
             await WriteRequest(context, request);
             await waitHandler.Task;
             var response = waitHandler.Task.Result;
@@ -29,7 +30,7 @@ namespace maskx.OrchestrationService.Orchestration
         {
             if (name == EventName && this.waitHandler != null)
             {
-                this.waitHandler.SetResult(new HttpResponse()
+                this.waitHandler.SetResult(new TaskResult()
                 {
                     Code = 200,
                     Content = input
@@ -37,7 +38,7 @@ namespace maskx.OrchestrationService.Orchestration
             }
         }
 
-        private async Task WriteRequest(OrchestrationContext context, HttpRequest request)
+        private async Task WriteRequest(OrchestrationContext context, HttpRequestActivity request)
         {
             using (var conn = new SqlConnection(DbConnectionString))
             {
