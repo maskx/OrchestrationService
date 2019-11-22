@@ -51,6 +51,7 @@ namespace OrchestrationService.Tests
                   List<Type> activityTypes = new List<Type>();
 
                   orchestrationTypes.Add(typeof(PrepareVMTemplateAuthorizeOrchestration).FullName, typeof(PrepareVMTemplateAuthorizeOrchestration));
+                  orchestrationTypes.Add(typeof(AsyncRequestOrchestration).FullName, typeof(AsyncRequestOrchestration));
 
                   activityTypes.Add(typeof(AsyncRequestActivity));
 

@@ -17,10 +17,12 @@ namespace OrchestrationService.Tests.Orchestration
         {
             string cloudSubscriptionId = string.Empty;
 
-            queryWaitHandler = new TaskCompletionSource<string>();
-            await context.ScheduleTask<string>(typeof(AsyncRequestActivity), (queryEventName, input));
-            await queryWaitHandler.Task;
-            var r = DataConverter.Deserialize<TaskResult>(queryWaitHandler.Task.Result);
+            //queryWaitHandler = new TaskCompletionSource<string>();
+            //await context.ScheduleTask<string>(typeof(AsyncRequestActivity), (queryEventName, input));
+            //await queryWaitHandler.Task;
+            //var r = DataConverter.Deserialize<TaskResult>(queryWaitHandler.Task.Result);
+            var s = await context.CreateSubOrchestrationInstance<string>(typeof(AsyncRequestOrchestration), input);
+            var r = DataConverter.Deserialize<TaskResult>(s);
             if (r.Code == 200)
             {
                 JArray grantedToList = null;// JObject.Parse(r.Content)["GrantedToList"] as JArray;

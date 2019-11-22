@@ -1,7 +1,6 @@
 ﻿using DurableTask.Core;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Text;
