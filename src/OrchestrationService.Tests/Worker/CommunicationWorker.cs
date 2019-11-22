@@ -26,51 +26,29 @@ namespace OrchestrationService.Tests.Worker
 
         public override Task StartAsync(CancellationToken cancellationToken)
         {
+            fetchCommandText = BuildFetchCommadn();
             return base.StartAsync(cancellationToken);
         }
 
         private string BuildFetchCommadn()
         {
-            var fetchRules = new List<FetchRule>() {
-                new FetchRule(){
-                    ConcurrencyCount=1,
-                    ServiceType="VirtualMachine",
-                    InOneSubscription=true
-                }
+            var r1 = new FetchRule()
+            {
+                ConcurrencyCount = 1
             };
-            string ruleTemplate = @"
-update top(1) T
-set @RequestId=T.RequestId=newid(),T.[Status]=N'Locked'
-output INSERTED.InstanceId,INSERTED.ExecutionId,INSERTED.EventName,INSERTED.RequestUri
-FROM Communication AS T
-    inner join (
-        select
-	        max(InstanceId) as InstanceId,
-	        max(ExecutionId) as ExcutionId,
-	        max(EventName) as EventName,
-	        SubscriptionId,
-	        COUNT(0) as Number
-        from Communication
-        where
-            [status]=N'Locked'
-            and ServiceType={0}
-            and RequestMethod={0}
-        group by SubscriptionId
-    ) as T1
-    on T1.InstanceId=T.InstanceId and T1.ExecutionId=T.ExecutionId and T1.EventName=T.EventName
-where
-    [status]=N'Pending'
-    and T1.Number<{0}
-
-if @RequestId is not null
-    begin
-        return
-    end
-";
+            r1.What.Add("ServiceType", "VirtualMachine");
+            r1.Scope.Add("SubscriptionId");
+            var fetchRules = new List<FetchRule>() {
+                r1
+            };
             StringBuilder sb = new StringBuilder("declare @RequestId nvarchar(50);");
+            List<string> others = new List<string>();
             foreach (var rule in fetchRules)
             {
+                sb.Append(string.Format(ruleTemplate, rule.Where, rule.Group, rule.ConcurrencyCount, rule.On));
+                others.Add($"({rule.Where})");
             }
+            sb.Append(string.Format(otherTemplat, string.Join(" and ", others)));
             return sb.ToString();
         }
 
@@ -87,6 +65,7 @@ if @RequestId is not null
                 if (job != null)
                 {
                     // 1. communicate with other system, and get response
+                    await UpdateJob(job.RequestId, 200, "{ Code:200,Content:\"done\"}");
                     // 2. send the result back to orchestration
                     await this.taskHubClient.RaiseEventAsync(
                         new OrchestrationInstance()
@@ -108,19 +87,7 @@ if @RequestId is not null
             using (var conn = new SqlConnection(this.options.ConnectionString))
             {
                 var cmd = conn.CreateCommand();
-                cmd.CommandText = @"
-declare @RequestId nvarchar(50)
-
-update top(1) communication
-set @RequestId=RequestId=newid(),[Status]=N'Locked'
-output INSERTED.InstanceId,INSERTED.ExecutionId,INSERTED.EventName,INSERTED.RequestUri
-where [status]=N'Pending'
-if @RequestId is not null
-begin
-    return
-end
-";
-
+                cmd.CommandText = fetchCommandText;
                 await conn.OpenAsync();
                 var reader = await cmd.ExecuteReaderAsync();
                 if (reader.Read())
@@ -130,10 +97,64 @@ end
                         InstanceId = reader["InstanceId"].ToString(),
                         ExecutionId = reader["ExecutionId"].ToString(),
                         EventName = reader["EventName"].ToString(),
+                        RequestId = reader["RequestId"].ToString()
                     };
                 }
             }
             return job;
         }
+
+        private async Task UpdateJob(string requestId, int code, string content)
+        {
+            using (var conn = new SqlConnection(this.options.ConnectionString))
+            {
+                var cmd = conn.CreateCommand();
+                cmd.CommandText = @"
+update Communication
+set [Status]=N'Completed', [ResponseCode]=@ResponseCode,[ResponseContent]=@ResponseContent
+where RequestId=@RequestId";
+                cmd.Parameters.AddWithValue("ResponseCode", code);
+                cmd.Parameters.AddWithValue("RequestId", requestId);
+                cmd.Parameters.AddWithValue("ResponseContent", content);
+                await conn.OpenAsync();
+                await cmd.ExecuteNonQueryAsync();
+            }
+        }
+
+        //{0} where
+        //{1} group
+        //{2} fetch limit count
+        //{3} on
+        private const string ruleTemplate = @"
+update top(1) T
+set @RequestId=T.RequestId=newid(),T.[Status]=N'Locked'
+output INSERTED.InstanceId,INSERTED.ExecutionId,INSERTED.EventName,INSERTED.RequestId
+FROM Communication AS T
+    inner join (
+        select
+            COUNT(case when [status]='Locked' then 1 else null end) as Locked,
+	        {1}
+        from Communication
+        where    {0}
+        group by {1}
+    ) as T1
+    on {3}
+where
+    [status]=N'Pending'
+    and T1.Locked<{2}
+
+if @RequestId is not null
+begin
+    return
+end
+";
+
+        private const string otherTemplat = @"
+update top(1) T
+set @RequestId=T.RequestId=newid(),T.[Status]=N'Locked'
+output INSERTED.InstanceId,INSERTED.ExecutionId,INSERTED.EventName,INSERTED.RequestId
+FROM Communication AS T
+where [status]=N'Pending' and not ({0})
+";
     }
 }

@@ -15,5 +15,6 @@ namespace OrchestrationService.Tests.Worker
         public string RequestMethod { get; set; }
         public string ResponseCode { get; set; }
         public string ResponseContent { get; set; }
+        public string RequestId { get; set; }
     }
 }
