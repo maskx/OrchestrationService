@@ -1,8 +1,13 @@
 ﻿using DurableTask.Core;
+using maskx.OrchestrationService;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Polly;
+using Polly.Extensions.Http;
+using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
+using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,11 +19,14 @@ namespace OrchestrationService.Tests.Worker
         private readonly TaskHubClient taskHubClient;
         private readonly CommunicationWorkerOptions options;
         private string fetchCommandText;
+        private IHttpClientFactory httpClientFactory;
 
         public CommunicationWorker(
             IOrchestrationServiceClient orchestrationServiceClient,
-            IOptions<CommunicationWorkerOptions> options)
+            IOptions<CommunicationWorkerOptions> options,
+            IHttpClientFactory httpClientFactory)
         {
+            this.httpClientFactory = httpClientFactory;
             this.options = options?.Value;
             this.taskHubClient = new TaskHubClient(orchestrationServiceClient);
         }
@@ -27,28 +35,6 @@ namespace OrchestrationService.Tests.Worker
         {
             fetchCommandText = BuildFetchCommadn();
             return base.StartAsync(cancellationToken);
-        }
-
-        private string BuildFetchCommadn()
-        {
-            var r1 = new FetchRule()
-            {
-                ConcurrencyCount = 1
-            };
-            r1.What.Add("ServiceType", "VirtualMachine");
-            r1.Scope.Add("SubscriptionId");
-            var fetchRules = new List<FetchRule>() {
-                r1
-            };
-            StringBuilder sb = new StringBuilder("declare @RequestId nvarchar(50);");
-            List<string> others = new List<string>();
-            foreach (var rule in fetchRules)
-            {
-                sb.Append(string.Format(ruleTemplate, rule.Where, rule.Group, rule.ConcurrencyCount, rule.On));
-                others.Add($"({rule.Where})");
-            }
-            sb.Append(string.Format(otherTemplat, string.Join(" and ", others)));
-            return sb.ToString();
         }
 
         public override Task StopAsync(CancellationToken cancellationToken)
@@ -120,40 +106,50 @@ where RequestId=@RequestId";
             }
         }
 
-        //{0} where
-        //{1} group
-        //{2} fetch limit count
-        //{3} on
-        private const string ruleTemplate = @"
-update top(1) T
+        private List<FetchRule> MockFetchRule()
+        {
+            var r1 = new FetchRule()
+            {
+                What = new Dictionary<string, string>() { { "ServiceType", "VirtualMachine" } },
+                Limitions = new List<Limitation>()
+            };
+            r1.Limitions.Add(new Limitation()
+            {
+                Concurrency = 1,
+                Scope = new List<string>()
+               {
+                   "SubscriptionId"
+               }
+            });
+            r1.Limitions.Add(new Limitation
+            {
+                Concurrency = 5,
+                Scope = new List<string>()
+               {
+                   "ManagementUnit"
+               }
+            });
+            var fetchRules = new List<FetchRule>();
+            fetchRules.Add(r1);
+            return fetchRules;
+        }
+
+        private string BuildFetchCommadn()
+        {
+            var fetchRules = MockFetchRule();
+            if (fetchRules.Count > 0)
+                return FetchRule.BuildFetchCommand(fetchRules, options.Concurrency);
+            else
+                return string.Format(fetchTemplate, options.Concurrency);
+        }
+
+        // {0} top
+        private const string fetchTemplate = @"
+update top({0}) T
 set @RequestId=T.RequestId=newid(),T.[Status]=N'Locked'
 output INSERTED.InstanceId,INSERTED.ExecutionId,INSERTED.EventName,INSERTED.RequestId
 FROM Communication AS T
-    inner join (
-        select
-            COUNT(case when [status]='Locked' then 1 else null end) as Locked,
-	        {1}
-        from Communication
-        where    {0}
-        group by {1}
-    ) as T1
-    on {3}
-where
-    [status]=N'Pending'
-    and T1.Locked<{2}
-
-if @RequestId is not null
-begin
-    return
-end
-";
-
-        private const string otherTemplat = @"
-update top(1) T
-set @RequestId=T.RequestId=newid(),T.[Status]=N'Locked'
-output INSERTED.InstanceId,INSERTED.ExecutionId,INSERTED.EventName,INSERTED.RequestId
-FROM Communication AS T
-where [status]=N'Pending' and not ({0})
+where [status]=N'Pending'
 ";
     }
 }

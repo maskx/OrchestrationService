@@ -7,19 +7,14 @@ namespace OrchestrationService.Tests.Worker
     public class FetchRule
     {
         /// <summary>
-        /// 并发请求的上限
-        /// </summary>
-        public int ConcurrencyCount { get; set; }
-
-        /// <summary>
         /// 需要限制并发请求的内容，如ServicType,RequestMethod，Operation
         /// </summary>
-        public Dictionary<string, string> What { get; private set; }
+        public Dictionary<string, string> What { get; set; }
 
         /// <summary>
         /// 限制并发请求的范围，如Subscription、ManagementUnit
         /// </summary>
-        public List<string> Scope { get; private set; }
+        public List<Limitation> Limitions { get; set; }
 
         private string where;
 
@@ -41,45 +36,70 @@ namespace OrchestrationService.Tests.Worker
             }
         }
 
-        private string group;
-
-        public string Group
+        public static string BuildFetchCommand(List<FetchRule> fetchRules, int otherConcurrency)
         {
-            get
+            StringBuilder sb = new StringBuilder("declare @RequestId nvarchar(50);");
+            List<string> others = new List<string>();
+            int index = 0;
+            foreach (var rule in fetchRules)
             {
-                if (string.IsNullOrEmpty(group))
+                string limitationQuery = string.Empty;
+                List<string> limitaitonWhere = new List<string>();
+                foreach (var limitation in rule.Limitions)
                 {
-                    if (Scope.Count > 0)
-                        group = string.Join(",", Scope);
+                    limitationQuery += string.Format(limitationTemplate,
+                            rule.Where,
+                            limitation.Group,
+                            index,
+                            limitation.On(index));
+                    limitaitonWhere.Add(string.Format("T{0}.Locked<{1}", index, limitation.Concurrency));
+                    index++;
                 }
-                return group;
+                sb.Append(string.Format(ruleTemplate, limitationQuery, string.Join(" and ", limitaitonWhere)));
+                others.Add($"({rule.Where})");
             }
+            sb.Append(string.Format(otherTemplate, otherConcurrency, string.Join(" and ", others)));
+            return sb.ToString();
         }
 
-        private string on;
+        //{0} where
+        //{1} group
+        //{2} limit index
+        //{3} on
+        private const string limitationTemplate = @"
+inner join (
+        select
+            COUNT(case when [status]='Locked' then 1 else null end) as Locked,
+	        {1}
+        from Communication
+        where    {0}
+        group by {1}
+    ) as T{2}
+    on {3}";
 
-        public string On
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(on))
-                {
-                    var s = new List<string>();
-                    foreach (var item in Scope)
-                    {
-                        s.Add($"T1.{item}=T.{item}");
-                    }
-                    if (Scope.Count > 0)
-                        on = string.Join(" and ", s);
-                }
-                return on;
-            }
-        }
+        //{0} limitation query
+        //{1} limitation where
+        private const string ruleTemplate = @"
+update top(1) T
+set @RequestId=T.RequestId=newid(),T.[Status]=N'Locked'
+output INSERTED.InstanceId,INSERTED.ExecutionId,INSERTED.EventName,INSERTED.RequestId
+FROM Communication AS T {0}
+where [status]=N'Pending' and {1}
 
-        public FetchRule()
-        {
-            What = new Dictionary<string, string>();
-            Scope = new List<string>();
-        }
+if @RequestId is not null
+begin
+    return
+end
+";
+
+        // {0} Concurrency of others
+        // {1} limitation where
+        private const string otherTemplate = @"
+update top({0}) T
+set @RequestId=T.RequestId=newid(),T.[Status]=N'Locked'
+output INSERTED.InstanceId,INSERTED.ExecutionId,INSERTED.EventName,INSERTED.RequestId
+FROM Communication AS T
+where [status]=N'Pending' and not ({1})
+";
     }
 }

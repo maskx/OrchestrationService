@@ -12,6 +12,9 @@ using maskx.OrchestrationService.OrchestrationCreator;
 using OrchestrationService.Tests.Activity;
 using OrchestrationService.Tests.Worker;
 using OrchestrationService.Tests.Extensions;
+using Polly;
+using System.Net.Http;
+using Polly.Extensions.Http;
 
 namespace OrchestrationService.Tests
 {
@@ -22,8 +25,7 @@ namespace OrchestrationService.Tests
         public WorkerHostFixture()
         {
             WorkerHost = CreateHostBuilder().Build();
-            OrchestrationContextExtension.ServiceProvider = WorkerHost.Services;
-            TaskContextExtension.ServiceProvider = WorkerHost.Services;
+            ContextExtension.ServiceProvider = WorkerHost.Services;
 
             WorkerHost.RunAsync();
         }
@@ -44,8 +46,7 @@ namespace OrchestrationService.Tests
               })
               .ConfigureServices((hostContext, services) =>
               {
-                  OrchestrationContextExtension.Configuration = hostContext.Configuration;
-                  TaskContextExtension.Configuration = hostContext.Configuration;
+                  ContextExtension.Configuration = hostContext.Configuration;
 
                   Dictionary<string, Type> orchestrationTypes = new Dictionary<string, Type>();
                   List<Type> activityTypes = new List<Type>();
@@ -90,6 +91,8 @@ namespace OrchestrationService.Tests
 
                   services.AddHostedService<OrchestrationWorker>();
                   services.AddHostedService<CommunicationWorker>();
+
+                  services.AddHttpClient();
               });
     }
 

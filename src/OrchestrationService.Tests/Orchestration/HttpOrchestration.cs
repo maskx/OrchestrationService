@@ -1,5 +1,6 @@
 ﻿using DurableTask.Core;
 using maskx.OrchestrationService;
+using OrchestrationService.Tests.Activity;
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
@@ -47,7 +48,7 @@ namespace OrchestrationService.Tests.Orchestration
                 cmd.Parameters.AddWithValue("InstanceId", context.OrchestrationInstance.InstanceId);
                 cmd.Parameters.AddWithValue("ExecutionId", context.OrchestrationInstance.ExecutionId);
                 cmd.Parameters.AddWithValue("EventName", EventName);
-                cmd.Parameters.AddWithValue("RequestUri", request.Uri);
+
                 cmd.Parameters.AddWithValue("Status", "Pending");
                 conn.Open();
                 cmd.ExecuteNonQuery();
