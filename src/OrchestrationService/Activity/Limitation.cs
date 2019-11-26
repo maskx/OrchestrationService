@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
-namespace OrchestrationService.Tests.Worker
+namespace maskx.OrchestrationService.Activity
 {
     public class Limitation
     {

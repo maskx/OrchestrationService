@@ -1,16 +1,10 @@
 ﻿using DurableTask.Core;
 using DurableTask.Core.Common;
-using DurableTask.Core.Settings;
 using maskx.DurableTask.SQLServer;
 using maskx.DurableTask.SQLServer.Settings;
 using maskx.DurableTask.SQLServer.Tracking;
 using Microsoft.Extensions.Configuration;
 using System;
-using System.Collections.Generic;
-using System.Data.Common;
-using System.Data.SqlClient;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace OrchestrationService.Tests
 {
@@ -49,7 +43,7 @@ namespace OrchestrationService.Tests
             return new SqlServerInstanceStore(new SqlServerInstanceStoreSettings()
             {
                 HubName = TestHelpers.HubName,
-                GetDatabaseConnection = () => Task.Run(() => new SqlConnection(TestHelpers.ConnectionString) as DbConnection)
+                ConnectionString = TestHelpers.ConnectionString
             });
         }
 
@@ -57,8 +51,7 @@ namespace OrchestrationService.Tests
         {
             var settings = new SQLServerOrchestrationServiceSettings
             {
-                TaskOrchestrationDispatcherSettings = { CompressOrchestrationState = true },
-                MessageCompressionSettings = new CompressionSettings { Style = style, ThresholdInBytes = 1024 }
+                TaskOrchestrationDispatcherSettings = { CompressOrchestrationState = true }
             };
 
             return settings;
@@ -70,7 +63,6 @@ namespace OrchestrationService.Tests
                          TestHelpers.ConnectionString,
                          TestHelpers.HubName,
                          CreateSQLServerInstanceStore(),
-                         null,
                          CreateOrchestrationServiceSettings());
         }
 
@@ -80,7 +72,6 @@ namespace OrchestrationService.Tests
                          TestHelpers.ConnectionString,
                          TestHelpers.HubName,
                          CreateSQLServerInstanceStore(),
-                         null,
                          CreateOrchestrationServiceSettings());
         }
     }

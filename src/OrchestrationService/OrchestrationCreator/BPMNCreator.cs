@@ -9,10 +9,10 @@ namespace maskx.OrchestrationService.OrchestrationCreator
     public class BPMNCreator : ObjectCreator<TaskOrchestration>
     {
         private Type prototype;
-        private readonly maskx.OrchestrationService.Worker.Orchestration orchestration;
+        private readonly Orchestration orchestration;
         private readonly object thisLock = new object();
 
-        public BPMNCreator(maskx.OrchestrationService.Worker.Orchestration orchestration)
+        public BPMNCreator(Orchestration orchestration)
         {
             this.orchestration = orchestration;
         }

@@ -1,10 +1,8 @@
 ﻿using DurableTask.Core;
-using System;
-using System.Collections.Generic;
-using System.Data.SqlClient;
-using System.Text;
-using OrchestrationService.Tests.Extensions;
 using Microsoft.Extensions.Configuration;
+using OrchestrationService.Tests.Extensions;
+using System.Data.SqlClient;
+using System.Net.Http;
 
 namespace OrchestrationService.Tests.Activity
 {
@@ -23,6 +21,7 @@ namespace OrchestrationService.Tests.Activity
                 cmd.Parameters.AddWithValue("Status", "Pending");
                 cmd.Parameters.AddWithValue("ServiceType", "VirtualMachine");
                 cmd.Parameters.AddWithValue("SubscriptionId", "123");
+                cmd.Parameters.AddWithValue("ManagementUnit", "MmmM");
                 conn.Open();
                 cmd.ExecuteNonQuery();
             }
@@ -35,9 +34,9 @@ USING (VALUES (@InstanceId,@ExecutionId,@EventName)) AS SOURCE ([InstanceId],[Ex
 ON [Target].InstanceId = [Source].InstanceId AND [Target].ExecutionId = [Source].ExecutionId AND [Target].EventName = [Source].EventName
 WHEN NOT MATCHED THEN
     INSERT
-        (InstanceId,ExecutionId,EventName,[RequestMethod],[Status],[ServiceType],[SubscriptionId])
+        (InstanceId,ExecutionId,EventName,[RequestMethod],[Status],[ServiceType],[SubscriptionId],[ManagementUnit])
     values
-        (@InstanceId,@ExecutionId,@EventName,@RequestMethod,@Status,@ServiceType,@SubscriptionId)
+        (@InstanceId,@ExecutionId,@EventName,@RequestMethod,@Status,@ServiceType,@SubscriptionId,@ManagementUnit)
 ;";
     }
 }

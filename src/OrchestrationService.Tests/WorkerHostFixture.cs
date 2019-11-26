@@ -1,20 +1,17 @@
 ﻿using DurableTask.Core;
+using maskx.OrchestrationService;
 using maskx.OrchestrationService.Worker;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OrchestrationService.Tests.Activity;
+using OrchestrationService.Tests.Extensions;
 using OrchestrationService.Tests.Orchestration;
+using OrchestrationService.Tests.Worker;
 using System;
 using System.Collections.Generic;
-using Xunit;
 using System.Linq;
-using maskx.OrchestrationService.OrchestrationCreator;
-using OrchestrationService.Tests.Activity;
-using OrchestrationService.Tests.Worker;
-using OrchestrationService.Tests.Extensions;
-using Polly;
-using System.Net.Http;
-using Polly.Extensions.Http;
+using Xunit;
 
 namespace OrchestrationService.Tests
 {
@@ -58,24 +55,17 @@ namespace OrchestrationService.Tests
 
                   services.Configure<CommunicationWorkerOptions>(options => TestHelpers.Configuration.GetSection("CommunicationWorker").Bind(options));
 
+                  services.AddSingleton<IOrchestrationCreatorFactory>((sp) =>
+                  {
+                      OrchestrationCreatorFactory orchestrationCreatorFactory = new OrchestrationCreatorFactory(sp);
+                      orchestrationCreatorFactory.RegistCreator("DICreator", typeof(DICreator<TaskOrchestration>));
+                      orchestrationCreatorFactory.RegistCreator("DefaultObjectCreator", typeof(DefaultObjectCreator<TaskOrchestration>));
+                      return orchestrationCreatorFactory;
+                  });
                   services.Configure<OrchestrationWorkerOptions>(options =>
                   {
                       options.GetBuildInOrchestrators = () => orchestrationTypes.Values.ToList();
                       options.GetBuildInTaskActivities = () => activityTypes;
-                      options.GetOrchestrationCreator = (orch) =>
-                      {
-                          switch (orch.Creator)
-                          {
-                              case "DefaultObjectCreator":
-                                  return new DefaultObjectCreator<TaskOrchestration>(orchestrationTypes[orch.Uri]);
-
-                              case "ARMCreator":
-                                  return new ARMCreator(orch);
-
-                              default:
-                                  return null;
-                          }
-                      };
                   });
 
                   services.AddSingleton<IJobProvider>(new JobProvider());
@@ -91,7 +81,6 @@ namespace OrchestrationService.Tests
 
                   services.AddHostedService<OrchestrationWorker>();
                   services.AddHostedService<CommunicationWorker>();
-
                   services.AddHttpClient();
               });
     }

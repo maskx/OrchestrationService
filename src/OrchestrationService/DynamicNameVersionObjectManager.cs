@@ -1,9 +1,8 @@
 ﻿using DurableTask.Core;
 using System;
 using System.Collections.Generic;
-using System.Text;
 
-namespace maskx.OrchestrationService.Worker
+namespace maskx.OrchestrationService
 {
     public class DynamicNameVersionObjectManager<T> : INameVersionObjectManager<T>
     {
@@ -66,6 +65,13 @@ namespace maskx.OrchestrationService.Worker
 
                 return default(T);
             }
+        }
+
+        public ObjectCreator<T> GetCreator(string key)
+        {
+            if (this.creators.ContainsKey(key))
+                return this.creators[key];
+            return null;
         }
 
         private string GetKey(string name, string version)

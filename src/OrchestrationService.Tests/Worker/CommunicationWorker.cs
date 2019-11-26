@@ -1,5 +1,6 @@
 ﻿using DurableTask.Core;
 using maskx.OrchestrationService;
+using maskx.OrchestrationService.Activity;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Polly;

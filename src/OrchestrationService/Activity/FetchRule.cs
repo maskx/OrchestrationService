@@ -1,8 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
 
-namespace OrchestrationService.Tests.Worker
+namespace maskx.OrchestrationService.Activity
 {
     public class FetchRule
     {

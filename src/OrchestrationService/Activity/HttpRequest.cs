@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace OrchestrationService.Tests.Activity
+namespace maskx.OrchestrationService.Activity
 {
     public class HttpRequest
     {

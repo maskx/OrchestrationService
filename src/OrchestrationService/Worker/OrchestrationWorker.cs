@@ -22,43 +22,43 @@ namespace maskx.OrchestrationService.Worker
         private readonly TaskHubClient taskHubClient;
         private readonly IJobProvider jobProvider;
         private readonly OrchestrationWorkerOptions options;
-        private readonly Dictionary<string, Orchestration> OrchestrationDefine;
         private readonly IServiceProvider serviceProvider;
 
         // hold orchestrationManager and activityManager, so we can remove unused orchestration
         private readonly DynamicNameVersionObjectManager<TaskOrchestration> orchestrationManager;
 
         private readonly DynamicNameVersionObjectManager<TaskActivity> activityManager;
+        private readonly IOrchestrationCreatorFactory orchestrationCreatorFactory;
 
         public OrchestrationWorker(ILogger<OrchestrationWorker> logger,
             IOrchestrationService orchestrationService,
             IOrchestrationServiceClient orchestrationServiceClient,
-            IJobProvider jobProvider,
             IOptions<OrchestrationWorkerOptions> options,
-            IServiceProvider serviceProvider)
+            IServiceProvider serviceProvider,
+            IOrchestrationCreatorFactory orchestrationCreatorFactory)
         {
             this.serviceProvider = serviceProvider;
             this.logger = logger;
             this.options = options.Value;
-            this.jobProvider = jobProvider;
+            this.jobProvider = serviceProvider.GetService<IJobProvider>();
             this.orchestrationManager = new DynamicNameVersionObjectManager<TaskOrchestration>();
             this.activityManager = new DynamicNameVersionObjectManager<TaskActivity>();
             this.taskHubWorker = new TaskHubWorker(orchestrationService,
                 this.orchestrationManager,
                 this.activityManager);
             this.taskHubClient = new TaskHubClient(orchestrationServiceClient);
-            this.OrchestrationDefine = new Dictionary<string, Orchestration>();
+            this.orchestrationCreatorFactory = orchestrationCreatorFactory;
         }
 
         public override Task StartAsync(CancellationToken cancellationToken)
         {
             foreach (var activity in this.options.GetBuildInTaskActivities())
             {
-                this.activityManager.TryAdd(new DefaultObjectCreator<TaskActivity>(activity));
+                this.activityManager.TryAdd(new DICreator<TaskActivity>(serviceProvider, activity));
             }
             foreach (var orchestrator in this.options.GetBuildInOrchestrators())
             {
-                this.orchestrationManager.TryAdd(new DefaultObjectCreator<TaskOrchestration>(orchestrator));
+                this.orchestrationManager.TryAdd(new DICreator<TaskOrchestration>(serviceProvider, orchestrator));
             }
             this.taskHubWorker.orchestrationService.CreateIfNotExistsAsync().Wait();
             this.taskHubWorker.StartAsync().Wait();
@@ -74,6 +74,8 @@ namespace maskx.OrchestrationService.Worker
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            if (this.jobProvider == null)
+                return;
             Stopwatch sw = new Stopwatch();
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -98,10 +100,14 @@ namespace maskx.OrchestrationService.Worker
             }
         }
 
-        private async Task JumpStartOrchestrationAsync(Job job)
+        public async Task JumpStartOrchestrationAsync(Job job)
         {
-            var creator = this.options.GetOrchestrationCreator(job.Orchestration);
-            this.orchestrationManager.TryAdd(creator);
+            ObjectCreator<TaskOrchestration> creator = this.orchestrationManager.GetCreator(job.Orchestration.Uri);
+            if (creator == null)
+            {
+                creator = this.orchestrationCreatorFactory.Create<ObjectCreator<TaskOrchestration>>(job.Orchestration.Creator, job.Orchestration.Uri);
+                this.orchestrationManager.TryAdd(creator);
+            }
             var instance = await this.taskHubClient.CreateOrchestrationInstanceAsync(
                 creator.Name,
                 creator.Version,

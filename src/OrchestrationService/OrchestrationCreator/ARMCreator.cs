@@ -9,10 +9,10 @@ namespace maskx.OrchestrationService.OrchestrationCreator
     public class ARMCreator : ObjectCreator<TaskOrchestration>
     {
         private Type prototype;
-        private readonly maskx.OrchestrationService.Worker.Orchestration orchestration;
+        private readonly Orchestration orchestration;
         private readonly object thisLock = new object();
 
-        public ARMCreator(maskx.OrchestrationService.Worker.Orchestration orchestration)
+        public ARMCreator(Orchestration orchestration)
         {
             this.orchestration = orchestration;
             if (string.IsNullOrEmpty(orchestration.Uri))
