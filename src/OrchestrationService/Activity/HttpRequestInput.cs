@@ -4,7 +4,7 @@ using System.Text;
 
 namespace maskx.OrchestrationService.Activity
 {
-    public class HttpRequest
+    public class HttpRequestInput
     {
         public string Uri { get; set; }
         public Dictionary<string, string> Headers { get; set; }

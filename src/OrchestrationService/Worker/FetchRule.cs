@@ -1,19 +1,19 @@
 ﻿using System.Collections.Generic;
 using System.Text;
 
-namespace maskx.OrchestrationService.Activity
+namespace maskx.OrchestrationService.Worker
 {
     public class FetchRule
     {
         /// <summary>
         /// 需要限制并发请求的内容，如ServicType,RequestMethod，Operation
         /// </summary>
-        public Dictionary<string, string> What { get; set; }
+        public Dictionary<string, string> What { get; set; } = new Dictionary<string, string>();
 
         /// <summary>
         /// 限制并发请求的范围，如Subscription、ManagementUnit
         /// </summary>
-        public List<Limitation> Limitions { get; set; }
+        public List<Limitation> Limitions { get; set; } = new List<Limitation>();
 
         private string where;
 
@@ -35,9 +35,9 @@ namespace maskx.OrchestrationService.Activity
             }
         }
 
-        public static string BuildFetchCommand(List<FetchRule> fetchRules, int otherConcurrency)
+        public static string BuildFetchCommand(List<FetchRule> fetchRules, CommunicationWorkerOptions options)
         {
-            StringBuilder sb = new StringBuilder("declare @RequestId nvarchar(50);");
+            StringBuilder sb = new StringBuilder();
             List<string> others = new List<string>();
             int index = 0;
             foreach (var rule in fetchRules)
@@ -50,39 +50,42 @@ namespace maskx.OrchestrationService.Activity
                             rule.Where,
                             limitation.Group,
                             index,
-                            limitation.On(index));
+                            limitation.On(index),
+                            options.CommunicationTableName);
                     limitaitonWhere.Add(string.Format("T{0}.Locked<{1}", index, limitation.Concurrency));
                     index++;
                 }
-                sb.Append(string.Format(ruleTemplate, limitationQuery, string.Join(" and ", limitaitonWhere)));
+                sb.Append(string.Format(ruleTemplate, limitationQuery, string.Join(" and ", limitaitonWhere), options.CommunicationTableName));
                 others.Add($"({rule.Where})");
             }
-            sb.Append(string.Format(otherTemplate, otherConcurrency, string.Join(" and ", others)));
+            sb.Append(string.Format(otherTemplate, options.MaxConcurrencyRequest, string.Join(" and ", others), options.CommunicationTableName));
             return sb.ToString();
         }
 
-        //{0} where
-        //{1} group
-        //{2} limit index
-        //{3} on
+        // {0} where
+        // {1} group
+        // {2} limit index
+        // {3} on
+        // {4} Communication table name
         private const string limitationTemplate = @"
 inner join (
         select
             COUNT(case when [status]='Locked' then 1 else null end) as Locked,
 	        {1}
-        from Communication
+        from {4}
         where    {0}
         group by {1}
     ) as T{2}
     on {3}";
 
-        //{0} limitation query
-        //{1} limitation where
+        // {0} limitation query
+        // {1} limitation where
+        // {2} Communication table name
         private const string ruleTemplate = @"
 update top(1) T
 set @RequestId=T.RequestId=newid(),T.[Status]=N'Locked'
-output INSERTED.InstanceId,INSERTED.ExecutionId,INSERTED.EventName,INSERTED.RequestId
-FROM Communication AS T {0}
+output INSERTED.*
+FROM {2} AS T {0}
 where [status]=N'Pending' and {1}
 
 if @RequestId is not null
@@ -93,11 +96,12 @@ end
 
         // {0} Concurrency of others
         // {1} limitation where
+        // [2} Communication table name
         private const string otherTemplate = @"
 update top({0}) T
 set @RequestId=T.RequestId=newid(),T.[Status]=N'Locked'
-output INSERTED.InstanceId,INSERTED.ExecutionId,INSERTED.EventName,INSERTED.RequestId
-FROM Communication AS T
+output INSERTED.*
+FROM {2} AS T
 where [status]=N'Pending' and not ({1})
 ";
     }

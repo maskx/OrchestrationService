@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace maskx.OrchestrationService.Activity
+namespace maskx.OrchestrationService.Worker
 {
     public class Limitation
     {

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace maskx.OrchestrationService.Activity
 {
-    public class HttpRequestActivity : TaskActivity<HttpRequest, TaskResult>
+    public class HttpRequestActivity : TaskActivity<HttpRequestInput, TaskResult>
     {
         private IHttpClientFactory httpClientFactory;
 
@@ -16,7 +16,7 @@ namespace maskx.OrchestrationService.Activity
             this.httpClientFactory = httpClientFactory;
         }
 
-        protected override async Task<TaskResult> ExecuteAsync(TaskContext context, HttpRequest input)
+        protected override async Task<TaskResult> ExecuteAsync(TaskContext context, HttpRequestInput input)
         {
             var delay = Backoff.DecorrelatedJitterBackoffV2(medianFirstRetryDelay: TimeSpan.FromSeconds(1), retryCount: 5);
 
@@ -45,7 +45,7 @@ namespace maskx.OrchestrationService.Activity
             return new TaskResult() { Code = 400, Content = response.FinalException.Message };
         }
 
-        protected override TaskResult Execute(TaskContext context, HttpRequest request)
+        protected override TaskResult Execute(TaskContext context, HttpRequestInput request)
         {
             return ExecuteAsync(context, request).Result;
         }

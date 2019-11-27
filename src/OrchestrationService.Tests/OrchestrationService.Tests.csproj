@@ -39,4 +39,8 @@
     <ProjectReference Include="..\..\..\DurableTask.SQLServer\src\maskx.DurableTask.SQLServer\maskx.DurableTask.SQLServer.csproj" />
     <ProjectReference Include="..\OrchestrationService\OrchestrationService.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Activity\" />
+  </ItemGroup>
 </Project>

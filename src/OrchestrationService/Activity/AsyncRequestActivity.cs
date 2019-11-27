@@ -1,34 +1,54 @@
 ﻿using DurableTask.Core;
 using maskx.OrchestrationService.SQL;
-using Microsoft.Extensions.Configuration;
+using maskx.OrchestrationService.Worker;
+using Microsoft.Extensions.Options;
 using System.Collections.Generic;
-using System.Data.SqlClient;
-using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace maskx.OrchestrationService.Activity
 {
-    public class AsyncRequestActivity : TaskActivity<(string eventName, string requset), TaskResult>
+    public class AsyncRequestActivity : TaskActivity<AsyncRequestInput, TaskResult>
     {
-        private readonly AsyncRequestActivitySettings settings;
+        private readonly CommunicationWorkerOptions options;
         private readonly string commandText;
 
-        public AsyncRequestActivity(AsyncRequestActivitySettings settings)
+        public AsyncRequestActivity(IOptions<CommunicationWorkerOptions> options)
         {
-            this.settings = settings;
-            this.commandText = string.Format(commandTemplate,
-                string.Join("],[", settings.RuleFields),
-                string.Join(",@", settings.RuleFields));
+            this.options = options.Value;
+            if (this.options.RuleFields.Count == 0)
+            {
+                this.commandText = string.Format(commandTemplate, "", "", this.options.CommunicationTableName);
+            }
+            else
+            {
+                this.commandText = string.Format(commandTemplate,
+                $",[{string.Join("],[", this.options.RuleFields)}]",
+                ",@" + string.Join(",@", this.options.RuleFields),
+                this.options.CommunicationTableName);
+            }
         }
 
-        protected override async Task<TaskResult> ExecuteAsync(TaskContext context, (string eventName, string requset) input)
+        protected override async Task<TaskResult> ExecuteAsync(TaskContext context, AsyncRequestInput input)
         {
             Dictionary<string, object> pars = new Dictionary<string, object>();
             pars.Add("InstanceId", context.OrchestrationInstance.InstanceId);
             pars.Add("ExecutionId", context.OrchestrationInstance.ExecutionId);
-            pars.Add("EventName", input.eventName);
+            pars.Add("EventName", input.EventName);
             pars.Add("Status", "Pending");
-            using (var db = new DbAccess(settings.ConnectionString))
+            pars.Add("RequestTo", input.RequestTo);
+            pars.Add("RequestOperation", input.RequestOperation);
+            pars.Add("RequsetContent", input.RequsetContent);
+            pars.Add("RequestProperty", input.RequestProperty);
+            pars.Add("Processor", input.Processor);
+            if (input.RuleField != null)
+            {
+                foreach (var item in input.RuleField)
+                {
+                    pars.Add(item.Key, item.Value);
+                }
+            }
+
+            using (var db = new DbAccess(this.options.ConnectionString))
             {
                 db.AddStatement(this.commandText, pars);
                 await db.ExecuteNonQueryAsync();
@@ -36,20 +56,23 @@ namespace maskx.OrchestrationService.Activity
             return new TaskResult() { Code = 200 };
         }
 
-        protected override TaskResult Execute(TaskContext context, (string eventName, string requset) e)
+        protected override TaskResult Execute(TaskContext context, AsyncRequestInput input)
         {
-            return ExecuteAsync(context, e).Result;
+            return ExecuteAsync(context, input).Result;
         }
 
+        //{0} rule columns
+        //{1} rule value
+        //{2} Communication table name
         private const string commandTemplate = @"
-MERGE communication as TARGET
+MERGE {2} as TARGET
 USING (VALUES (@InstanceId,@ExecutionId,@EventName)) AS SOURCE ([InstanceId],[ExecutionId],[EventName])
 ON [Target].InstanceId = [Source].InstanceId AND [Target].ExecutionId = [Source].ExecutionId AND [Target].EventName = [Source].EventName
 WHEN NOT MATCHED THEN
     INSERT
-        ([InstanceId],[ExecutionId],[EventName],[Status],[{0}])
+        ([CreateTime],[InstanceId],[ExecutionId],[EventName],[Status],[RequestTo],[RequestOperation],[RequsetContent],[RequestProperty],[Processor]{0})
     values
-        (@InstanceId,@ExecutionId,@EventName,@Status,@{1})
+        (getutcdate(),@InstanceId,@ExecutionId,@EventName,@Status,@RequestTo,@RequestOperation,@RequsetContent,@RequestProperty,@Processor {1})
 ;";
     }
 }

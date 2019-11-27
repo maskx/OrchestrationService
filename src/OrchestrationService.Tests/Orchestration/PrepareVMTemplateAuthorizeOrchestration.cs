@@ -1,28 +1,19 @@
 ﻿using DurableTask.Core;
 using maskx.OrchestrationService;
+using maskx.OrchestrationService.Activity;
+using maskx.OrchestrationService.Orchestration;
 using Newtonsoft.Json.Linq;
-using OrchestrationService.Tests.Activity;
 using System.Threading.Tasks;
 
 namespace OrchestrationService.Tests.Orchestration
 {
     public class PrepareVMTemplateAuthorizeOrchestration : TaskOrchestration<bool, string>
     {
-        private const string queryEventName = "Query";
-        private TaskCompletionSource<string> queryWaitHandler = null;
-        private const string createEventName = "Create";
-        private TaskCompletionSource<string> createWaitHandle = null;
-
         public override async Task<bool> RunTask(OrchestrationContext context, string input)
         {
             string cloudSubscriptionId = string.Empty;
 
-            //queryWaitHandler = new TaskCompletionSource<string>();
-            //await context.ScheduleTask<string>(typeof(AsyncRequestActivity), (queryEventName, input));
-            //await queryWaitHandler.Task;
-            //var r = DataConverter.Deserialize<TaskResult>(queryWaitHandler.Task.Result);
-            var s = await context.CreateSubOrchestrationInstance<string>(typeof(AsyncRequestOrchestration), input);
-            var r = DataConverter.Deserialize<TaskResult>(s);
+            var r = await context.CreateSubOrchestrationInstance<TaskResult>(typeof(AsyncRequestOrchestration), new AsyncRequestInput());
             if (r.Code == 200)
             {
                 JArray grantedToList = null;// JObject.Parse(r.Content)["GrantedToList"] as JArray;
@@ -34,10 +25,7 @@ namespace OrchestrationService.Tests.Orchestration
                 }
                 else
                 {
-                    createWaitHandle = new TaskCompletionSource<string>();
-                    await context.ScheduleTask<string>(typeof(AsyncRequestActivity), (createEventName, input));
-                    await createWaitHandle.Task;
-                    var r1 = DataConverter.Deserialize<TaskResult>(createWaitHandle.Task.Result);
+                    var r1 = await context.CreateSubOrchestrationInstance<TaskResult>(typeof(AsyncRequestOrchestration), new AsyncRequestInput());
                     if (r1.Code == 200)
                     {
                         return true;
@@ -57,18 +45,6 @@ namespace OrchestrationService.Tests.Orchestration
         private bool IsGranted(JArray grantedToList, string cloudSubscriptionId)
         {
             return false;
-        }
-
-        public override void OnEvent(OrchestrationContext context, string name, string input)
-        {
-            if (this.queryWaitHandler != null && name == queryEventName)
-            {
-                this.queryWaitHandler.SetResult(input);
-            }
-            else if (this.createWaitHandle != null && name == createEventName)
-            {
-                this.createWaitHandle.SetResult(input);
-            }
         }
     }
 }

@@ -1,24 +1,21 @@
 ﻿using DurableTask.Core;
-using Newtonsoft.Json.Linq;
-using OrchestrationService.Tests.Activity;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using maskx.OrchestrationService.Activity;
 using System.Threading.Tasks;
 
-namespace OrchestrationService.Tests.Orchestration
+namespace maskx.OrchestrationService.Orchestration
 {
-    public class AsyncRequestOrchestration : TaskOrchestration<string, string>
+    public class AsyncRequestOrchestration : TaskOrchestration<TaskResult, AsyncRequestInput>
     {
         private const string eventName = "AsyncRequestOrch";
         private TaskCompletionSource<string> waitHandler = null;
 
-        public override async Task<string> RunTask(OrchestrationContext context, string input)
+        public override async Task<TaskResult> RunTask(OrchestrationContext context, AsyncRequestInput input)
         {
             this.waitHandler = new TaskCompletionSource<string>();
-            await context.ScheduleTask<string>(typeof(AsyncRequestActivity), (eventName, input));
+            input.EventName = eventName;
+            await context.ScheduleTask<TaskResult>(typeof(AsyncRequestActivity), input);
             await waitHandler.Task;
-            return waitHandler.Task.Result;
+            return DataConverter.Deserialize<TaskResult>(waitHandler.Task.Result);
         }
 
         public override void OnEvent(OrchestrationContext context, string name, string input)

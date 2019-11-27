@@ -1,13 +1,12 @@
 ﻿using DurableTask.Core;
 using maskx.OrchestrationService;
+using maskx.OrchestrationService.Activity;
+using maskx.OrchestrationService.Orchestration;
 using maskx.OrchestrationService.Worker;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using OrchestrationService.Tests.Activity;
-using OrchestrationService.Tests.Extensions;
 using OrchestrationService.Tests.Orchestration;
-using OrchestrationService.Tests.Worker;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,20 +16,22 @@ namespace OrchestrationService.Tests
 {
     public class WorkerHostFixture : IDisposable
     {
-        private IHost WorkerHost = null;
+        private IHost workerHost = null;
 
         public WorkerHostFixture()
         {
-            WorkerHost = CreateHostBuilder().Build();
-            ContextExtension.ServiceProvider = WorkerHost.Services;
-
-            WorkerHost.RunAsync();
+            CommunicationWorkerOptions options = new CommunicationWorkerOptions();
+            options.HubName = "NoRule";
+            List<Type> orchestrationTypes = new List<Type>();
+            orchestrationTypes.Add(typeof(PrepareVMTemplateAuthorizeOrchestration));
+            workerHost = TestHelpers.CreateHostBuilder(options, orchestrationTypes).Build();
+            workerHost.RunAsync();
         }
 
         public void Dispose()
         {
-            if (WorkerHost != null)
-                WorkerHost.StopAsync();
+            if (workerHost != null)
+                workerHost.StopAsync();
         }
 
         public IHostBuilder CreateHostBuilder() =>
@@ -43,8 +44,6 @@ namespace OrchestrationService.Tests
               })
               .ConfigureServices((hostContext, services) =>
               {
-                  ContextExtension.Configuration = hostContext.Configuration;
-
                   Dictionary<string, Type> orchestrationTypes = new Dictionary<string, Type>();
                   List<Type> activityTypes = new List<Type>();
 

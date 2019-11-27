@@ -92,7 +92,7 @@ namespace maskx.OrchestrationService.Worker
                 }
                 catch (Exception ex)
                 {
-                    throw;
+                    throw ex;
                 }
                 sw.Stop();
                 if (sw.ElapsedMilliseconds < this.jobProvider.Interval)
@@ -113,6 +113,7 @@ namespace maskx.OrchestrationService.Worker
                 creator.Version,
                 job.InstanceId,
                 job.Input);
+            return;
         }
     }
 }

@@ -12,7 +12,7 @@ namespace maskx.OrchestrationService.Worker
         public string CreateBy { get; set; }
         public DateTime CreateTime { get; set; }
         public DateTime LastUpdateTime { get; set; }
-        public Orchestration Orchestration { get; set; }
+        public OrchestrationCreator.Orchestration Orchestration { get; set; }
         public RuntimeStatus RuntimeStatus { get; set; }
     }
 
