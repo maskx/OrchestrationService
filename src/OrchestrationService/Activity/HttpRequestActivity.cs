@@ -24,10 +24,23 @@ namespace maskx.OrchestrationService.Activity
                 .Handle<TimeoutException>()
                 .WaitAndRetryAsync(delay);
             var client = httpClientFactory.CreateClient();
+            var request = new HttpRequestMessage()
+            {
+                Method = input.Method,
+                RequestUri = new Uri(input.Uri)
+            };
+            if (!string.IsNullOrEmpty(input.Content))
+            {
+                request.Content = new StringContent(input.Content, input.Encoding, input.MediaType);
+            }
+
+            foreach (var item in input.Headers)
+            {
+                request.Headers.Add(item.Key, item.Value);
+            }
             var response = await retryPolicy.ExecuteAndCaptureAsync(async () =>
             {
-                HttpRequestMessage requestMessage = new HttpRequestMessage();
-                return await client.SendAsync(requestMessage);
+                return await client.SendAsync(request);
             });
             string content = string.Empty;
             if (response.FaultType == null)

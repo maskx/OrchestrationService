@@ -100,7 +100,7 @@ namespace maskx.OrchestrationService.Worker
             }
         }
 
-        public async Task JumpStartOrchestrationAsync(Job job)
+        public async Task<OrchestrationInstance> JumpStartOrchestrationAsync(Job job)
         {
             ObjectCreator<TaskOrchestration> creator = this.orchestrationManager.GetCreator(job.Orchestration.Uri);
             if (creator == null)
@@ -108,12 +108,11 @@ namespace maskx.OrchestrationService.Worker
                 creator = this.orchestrationCreatorFactory.Create<ObjectCreator<TaskOrchestration>>(job.Orchestration.Creator, job.Orchestration.Uri);
                 this.orchestrationManager.TryAdd(creator);
             }
-            var instance = await this.taskHubClient.CreateOrchestrationInstanceAsync(
+            return await this.taskHubClient.CreateOrchestrationInstanceAsync(
                 creator.Name,
                 creator.Version,
                 job.InstanceId,
                 job.Input);
-            return;
         }
     }
 }

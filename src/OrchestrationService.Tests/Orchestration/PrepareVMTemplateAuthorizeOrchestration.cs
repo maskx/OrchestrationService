@@ -13,7 +13,11 @@ namespace OrchestrationService.Tests.Orchestration
         {
             string cloudSubscriptionId = string.Empty;
 
-            var r = await context.CreateSubOrchestrationInstance<TaskResult>(typeof(AsyncRequestOrchestration), new AsyncRequestInput());
+            var r = await context.CreateSubOrchestrationInstance<TaskResult>(
+                typeof(AsyncRequestOrchestration),
+                new AsyncRequestInput()
+                {
+                });
             if (r.Code == 200)
             {
                 JArray grantedToList = null;// JObject.Parse(r.Content)["GrantedToList"] as JArray;
