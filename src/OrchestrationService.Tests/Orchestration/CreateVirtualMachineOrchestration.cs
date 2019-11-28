@@ -16,7 +16,6 @@ namespace OrchestrationService.Tests.Orchestration
             {
                 return "fail";
             }
-
             return "done";
         }
     }

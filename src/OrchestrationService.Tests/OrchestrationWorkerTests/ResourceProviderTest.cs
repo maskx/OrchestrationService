@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace OrchestrationService.Tests
+namespace OrchestrationService.Tests.OrchestrationWorkerTests
 {
     [Collection("WorkerHost Collection")]
     public class ResourceProviderTest

@@ -86,7 +86,8 @@ namespace OrchestrationService.Tests
 
         public static IHostBuilder CreateHostBuilder(
             CommunicationWorkerOptions communicationWorkerOptions = null,
-            List<Type> orchestrationTypes = null)
+            List<Type> orchestrationTypes = null,
+            Action<HostBuilderContext, IServiceCollection> config = null)
         {
             return Host.CreateDefaultBuilder()
              .ConfigureAppConfiguration((hostingContext, config) =>
@@ -97,6 +98,8 @@ namespace OrchestrationService.Tests
              })
              .ConfigureServices((hostContext, services) =>
              {
+                 if (config != null)
+                     config(hostContext, services);
                  services.AddHttpClient();
                  services.AddSingleton((sp) =>
                  {
@@ -120,7 +123,6 @@ namespace OrchestrationService.Tests
                      orchestrationTypes = new List<Type>();
                  List<Type> activityTypes = new List<Type>();
 
-                 orchestrationTypes.Add(typeof(TestOrchestration));
                  orchestrationTypes.Add(typeof(AsyncRequestOrchestration));
 
                  activityTypes.Add(typeof(AsyncRequestActivity));

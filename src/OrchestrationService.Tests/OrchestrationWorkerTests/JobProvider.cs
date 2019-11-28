@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace OrchestrationService.Tests
+namespace OrchestrationService.Tests.OrchestrationWorkerTests
 {
     public class JobProvider : IJobProvider
     {
