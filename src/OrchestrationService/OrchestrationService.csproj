@@ -1,16 +1,12 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <LangVersion>7.1</LangVersion>
-    <UserSecretsId>DBBD9E9C-75F7-42EB-91D4-737CC5005C70</UserSecretsId>
     <AssemblyName>maskx.OrchestrationService</AssemblyName>
     <RootNamespace>maskx.OrchestrationService</RootNamespace>
-    <ApplicationIcon />
-    <OutputType>Library</OutputType>
-    <StartupObject />
     <Authors>maskx</Authors>
-    <Version>0.0.1</Version>
+    <Version>0.0.2</Version>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/maskx/OrchestrationService</PackageProjectUrl>
     <RepositoryUrl>https://github.com/maskx/OrchestrationService</RepositoryUrl>
