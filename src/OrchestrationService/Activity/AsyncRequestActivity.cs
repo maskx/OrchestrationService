@@ -65,7 +65,7 @@ namespace maskx.OrchestrationService.Activity
         //{1} rule value
         //{2} Communication table name
         private const string commandTemplate = @"
-MERGE {2} as TARGET
+MERGE {2} with (serializable) as TARGET
 USING (VALUES (@InstanceId,@ExecutionId,@EventName)) AS SOURCE ([InstanceId],[ExecutionId],[EventName])
 ON [Target].InstanceId = [Source].InstanceId AND [Target].ExecutionId = [Source].ExecutionId AND [Target].EventName = [Source].EventName
 WHEN NOT MATCHED THEN

@@ -10,9 +10,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "doc", "doc", "{F9A4C068-004
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OrchestrationService.Tests", "src\OrchestrationService.Tests\OrchestrationService.Tests.csproj", "{65CDDEDF-367C-439C-83F1-7C5A9D9246B8}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "maskx.DurableTask.SQLServer", "..\DurableTask.SQLServer\src\maskx.DurableTask.SQLServer\maskx.DurableTask.SQLServer.csproj", "{ECC2F9DA-CD53-4BCF-8A4A-A57C107D21E9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrchestrationService.Tests", "src\OrchestrationService.Tests\OrchestrationService.Tests.csproj", "{65CDDEDF-367C-439C-83F1-7C5A9D9246B8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -28,10 +26,6 @@ Global
 		{65CDDEDF-367C-439C-83F1-7C5A9D9246B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{65CDDEDF-367C-439C-83F1-7C5A9D9246B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{65CDDEDF-367C-439C-83F1-7C5A9D9246B8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{ECC2F9DA-CD53-4BCF-8A4A-A57C107D21E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{ECC2F9DA-CD53-4BCF-8A4A-A57C107D21E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{ECC2F9DA-CD53-4BCF-8A4A-A57C107D21E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{ECC2F9DA-CD53-4BCF-8A4A-A57C107D21E9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
