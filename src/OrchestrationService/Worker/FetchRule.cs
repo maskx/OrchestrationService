@@ -37,7 +37,7 @@ namespace maskx.OrchestrationService.Worker
 
         public static string BuildFetchCommand(List<FetchRule> fetchRules, CommunicationWorkerOptions options)
         {
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new StringBuilder("declare @Count int=0;");
             List<string> others = new List<string>();
             int index = 0;
             foreach (var rule in fetchRules)
@@ -52,10 +52,17 @@ namespace maskx.OrchestrationService.Worker
                             index,
                             limitation.On(index),
                             options.CommunicationTableName);
-                    limitaitonWhere.Add(string.Format("T{0}.Locked<{1}", index, limitation.Concurrency));
+                    limitaitonWhere.Add(
+                        string.Format("T{0}.Locked<{1}",
+                            index,
+                            limitation.Concurrency));
                     index++;
                 }
-                sb.Append(string.Format(ruleTemplate, limitationQuery, string.Join(" and ", limitaitonWhere), options.CommunicationTableName));
+                sb.Append(string.Format(ruleTemplate,
+                    limitationQuery,
+                    string.Join(" and ", limitaitonWhere),
+                    options.CommunicationTableName,
+                    options.MaxConcurrencyRequest));
                 others.Add($"({rule.Where})");
             }
             sb.Append(string.Format(otherTemplate, options.MaxConcurrencyRequest, string.Join(" and ", others), options.CommunicationTableName));
@@ -69,26 +76,26 @@ namespace maskx.OrchestrationService.Worker
         // {4} Communication table name
         private const string limitationTemplate = @"
 inner join (
-        select
-            COUNT(case when [status]='Locked' then 1 else null end) as Locked,
-	        {1}
-        from {4}
-        where    {0}
-        group by {1}
-    ) as T{2}
-    on {3}";
+   select COUNT(case when [status]='Locked' then 1 else null end) as Locked,{1}
+   from {4} where {0} group by {1}
+) as T{2}  on {3}
+";
 
         // {0} limitation query
         // {1} limitation where
         // {2} Communication table name
+        // {3} MaxCount
         private const string ruleTemplate = @"
 update top(1) T
 set @RequestId=T.RequestId=newid(),T.[Status]=N'Locked'
 output INSERTED.*
 FROM {2} AS T {0}
 where [status]=N'Pending' and {1}
-
 if @RequestId is not null
+begin
+    set @Count=@Count+1
+end
+if @Count>{3}
 begin
     return
 end
@@ -98,7 +105,7 @@ end
         // {1} limitation where
         // [2} Communication table name
         private const string otherTemplate = @"
-update top({0}) T
+update top({0}-@Count) T
 set @RequestId=T.RequestId=newid(),T.[Status]=N'Locked'
 output INSERTED.*
 FROM {2} AS T
