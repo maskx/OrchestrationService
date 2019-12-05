@@ -13,7 +13,6 @@ using Microsoft.Extensions.Hosting;
 using OrchestrationService.Tests.CommunicationWorkerTests;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace OrchestrationService.Tests
 {
@@ -68,11 +67,13 @@ namespace OrchestrationService.Tests
 
         public static IOrchestrationService CreateOrchestrationService()
         {
-            return new SQLServerOrchestrationService(
+            var service = new SQLServerOrchestrationService(
                          TestHelpers.ConnectionString,
                          TestHelpers.HubName,
                          CreateSQLServerInstanceStore(),
                          CreateOrchestrationServiceSettings());
+            service.CreateIfNotExistsAsync().Wait();
+            return service;
         }
 
         public static IOrchestrationServiceClient CreateOrchestrationClient()

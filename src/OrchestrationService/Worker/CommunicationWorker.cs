@@ -36,10 +36,11 @@ namespace maskx.OrchestrationService.Worker
             }
         }
 
-        public override Task StartAsync(CancellationToken cancellationToken)
+        public override async Task StartAsync(CancellationToken cancellationToken)
         {
+            await CreateIfNotExistsAsync(false);
             fetchCommandText = BuildFetchCommand();
-            return base.StartAsync(cancellationToken);
+            await base.StartAsync(cancellationToken);
         }
 
         public override Task StopAsync(CancellationToken cancellationToken)
@@ -129,6 +130,57 @@ namespace maskx.OrchestrationService.Worker
                     return sb.Append(FetchRule.BuildFetchCommand(fetchRules, options)).ToString();
             }
             return sb.Append(string.Format(fetchTemplate, options.MaxConcurrencyRequest, options.CommunicationTableName)).ToString();
+        }
+
+        public async Task DeleteCommunicationAsync()
+        {
+            using (var db = new DbAccess(options.ConnectionString))
+            {
+                db.AddStatement($"DROP TABLE IF EXISTS {options.CommunicationTableName}");
+                await db.ExecuteNonQueryAsync();
+            }
+        }
+
+        public async Task CreateIfNotExistsAsync(bool recreate)
+        {
+            if (recreate) await DeleteCommunicationAsync();
+            using (var db = new DbAccess(options.ConnectionString))
+            {
+                db.AddStatement($@"IF(SCHEMA_ID(@schema) IS NULL)
+                    BEGIN
+                        EXEC sp_executesql N'CREATE SCHEMA [{options.SchemaName}]'
+                    END", new { schema = options.SchemaName });
+
+                db.AddStatement($@"
+IF(OBJECT_ID(@table) IS NULL)
+BEGIN
+    CREATE TABLE {options.CommunicationTableName} (
+        [InstanceId] [nvarchar](50) NOT NULL,
+	    [ExecutionId] [nvarchar](50) NOT NULL,
+	    [EventName] [nvarchar](50) NOT NULL,
+	    [Processor] [nvarchar](50) NULL,
+	    [RequestTo] [nvarchar](50) NULL,
+	    [RequestOperation] [nvarchar](50) NULL,
+	    [RequsetContent] [nvarchar](max) NULL,
+	    [RequestProperty] [nvarchar](max) NULL,
+	    [Status] [nvarchar](50) NULL,
+	    [LockedUntilUtc] [datetime2](7) NULL,
+	    [ResponseContent] [nvarchar](max) NULL,
+	    [ResponseCode] [int] NULL,
+	    [RequestId] [nvarchar](50) NULL,
+	    [CompletedTime] [datetime2](7) NULL,
+	    [CreateTime] [datetime2](7) NULL,
+    CONSTRAINT [PK_{options.SchemaName}_{options.HubName}_{CommunicationWorkerOptions.CommunicationTable}] PRIMARY KEY CLUSTERED
+    (
+	    [InstanceId] ASC,
+	    [ExecutionId] ASC,
+	    [EventName] ASC
+    )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+    ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+END", new { table = options.CommunicationTableName });
+
+                await db.ExecuteNonQueryAsync();
+            }
         }
 
         // {0} fetch count
