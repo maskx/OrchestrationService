@@ -88,7 +88,9 @@ var instance = orchestrationWorker.JumpStartOrchestrationAsync(new Job()
 ```CSharp
 services.AddSingleton<ICommunicationProcessor>(new MockCommunicationProcessor());
 ```
+
 2. Configure CommunicationWorkerOptions
+
 ```CSharp
 services.Configure<CommunicationWorkerOptions>((options) =>
 {
@@ -97,7 +99,9 @@ services.Configure<CommunicationWorkerOptions>((options) =>
     options.SchemaName = communicationWorkerOptions.SchemaName;
 });
 ```
+
 3. Add CommunicationWorker
+
 ```CSharp
 services.AddHostedService<CommunicationWorker>();
 ```
@@ -105,17 +109,97 @@ services.AddHostedService<CommunicationWorker>();
 ### AsyncRequestOrchestration
 
 In your TaskOrchestration, you should use AsyncRequestOrchestration send the request
+
 ```CSharp
 var response = await context.CreateSubOrchestrationInstance<TaskResult>(
                   typeof(AsyncRequestOrchestration),
                   DataConverter.Deserialize<AsyncRequestInput>(input));
 ```
 
+### ICommunicationProcessor
+
+Implement yourself ICommunicationProcessor to send the request to the target system
+
+### Add FetchRule
+
+some system have concurrency request limitation, you can add FetchRule to control the concurrency request to the system
+
+```CSharp
+var options = new CommunicationWorkerOptions();
+options.GetFetchRules = () =>
+{
+    var r1 = new FetchRule()
+    {
+        What = new Dictionary<string, string>() { { "Processor", "MockCommunicationProcessor" } },
+    };
+    r1.Limitions.Add(new Limitation()
+    {
+        Concurrency = 1,
+        Scope = new List<string>()
+        {
+            "RequestOperation"
+        }
+    });
+    r1.Limitions.Add(new Limitation
+    {
+        Concurrency = 5,
+        Scope = new List<string>()
+        {
+            "RequestTo"
+        }
+    });
+    List<FetchRule> fetchRules = new List<FetchRule>();
+    fetchRules.Add(r1);
+    return fetchRules;
+};
+```
+
+### add yourself rule field
+
+1. Add your rule field to Communication table in database
+2. add your rule field in CommunicationWorkerOptions
+
+```CSharp
+var options = new CommunicationWorkerOptions();
+options.GetFetchRules = () =>
+{
+    var r1 = new FetchRule()
+    {
+        What = new Dictionary<string, string>() { { "Processor", "MockCommunicationProcessor" } },
+    };
+    r1.Limitions.Add(new Limitation()
+    {
+        Concurrency = 1,
+        Scope = new List<string>()
+        {
+            "SubscriptionId"
+        }
+    });
+    r1.Limitions.Add(new Limitation
+    {
+        Concurrency = 5,
+        Scope = new List<string>()
+        {
+            "ManagementUnit"
+        }
+    });
+    List<FetchRule> fetchRules = new List<FetchRule>();
+    fetchRules.Add(r1);
+    return fetchRules;
+};
+options.RuleFields.Add("SubscriptionId");
+options.RuleFields.Add("ManagementUnit");
+```
+
 ## TaskOrchestration
+
+### [AsyncRequestOrchestration](#AsyncRequestOrchestration)
 
 ## TaskActivity
 
 ### HttpRequestActivity
+
+#### HttpRequestInput
 
 ### SQLServerActivity
 
