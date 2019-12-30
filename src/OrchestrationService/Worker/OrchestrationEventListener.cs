@@ -28,10 +28,10 @@ namespace maskx.OrchestrationService.Worker
                     {
                         var args = new OrchestrationCompletedArgs()
                         {
-                            InstanceId = msg.Substring(26, 32),
-                            ExecutionId = msg.Substring(73, 32),
+                            InstanceId = eventData.Payload[1].ToString(),
+                            ExecutionId = eventData.Payload[2].ToString(),
                             Status = eventData.Level == EventLevel.Informational ? true : false,
-                            Result = msg.Substring(150)
+                            Result = msg.Substring(msg.IndexOf("result:") + 8)
                         };
                         if (this.worker.jobProvider != null)
                         {

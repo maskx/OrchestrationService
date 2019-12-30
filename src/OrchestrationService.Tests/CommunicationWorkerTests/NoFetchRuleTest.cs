@@ -41,10 +41,9 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
         [Fact(DisplayName = "NoFetchRuleTest")]
         public void SendRequst()
         {
-            var instance = new OrchestrationInstance() { InstanceId = Guid.NewGuid().ToString("N") };
-            orchestrationWorker.JumpStartOrchestrationAsync(new Job()
+            var instance = orchestrationWorker.JumpStartOrchestrationAsync(new Job()
             {
-                InstanceId = instance.InstanceId,
+                InstanceId = Guid.NewGuid().ToString("N"),
                 Orchestration = new maskx.OrchestrationService.OrchestrationCreator.Orchestration()
                 {
                     Creator = "DICreator",
@@ -54,7 +53,14 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                 {
                     Processor = "MockCommunicationProcessor"
                 })
-            }).Wait();
+            }).Result;
+            orchestrationWorker.RegistOrchestrationCompletedAction((args) =>
+            {
+                if (args.IsSubOrchestration && args.ParentExecutionId == instance.ExecutionId)
+                {
+                    var b = args;
+                }
+            });
             while (true)
             {
                 var result = TestHelpers.TaskHubClient.WaitForOrchestrationAsync(instance, TimeSpan.FromSeconds(30)).Result;
