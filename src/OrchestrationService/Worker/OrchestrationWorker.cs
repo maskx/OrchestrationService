@@ -1,17 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using DurableTask.Core;
-using DurableTask.Core.History;
-using maskx.OrchestrationService.OrchestrationCreator;
+using DurableTask.Core.Tracing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.DependencyInjection;
-using DurableTask.Core.Common;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.Tracing;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace maskx.OrchestrationService.Worker
 {
@@ -20,9 +18,10 @@ namespace maskx.OrchestrationService.Worker
         private readonly ILogger<OrchestrationWorker> logger;
         private readonly TaskHubWorker taskHubWorker;
         private readonly TaskHubClient taskHubClient;
-        private readonly IJobProvider jobProvider;
+        internal readonly IJobProvider jobProvider;
         private readonly OrchestrationWorkerOptions options;
         private readonly IServiceProvider serviceProvider;
+        internal List<Action<OrchestrationCompletedArgs>> OrchestrationCompletedActions { get; set; } = new List<Action<OrchestrationCompletedArgs>>();
 
         // hold orchestrationManager and activityManager, so we can remove unused orchestration
         private readonly DynamicNameVersionObjectManager<TaskOrchestration> orchestrationManager;
@@ -48,6 +47,14 @@ namespace maskx.OrchestrationService.Worker
                 this.activityManager);
             this.taskHubClient = new TaskHubClient(orchestrationServiceClient);
             this.orchestrationCreatorFactory = orchestrationCreatorFactory;
+
+            // catch Orchestration Completed event
+            var _ = new OrchestrationEventListener(this);
+        }
+
+        public void RegistOrchestrationCompletedAction(Action<OrchestrationCompletedArgs> action)
+        {
+            this.OrchestrationCompletedActions.Add(action);
         }
 
         public override Task StartAsync(CancellationToken cancellationToken)

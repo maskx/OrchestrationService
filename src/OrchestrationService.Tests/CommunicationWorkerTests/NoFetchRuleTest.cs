@@ -42,7 +42,6 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
         public void SendRequst()
         {
             var instance = new OrchestrationInstance() { InstanceId = Guid.NewGuid().ToString("N") };
-
             orchestrationWorker.JumpStartOrchestrationAsync(new Job()
             {
                 InstanceId = instance.InstanceId,

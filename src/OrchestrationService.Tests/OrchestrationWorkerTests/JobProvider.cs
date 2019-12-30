@@ -23,5 +23,10 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
             Jobs.RemoveRange(0, i);
             return jobs;
         }
+
+        public Task OrchestrationCompleted(OrchestrationCompletedArgs args)
+        {
+            return Task.CompletedTask;
+        }
     }
 }

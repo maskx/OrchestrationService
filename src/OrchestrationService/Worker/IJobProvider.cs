@@ -13,5 +13,12 @@ namespace maskx.OrchestrationService.Worker
         int Interval { get; set; }
 
         Task<IList<Job>> FetchAsync(int top);
+
+        /// <summary>
+        /// When sub-Orchestration completed, this method will be invoked too.
+        /// </summary>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        Task OrchestrationCompleted(OrchestrationCompletedArgs args);
     }
 }

@@ -45,6 +45,8 @@
     <Compile Include="..\OrchestrationService\Worker\IJobProvider.cs" Link="Worker\IJobProvider.cs" />
     <Compile Include="..\OrchestrationService\Worker\Job.cs" Link="Worker\Job.cs" />
     <Compile Include="..\OrchestrationService\Worker\Limitation.cs" Link="Worker\Limitation.cs" />
+    <Compile Include="..\OrchestrationService\Worker\OrchestrationCompletedArgs.cs" Link="Worker\OrchestrationCompletedArgs.cs" />
+    <Compile Include="..\OrchestrationService\Worker\OrchestrationEventListener.cs" Link="Worker\OrchestrationEventListener.cs" />
     <Compile Include="..\OrchestrationService\Worker\OrchestrationWorker.cs" Link="Worker\OrchestrationWorker.cs" />
     <Compile Include="..\OrchestrationService\Worker\OrchestrationWorkerOptions.cs" Link="Worker\OrchestrationWorkerOptions.cs" />
   </ItemGroup>
