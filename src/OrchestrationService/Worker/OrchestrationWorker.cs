@@ -59,14 +59,39 @@ namespace maskx.OrchestrationService.Worker
 
         public override Task StartAsync(CancellationToken cancellationToken)
         {
-            foreach (var activity in this.options.GetBuildInTaskActivities())
+            if (this.options.GetBuildInOrchestrators != null)
             {
-                this.activityManager.TryAdd(new DICreator<TaskActivity>(serviceProvider, activity));
+                foreach (var activity in this.options.GetBuildInTaskActivities())
+                {
+                    this.activityManager.TryAdd(new DICreator<TaskActivity>(serviceProvider, activity));
+                }
             }
-            foreach (var orchestrator in this.options.GetBuildInOrchestrators())
+            if (this.options.GetBuildInTaskActivities != null)
             {
-                this.orchestrationManager.TryAdd(new DICreator<TaskOrchestration>(serviceProvider, orchestrator));
+                foreach (var orchestrator in this.options.GetBuildInOrchestrators())
+                {
+                    this.orchestrationManager.TryAdd(new DICreator<TaskOrchestration>(serviceProvider, orchestrator));
+                }
             }
+
+            if (this.options.GetBuildInTaskActivitiesFromInterface != null)
+            {
+                var interfaceActivitys = this.options.GetBuildInTaskActivitiesFromInterface();
+                foreach (var @interface in interfaceActivitys.Keys)
+                {
+                    var activities = interfaceActivitys[@interface];
+                    foreach (var methodInfo in @interface.GetMethods())
+                    {
+                        TaskActivity taskActivity = new ReflectionBasedTaskActivity(activities, methodInfo);
+                        ObjectCreator<TaskActivity> creator =
+                            new NameValueObjectCreator<TaskActivity>(
+                                NameVersionHelper.GetDefaultName(methodInfo, true),
+                                NameVersionHelper.GetDefaultVersion(methodInfo), taskActivity);
+                        this.activityManager.Add(creator);
+                    }
+                }
+            }
+
             this.taskHubWorker.orchestrationService.CreateIfNotExistsAsync().Wait();
             this.taskHubWorker.StartAsync().Wait();
 

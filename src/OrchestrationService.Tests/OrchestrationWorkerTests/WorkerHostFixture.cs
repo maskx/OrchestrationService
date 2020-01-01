@@ -1,15 +1,7 @@
-﻿using DurableTask.Core;
-using maskx.OrchestrationService;
-using maskx.OrchestrationService.Activity;
-using maskx.OrchestrationService.Orchestration;
-using maskx.OrchestrationService.Worker;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+﻿using maskx.OrchestrationService.Worker;
 using Microsoft.Extensions.Hosting;
-using OrchestrationService.Tests.Orchestration;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Xunit;
 
 namespace OrchestrationService.Tests.OrchestrationWorkerTests
@@ -23,7 +15,6 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
             CommunicationWorkerOptions options = new CommunicationWorkerOptions();
             options.HubName = "NoRule";
             List<Type> orchestrationTypes = new List<Type>();
-            orchestrationTypes.Add(typeof(PrepareVMTemplateAuthorizeOrchestration));
             workerHost = TestHelpers.CreateHostBuilder(options, orchestrationTypes).Build();
             workerHost.RunAsync();
         }
