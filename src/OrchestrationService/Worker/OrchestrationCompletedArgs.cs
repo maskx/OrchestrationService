@@ -26,7 +26,18 @@ namespace maskx.OrchestrationService.Worker
                 if (IsSubOrchestration)
                     return InstanceId.Substring(0, 32);
                 else
-                    return this.InstanceId;
+                    return string.Empty;
+            }
+        }
+
+        public string Id
+        {
+            get
+            {
+                if (IsSubOrchestration)
+                    return InstanceId.Substring(33);
+                else
+                    return string.Empty;
             }
         }
     }
