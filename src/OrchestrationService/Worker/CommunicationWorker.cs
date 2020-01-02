@@ -1,15 +1,15 @@
 ﻿using DurableTask.Core;
+using DurableTask.Core.Serializing;
 using maskx.OrchestrationService.SQL;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
-using System.Text;
-using DurableTask.Core.Serializing;
 
 namespace maskx.OrchestrationService.Worker
 {
@@ -20,6 +20,7 @@ namespace maskx.OrchestrationService.Worker
         private string fetchCommandText;
         private readonly Dictionary<string, ICommunicationProcessor> processors;
         private DataConverter dataConverter = new JsonDataConverter();
+        private ConcurrentBag<Task> ProcessorTasks = new ConcurrentBag<Task>();
 
         public CommunicationWorker(
             IServiceProvider serviceProvider,
@@ -53,23 +54,53 @@ namespace maskx.OrchestrationService.Worker
             while (!stoppingToken.IsCancellationRequested)
             {
                 var jobs = await FetchJob();
-                Parallel.ForEach(jobs, async (job) =>
+                Dictionary<string, List<List<CommunicationJob>>> batchJobs = new Dictionary<string, List<List<CommunicationJob>>>();
+
+                foreach (var job in jobs)
                 {
-                    // 1. communicate with other system, and get response
-                    var response = await this.processors[job.Processor].ProcessAsync(job);
-                    // 2. update communication table
-                    await UpdateJob(job.RequestId, job.ResponseCode, job.ResponseContent);
-                    // 3. send the result back to orchestration
-                    await this.taskHubClient.RaiseEventAsync(
-                        new OrchestrationInstance()
+                    var processor = this.processors[job.Processor];
+                    if (processor.MaxBatchCount == 1)
+                    {
+                        ProcessorTasks.Add(ProcessJob(processor, job)
+                            .ContinueWith((t) =>
+                            {
+                                ProcessorTasks.TryTake(out Task _);
+                            }));
+                    }
+                    else
+                    {
+                        if (batchJobs.TryGetValue(processor.Name, out List<List<CommunicationJob>> procJobs))
                         {
-                            InstanceId = job.InstanceId,
-                            ExecutionId = job.ExecutionId
-                        },
-                        job.EventName,
-                      dataConverter.Serialize(new TaskResult() { Code = response.ResponseCode, Content = response.ResponseContent })
-                        );
-                });
+                            procJobs = new List<List<CommunicationJob>>();
+                            batchJobs[processor.Name] = procJobs;
+                        }
+                        List<CommunicationJob> jobList = null;
+                        foreach (var communicationJobs in procJobs)
+                        {
+                            if (communicationJobs.Count < processor.MaxBatchCount)
+                            {
+                                jobList = communicationJobs;
+                            }
+                        }
+                        if (jobList == null)
+                        {
+                            jobList = new List<CommunicationJob>();
+                            procJobs.Add(jobList);
+                        }
+                        jobList.Add(job);
+                    }
+                }
+                foreach (var batchJob in batchJobs)
+                {
+                    foreach (var item in batchJob.Value)
+                    {
+                        ProcessorTasks.Add(ProcessJob(this.processors[batchJob.Key], item.ToArray())
+                            .ContinueWith((t) =>
+                            {
+                                ProcessorTasks.TryTake(out Task _);
+                            }));
+                    }
+                }
                 if (jobs.Count == 0)
                     await Task.Delay(1000);
             }
@@ -106,18 +137,47 @@ namespace maskx.OrchestrationService.Worker
             return jobs;
         }
 
-        private async Task UpdateJob(string RequestId, int ResponseCode, string ResponseContent)
+        private async Task ProcessJob(ICommunicationProcessor processor, params CommunicationJob[] jobs)
+        {
+            var response = await processor.ProcessAsync(jobs);
+            await UpdateJobs(response);
+            await RaiseEvent(response);
+        }
+
+        private async Task UpdateJobs(params CommunicationJob[] jobs)
         {
             using (var db = new DbAccess(this.options.ConnectionString))
             {
-                db.AddStatement(string.Format(updatejobTemplate, options.CommunicationTableName), new
+                foreach (var job in jobs)
                 {
-                    ResponseCode,
-                    RequestId,
-                    ResponseContent
-                });
+                    db.AddStatement(string.Format(updatejobTemplate, options.CommunicationTableName), new
+                    {
+                        job.ResponseCode,
+                        job.RequestId,
+                        job.ResponseContent
+                    });
+                }
+
                 await db.ExecuteNonQueryAsync();
             }
+        }
+
+        private async Task RaiseEvent(params CommunicationJob[] jobs)
+        {
+            List<Task> tasks = new List<Task>();
+            foreach (var job in jobs)
+            {
+                tasks.Add(this.taskHubClient.RaiseEventAsync(
+                                        new OrchestrationInstance()
+                                        {
+                                            InstanceId = job.InstanceId,
+                                            ExecutionId = job.ExecutionId
+                                        },
+                                        job.EventName,
+                                      dataConverter.Serialize(new TaskResult() { Code = job.ResponseCode, Content = job.ResponseContent })
+                                        ));
+            }
+            await Task.WhenAll(tasks);
         }
 
         private string BuildFetchCommand()
