@@ -55,13 +55,12 @@ namespace maskx.OrchestrationService.Worker
             {
                 var jobs = await FetchJob();
                 Dictionary<string, List<List<CommunicationJob>>> batchJobs = new Dictionary<string, List<List<CommunicationJob>>>();
-
                 foreach (var job in jobs)
                 {
                     var processor = this.processors[job.Processor];
                     if (processor.MaxBatchCount == 1)
                     {
-                        ProcessorTasks.Add(ProcessJob(processor, job)
+                        ProcessorTasks.Add(ProcessJobs(processor, job)
                             .ContinueWith((t) =>
                             {
                                 ProcessorTasks.TryTake(out Task _);
@@ -94,7 +93,7 @@ namespace maskx.OrchestrationService.Worker
                 {
                     foreach (var item in batchJob.Value)
                     {
-                        ProcessorTasks.Add(ProcessJob(this.processors[batchJob.Key], item.ToArray())
+                        ProcessorTasks.Add(ProcessJobs(this.processors[batchJob.Key], item.ToArray())
                             .ContinueWith((t) =>
                             {
                                 ProcessorTasks.TryTake(out Task _);
@@ -103,15 +102,26 @@ namespace maskx.OrchestrationService.Worker
                 }
                 if (jobs.Count == 0)
                     await Task.Delay(1000);
+                while (options.MaxConcurrencyRequest - ProcessorTasks.Count < 1)
+                {
+                    await Task.Delay(1000);
+                }
             }
         }
 
         private async Task<List<CommunicationJob>> FetchJob()
         {
             List<CommunicationJob> jobs = new List<CommunicationJob>();
+            if (options.MaxConcurrencyRequest - ProcessorTasks.Count < 1)
+            {
+                return jobs;
+            }
             using (var db = new DbAccess(this.options.ConnectionString))
             {
-                db.AddStatement(fetchCommandText);
+                db.AddStatement(fetchCommandText, new
+                {
+                    MaxCount = options.MaxConcurrencyRequest - ProcessorTasks.Count
+                });
                 await db.ExecuteReaderAsync((reader, index) =>
                 {
                     var job = new CommunicationJob()
@@ -137,11 +147,10 @@ namespace maskx.OrchestrationService.Worker
             return jobs;
         }
 
-        private async Task ProcessJob(ICommunicationProcessor processor, params CommunicationJob[] jobs)
+        private async Task ProcessJobs(ICommunicationProcessor processor, params CommunicationJob[] jobs)
         {
             var response = await processor.ProcessAsync(jobs);
-            await UpdateJobs(response);
-            await RaiseEvent(response);
+            await Task.WhenAll(UpdateJobs(response), RaiseEvent(response));
         }
 
         private async Task UpdateJobs(params CommunicationJob[] jobs)

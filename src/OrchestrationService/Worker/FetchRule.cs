@@ -61,11 +61,10 @@ namespace maskx.OrchestrationService.Worker
                 sb.Append(string.Format(ruleTemplate,
                     limitationQuery,
                     string.Join(" and ", limitaitonWhere),
-                    options.CommunicationTableName,
-                    options.MaxConcurrencyRequest));
+                    options.CommunicationTableName));
                 others.Add($"({rule.Where})");
             }
-            sb.Append(string.Format(otherTemplate, options.MaxConcurrencyRequest, string.Join(" and ", others), options.CommunicationTableName));
+            sb.Append(string.Format(otherTemplate, string.Join(" and ", others), options.CommunicationTableName));
             return sb.ToString();
         }
 
@@ -84,7 +83,6 @@ inner join (
         // {0} limitation query
         // {1} limitation where
         // {2} Communication table name
-        // {3} MaxCount
         private const string ruleTemplate = @"
 update top(1) T
 set @RequestId=T.RequestId=newid(),T.[Status]=N'Locked'
@@ -95,21 +93,20 @@ if @RequestId is not null
 begin
     set @Count=@Count+1
 end
-if @Count>{3}
+if @Count>=@MaxCount
 begin
     return
 end
 ";
 
-        // {0} Concurrency of others
-        // {1} limitation where
-        // [2} Communication table name
+        // {0} limitation where
+        // {1} Communication table name
         private const string otherTemplate = @"
-update top({0}-@Count) T
+update top(@MaxCount-@Count) T
 set @RequestId=T.RequestId=newid(),T.[Status]=N'Locked'
 output INSERTED.*
-FROM {2} AS T
-where [status]=N'Pending' and not ({1})
+FROM {1} AS T
+where [status]=N'Pending' and not ({0})
 ";
     }
 }
