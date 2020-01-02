@@ -239,7 +239,7 @@ BEGIN
 	    [RequestId] [nvarchar](50) NULL,
 	    [CompletedTime] [datetime2](7) NULL,
 	    [CreateTime] [datetime2](7) NULL,
-    CONSTRAINT [PK_{options.SchemaName}_{options.HubName}_{CommunicationWorkerOptions.CommunicationTable}] PRIMARY KEY CLUSTERED
+    CONSTRAINT [PK_{options.SchemaName}_{options.HubName}{CommunicationWorkerOptions.CommunicationTable}] PRIMARY KEY CLUSTERED
     (
 	    [InstanceId] ASC,
 	    [ExecutionId] ASC,
