@@ -49,7 +49,7 @@ namespace OrchestrationService.Tests
             var instance = orchestrationWorker.JumpStartOrchestrationAsync(new Job()
             {
                 InstanceId = Guid.NewGuid().ToString("N"),
-                Orchestration = new maskx.OrchestrationService.OrchestrationCreator.Orchestration()
+                Orchestration = new maskx.OrchestrationService.OrchestrationSetting()
                 {
                     Creator = "DICreator",
                     Uri = typeof(HttpOrchestration).FullName + "_"
@@ -101,7 +101,7 @@ namespace OrchestrationService.Tests
             var instance = orchestrationWorker.JumpStartOrchestrationAsync(new Job()
             {
                 InstanceId = Guid.NewGuid().ToString("N"),
-                Orchestration = new maskx.OrchestrationService.OrchestrationCreator.Orchestration()
+                Orchestration = new maskx.OrchestrationService.OrchestrationSetting()
                 {
                     Creator = "DICreator",
                     Uri = typeof(HttpOrchestration).FullName + "_"
@@ -134,7 +134,7 @@ namespace OrchestrationService.Tests
             var instance = orchestrationWorker.JumpStartOrchestrationAsync(new Job()
             {
                 InstanceId = Guid.NewGuid().ToString("N"),
-                Orchestration = new maskx.OrchestrationService.OrchestrationCreator.Orchestration()
+                Orchestration = new maskx.OrchestrationService.OrchestrationSetting()
                 {
                     Creator = "DICreator",
                     Uri = typeof(HttpOrchestration).FullName + "_"
@@ -172,7 +172,7 @@ namespace OrchestrationService.Tests
             var instance = orchestrationWorker.JumpStartOrchestrationAsync(new Job()
             {
                 InstanceId = Guid.NewGuid().ToString("N"),
-                Orchestration = new maskx.OrchestrationService.OrchestrationCreator.Orchestration()
+                Orchestration = new OrchestrationSetting()
                 {
                     Creator = "DICreator",
                     Uri = typeof(HttpOrchestration).FullName + "_"

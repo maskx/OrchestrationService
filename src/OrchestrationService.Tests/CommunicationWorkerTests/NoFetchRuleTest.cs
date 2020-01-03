@@ -44,7 +44,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
             var instance = orchestrationWorker.JumpStartOrchestrationAsync(new Job()
             {
                 InstanceId = Guid.NewGuid().ToString("N"),
-                Orchestration = new maskx.OrchestrationService.OrchestrationCreator.Orchestration()
+                Orchestration = new OrchestrationSetting()
                 {
                     Creator = "DICreator",
                     Uri = typeof(TestOrchestration).FullName + "_"

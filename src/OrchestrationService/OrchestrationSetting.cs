@@ -1,6 +1,6 @@
-﻿namespace maskx.OrchestrationService.OrchestrationCreator
+﻿namespace maskx.OrchestrationService
 {
-    public class Orchestration
+    public class OrchestrationSetting
     {
         public string Uri { get; set; }
         public string Version { get; set; }

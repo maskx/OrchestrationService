@@ -7,6 +7,7 @@ using System.Text;
 using Xunit;
 using Microsoft.Extensions.DependencyInjection;
 using DurableTask.Core;
+using maskx.OrchestrationService;
 
 namespace OrchestrationService.Tests.OrchestrationWorkerTests
 {
@@ -45,7 +46,7 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
             orchestrationWorker.JumpStartOrchestrationAsync(new Job()
             {
                 InstanceId = instance.InstanceId,
-                Orchestration = new maskx.OrchestrationService.OrchestrationCreator.Orchestration()
+                Orchestration = new OrchestrationSetting()
                 {
                     Creator = "DICreator",
                     Uri = typeof(TestOrchestration).FullName + "_"
@@ -71,7 +72,7 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
             JobProvider.Jobs.Add(new Job()
             {
                 InstanceId = instance.InstanceId,
-                Orchestration = new maskx.OrchestrationService.OrchestrationCreator.Orchestration()
+                Orchestration = new OrchestrationSetting()
                 {
                     Creator = "DICreator",
                     Uri = typeof(TestOrchestration).FullName + "_"

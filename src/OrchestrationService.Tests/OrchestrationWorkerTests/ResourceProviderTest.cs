@@ -1,8 +1,7 @@
 using DurableTask.Core;
+using maskx.OrchestrationService;
 using maskx.OrchestrationService.Worker;
 using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace OrchestrationService.Tests.OrchestrationWorkerTests
@@ -17,7 +16,7 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
             JobProvider.Jobs.Add(new Job()
             {
                 InstanceId = instance.InstanceId,
-                Orchestration = new maskx.OrchestrationService.OrchestrationCreator.Orchestration()
+                Orchestration = new OrchestrationSetting()
                 {
                     Creator = "DICreator",
                     Uri = "OrchestrationService.Tests.Orchestration.PrepareVMTemplateAuthorizeOrchestration_"

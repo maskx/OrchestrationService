@@ -69,7 +69,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
             orchestrationWorker.JumpStartOrchestrationAsync(new Job()
             {
                 InstanceId = instance.InstanceId,
-                Orchestration = new maskx.OrchestrationService.OrchestrationCreator.Orchestration()
+                Orchestration = new OrchestrationSetting()
                 {
                     Creator = "DICreator",
                     Uri = typeof(TestOrchestration).FullName + "_"
