@@ -6,7 +6,7 @@
     <AssemblyName>maskx.OrchestrationService</AssemblyName>
     <RootNamespace>maskx.OrchestrationService</RootNamespace>
     <Authors>maskx</Authors>
-    <Version>2.1.7</Version>
+    <Version>2.1.8</Version>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/maskx/OrchestrationService</PackageProjectUrl>
     <RepositoryUrl>https://github.com/maskx/OrchestrationService</RepositoryUrl>
@@ -33,7 +33,6 @@
     <Compile Include="..\OrchestrationService\OrchestrationCreatorFactory.cs" Link="OrchestrationCreatorFactory.cs" />
     <Compile Include="..\OrchestrationService\OrchestrationCreator\Orchestration.cs" Link="OrchestrationCreator\Orchestration.cs" />
     <Compile Include="..\OrchestrationService\Orchestration\AsyncRequestOrchestration.cs" Link="Orchestration\AsyncRequestOrchestration.cs" />
-    <Compile Include="..\OrchestrationService\Settings\OrchestrationServiceSettings.cs" Link="Settings\OrchestrationServiceSettings.cs" />
     <Compile Include="..\OrchestrationService\SQL\DbAccess.cs" Link="SQL\DbAccess.cs" />
     <Compile Include="..\OrchestrationService\SQL\DbCommandHelper.cs" Link="SQL\DbCommandHelper.cs" />
     <Compile Include="..\OrchestrationService\TaskResult.cs" Link="TaskResult.cs" />
@@ -55,7 +54,6 @@
     <Folder Include="Activity\" />
     <Folder Include="SQL\" />
     <Folder Include="Worker\" />
-    <Folder Include="Settings\" />
     <Folder Include="OrchestrationCreator\" />
     <Folder Include="Orchestration\" />
   </ItemGroup>

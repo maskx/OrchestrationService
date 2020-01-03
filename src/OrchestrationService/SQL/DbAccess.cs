@@ -9,7 +9,7 @@ namespace maskx.OrchestrationService.SQL
 {
     public class DbAccess : IDisposable
     {
-        private DbProviderFactory providerFactory;
+        private readonly DbProviderFactory providerFactory;
         private DbConnection connection;
         private DbCommand command;
 

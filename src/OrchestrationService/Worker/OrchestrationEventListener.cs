@@ -1,8 +1,5 @@
 ﻿using DurableTask.Core.Tracing;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.Tracing;
-using System.Text;
 
 namespace maskx.OrchestrationService.Worker
 {
@@ -33,7 +30,7 @@ namespace maskx.OrchestrationService.Worker
                             Status = eventData.Level == EventLevel.Informational ? true : false,
                             Result = msg.Substring(msg.IndexOf("result:") + 8)
                         };
-                        if (this.worker.jobProvider != null)
+                        if (this.worker.jobProvider != null && !args.IsSubOrchestration)
                         {
                             this.worker.jobProvider.OrchestrationCompleted(args);
                         }

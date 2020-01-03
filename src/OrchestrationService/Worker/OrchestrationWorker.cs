@@ -1,5 +1,4 @@
 using DurableTask.Core;
-using DurableTask.Core.Tracing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -7,7 +6,6 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.Tracing;
 using System.Threading;
 using System.Threading.Tasks;
 
