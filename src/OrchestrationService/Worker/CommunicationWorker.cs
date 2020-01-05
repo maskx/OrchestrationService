@@ -101,10 +101,10 @@ namespace maskx.OrchestrationService.Worker
                     }
                 }
                 if (jobs.Count == 0)
-                    await Task.Delay(1000);
+                    await Task.Delay(this.options.IdelMilliseconds);
                 while (options.MaxConcurrencyRequest - ProcessorTasks.Count < 1)
                 {
-                    await Task.Delay(1000);
+                    await Task.Delay(this.options.IdelMilliseconds);
                 }
             }
         }

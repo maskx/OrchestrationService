@@ -20,7 +20,7 @@ namespace maskx.OrchestrationService.Orchestration
 
         public override void OnEvent(OrchestrationContext context, string name, string input)
         {
-            if (this.waitHandler != null && name == eventName)
+            if (this.waitHandler != null && name == eventName && this.waitHandler.Task.Status == TaskStatus.WaitingForActivation)
             {
                 this.waitHandler.SetResult(input);
             }

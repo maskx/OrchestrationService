@@ -8,6 +8,11 @@ namespace maskx.OrchestrationService.Worker
         internal const string CommunicationTable = "_Communication";
 
         /// <summary>
+        /// Idel time when no job fetched
+        /// </summary>
+        public int IdelMilliseconds { get; set; } = 500;
+
+        /// <summary>
         /// 数据库连接字符串
         /// </summary>
         public string ConnectionString { get; set; }
