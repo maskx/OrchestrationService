@@ -134,8 +134,12 @@ namespace maskx.OrchestrationService.Worker
                         RequestTo = reader["RequestTo"]?.ToString(),
                         RequestOperation = reader["RequestOperation"]?.ToString(),
                         RequsetContent = reader["RequsetContent"]?.ToString(),
-                        RequestProperty = reader["RequestProperty"]?.ToString()
+                        RequestProperty = reader["RequestProperty"]?.ToString(),
+                        Status = (CommunicationJob.JobStatus)Enum.Parse(typeof(CommunicationJob.JobStatus), reader["Status"].ToString()),
+                        ResponseContent = reader["ResponseContent"]?.ToString(),
                     };
+                    if (reader["ResponseCode"] != DBNull.Value)
+                        job.ResponseCode = (int)reader["ResponseCode"];
                     job.RuleField = new Dictionary<string, object>();
                     foreach (var item in options.RuleFields)
                     {
@@ -161,9 +165,12 @@ namespace maskx.OrchestrationService.Worker
                 {
                     db.AddStatement(string.Format(updatejobTemplate, options.CommunicationTableName), new
                     {
+                        Status = job.Status.ToString(),
+                        job.NextFetchTime,
                         job.ResponseCode,
                         job.RequestId,
-                        job.ResponseContent
+                        job.ResponseContent,
+                        CompletedTime = CommunicationJob.JobStatus.Completed == job.Status ? DateTime.UtcNow : default(DateTime)
                     });
                 }
 
@@ -176,7 +183,9 @@ namespace maskx.OrchestrationService.Worker
             List<Task> tasks = new List<Task>();
             foreach (var job in jobs)
             {
-                tasks.Add(this.taskHubClient.RaiseEventAsync(
+                if (job.Status == CommunicationJob.JobStatus.Completed)
+                {
+                    tasks.Add(this.taskHubClient.RaiseEventAsync(
                                         new OrchestrationInstance()
                                         {
                                             InstanceId = job.InstanceId,
@@ -185,6 +194,7 @@ namespace maskx.OrchestrationService.Worker
                                         job.EventName,
                                       dataConverter.Serialize(new TaskResult() { Code = job.ResponseCode, Content = job.ResponseContent })
                                         ));
+                }
             }
             await Task.WhenAll(tasks);
         }
@@ -266,7 +276,7 @@ where [status]=N'Pending' and [NextFetchTime]<=getutcdate();
         // {0} Communication table name
         private const string updatejobTemplate = @"
 update {0}
-set [Status]=N'Completed', [ResponseCode]=@ResponseCode,[ResponseContent]=@ResponseContent,CompletedTime=getutcdate()
-where RequestId=@RequestId";
+set [Status]=@Status,[NextFetchTime]=@NextFetchTime, [ResponseCode]=@ResponseCode,[ResponseContent]=@ResponseContent,CompletedTime=@CompletedTime
+where RequestId=@RequestId;";
     }
 }

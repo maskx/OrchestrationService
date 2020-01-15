@@ -142,6 +142,7 @@ namespace OrchestrationService.Tests
                  #region CommunicationWorker
 
                  services.AddSingleton<ICommunicationProcessor>(new MockCommunicationProcessor());
+                 services.AddSingleton<ICommunicationProcessor>(new MockRetryCommunicationProcessor());
                  services.Configure<CommunicationWorkerOptions>((options) =>
                  {
                      TestHelpers.Configuration.GetSection("CommunicationWorker").Bind(options);

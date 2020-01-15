@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace maskx.OrchestrationService.Worker
 {
@@ -16,5 +17,27 @@ namespace maskx.OrchestrationService.Worker
         public int ResponseCode { get; set; }
         public string ResponseContent { get; set; }
         public string RequestId { get; set; }
+
+        public JobStatus Status { get; set; }
+
+        public DateTime NextFetchTime { get; set; }
+
+        public enum JobStatus
+        {
+            /// <summary>
+            /// Pending to send request
+            /// </summary>
+            Pending,
+
+            /// <summary>
+            /// start to send request and wait the response
+            /// </summary>
+            Locked,
+
+            /// <summary>
+            /// had got finally response
+            /// </summary>
+            Completed,
+        }
     }
 }

@@ -1,0 +1,36 @@
+﻿using maskx.OrchestrationService.Worker;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace OrchestrationService.Tests.CommunicationWorkerTests
+{
+    public class MockRetryCommunicationProcessor : ICommunicationProcessor
+    {
+        public string Name { get; set; } = "MockRetryCommunicationProcessor";
+        public int MaxBatchCount { get; set; } = 1;
+
+        public async Task<CommunicationJob[]> ProcessAsync(params CommunicationJob[] jobs)
+        {
+            List<CommunicationJob> rtv = new List<CommunicationJob>();
+            foreach (var job in jobs)
+            {
+                job.ResponseCode = 200;
+
+                if (job.ResponseContent == "Retry")
+                {
+                    job.ResponseContent = "Retry->Completed";
+                    job.Status = CommunicationJob.JobStatus.Completed;
+                }
+                else
+                {
+                    job.ResponseContent = "Retry";
+                    job.Status = CommunicationJob.JobStatus.Pending;
+                    job.NextFetchTime = System.DateTime.UtcNow.AddMilliseconds(10);
+                }
+
+                rtv.Add(job);
+            }
+            return rtv.ToArray();
+        }
+    }
+}

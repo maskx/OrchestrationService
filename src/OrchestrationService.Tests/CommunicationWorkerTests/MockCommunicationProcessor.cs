@@ -16,6 +16,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
             {
                 job.ResponseCode = 200;
                 job.ResponseContent = "MockCommunicationProcessor";
+                job.Status = CommunicationJob.JobStatus.Completed;
                 rtv.Add(job);
             }
             return rtv.ToArray();
