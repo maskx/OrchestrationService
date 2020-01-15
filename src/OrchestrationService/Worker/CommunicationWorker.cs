@@ -239,6 +239,7 @@ BEGIN
 	    [RequestId] [nvarchar](50) NULL,
 	    [CompletedTime] [datetime2](7) NULL,
 	    [CreateTime] [datetime2](7) NULL,
+        [NextFetchTime] [datetime2](7) NULL,
     CONSTRAINT [PK_{options.SchemaName}_{options.HubName}{CommunicationWorkerOptions.CommunicationTable}] PRIMARY KEY CLUSTERED
     (
 	    [InstanceId] ASC,
@@ -259,7 +260,7 @@ update top({0}) T
 set @RequestId=T.RequestId=newid(),T.[Status]=N'Locked'
 output INSERTED.*
 FROM {1} AS T
-where [status]=N'Pending'
+where [status]=N'Pending' and [NextFetchTime]<=getutcdate();
 ";
 
         // {0} Communication table name

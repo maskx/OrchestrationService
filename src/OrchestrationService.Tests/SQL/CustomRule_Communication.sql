@@ -15,6 +15,7 @@ CREATE TABLE [dbo].[CustomRule_Communication](
 	[RequestId] [nvarchar](50) NULL,
 	[CompletedTime] [datetime2](7) NULL,
 	[CreateTime] [datetime2](7) NULL,
+	[NextFetchTime] [datetime2](7) NULL,
 	[SubscriptionId] nvarchar(50) null,
 	[ManagementUnit] nvarchar(50) null,
  CONSTRAINT [PK_CustomRule_Communication] PRIMARY KEY CLUSTERED 

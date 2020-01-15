@@ -88,7 +88,7 @@ update top(1) T
 set @RequestId=T.RequestId=newid(),T.[Status]=N'Locked'
 output INSERTED.*
 FROM {2} AS T {0}
-where [status]=N'Pending' and {1}
+where [status]=N'Pending' and [NextFetchTime]<=getutcdate() and {1}
 if @RequestId is not null
 begin
     set @Count=@Count+1
@@ -106,7 +106,7 @@ update top(@MaxCount-@Count) T
 set @RequestId=T.RequestId=newid(),T.[Status]=N'Locked'
 output INSERTED.*
 FROM {1} AS T
-where [status]=N'Pending' and not ({0})
+where [status]=N'Pending' and [NextFetchTime]<=getutcdate() and not ({0})
 ";
     }
 }
