@@ -1,5 +1,49 @@
 # OrchestrationService
 
+## Quick start
+
+1. Using Orchestration Service
+
+``` CSharp
+var orchestrationTypes = new List<Type>();
+orchestrationTypes.Add(typeof(<your orchestration>));
+var activityTypes = new List<Type>();
+activityTypes.Add(typeof(<your activity>));
+var sqlConfig = new SqlServerConfiguration()
+{
+    ConnectionString = <sql server ConnectionString>,
+    AutoCreate = true,
+    OrchestrationWorkerOptions = new maskx.OrchestrationService.Extensions.OrchestrationWorkerOptions()
+    {
+        GetBuildInOrchestrators = () => { return orchestrationTypes; },
+        GetBuildInTaskActivities = () => { return activityTypes; }
+    }
+};
+services.UsingOrchestration(sqlConfig);
+```
+
+2. Start your orchestration
+
+``` CSharp
+var client =<IServiceProvider>.GetService<OrchestrationWorkerClient>();
+client.JumpStartOrchestrationAsync(new Job
+{
+    InstanceId = Guid.NewGuid().ToString("N"),
+    Orchestration = new OrchestrationSetting()
+    {
+        Creator = "DICreator",
+        Uri = typeof(<your orchestration>).FullName + "_"
+    },
+    Input = <your orchestration input>
+})
+```
+3. Get Orchestration result
+
+```CSharp
+var client =<IServiceProvider>.GetService<OrchestrationWorkerClient>();
+var result = client.WaitForOrchestrationAsync(instance, TimeSpan.FromSeconds(30)).Result;
+```
+
 ## OrchestrationWorker
 
 ### Configure

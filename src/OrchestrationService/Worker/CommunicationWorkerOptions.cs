@@ -3,34 +3,19 @@ using System.Collections.Generic;
 
 namespace maskx.OrchestrationService.Worker
 {
-    public class CommunicationWorkerOptions
+    public class CommunicationWorkerOptions : Extensions.CommunicationWorkerOptions
     {
         internal const string CommunicationTable = "_Communication";
 
         /// <summary>
-        /// Idel time when no job fetched
+        /// Auto-creates the necessary resources for the CommunicationWorker
         /// </summary>
-        public int IdelMilliseconds { get; set; } = 500;
+        public bool AutoCreate { get; set; } = false;
 
         /// <summary>
         /// 数据库连接字符串
         /// </summary>
         public string ConnectionString { get; set; }
-
-        /// <summary>
-        /// 外部系统请求的最大并发数
-        /// </summary>
-        public int MaxConcurrencyRequest { get; set; } = 100;
-
-        /// <summary>
-        /// 获取Job的规则
-        /// </summary>
-        public Func<List<FetchRule>> GetFetchRules { get; set; }
-
-        /// <summary>
-        /// 扩展的规则筛选字段
-        /// </summary>
-        public List<string> RuleFields { get; set; } = new List<string>();
 
         /// Gets or sets the hub name for the database instance store.
         /// </summary>

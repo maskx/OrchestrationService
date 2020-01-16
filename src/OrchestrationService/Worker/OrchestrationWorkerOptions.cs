@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace maskx.OrchestrationService.Worker
+﻿namespace maskx.OrchestrationService.Worker
 {
-    public class OrchestrationWorkerOptions
+    public class OrchestrationWorkerOptions : Extensions.OrchestrationWorkerOptions
     {
-        public int FetchJobCount { get; set; } = 100;
-        public Func<IList<Type>> GetBuildInTaskActivities { get; set; }
-        public Func<IList<Type>> GetBuildInOrchestrators { get; set; }
-        public Func<IDictionary<Type, object>> GetBuildInTaskActivitiesFromInterface { get; set; }
+        /// <summary>
+        /// Auto-creates the necessary resources for the orchestration service and the instance store
+        /// </summary>
+        public bool AutoCreate { get; set; } = false;
     }
 }

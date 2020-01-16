@@ -45,7 +45,8 @@ namespace maskx.OrchestrationService.Worker
                 this.activityManager);
             this.taskHubClient = new TaskHubClient(orchestrationServiceClient);
             this.orchestrationCreatorFactory = orchestrationCreatorFactory;
-
+            if (this.options.AutoCreate)
+                this.taskHubWorker.orchestrationService.CreateIfNotExistsAsync().Wait();
             // catch Orchestration Completed event
             var _ = new OrchestrationEventListener(this);
         }
@@ -90,7 +91,6 @@ namespace maskx.OrchestrationService.Worker
                 }
             }
 
-            this.taskHubWorker.orchestrationService.CreateIfNotExistsAsync().Wait();
             this.taskHubWorker.StartAsync().Wait();
 
             return base.StartAsync(cancellationToken);

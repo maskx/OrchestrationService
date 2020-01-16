@@ -35,6 +35,8 @@ namespace maskx.OrchestrationService.Worker
             {
                 this.processors.Add(item.Name, item);
             }
+            if (this.options.AutoCreate)
+                this.CreateIfNotExistsAsync(false).Wait();
         }
 
         public override async Task StartAsync(CancellationToken cancellationToken)
