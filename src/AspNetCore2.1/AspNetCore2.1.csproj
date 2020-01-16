@@ -47,6 +47,7 @@
     <Compile Include="..\OrchestrationService\Worker\OrchestrationCompletedArgs.cs" Link="Worker\OrchestrationCompletedArgs.cs" />
     <Compile Include="..\OrchestrationService\Worker\OrchestrationEventListener.cs" Link="Worker\OrchestrationEventListener.cs" />
     <Compile Include="..\OrchestrationService\Worker\OrchestrationWorker.cs" Link="Worker\OrchestrationWorker.cs" />
+    <Compile Include="..\OrchestrationService\Worker\OrchestrationWorkerClient.cs" Link="Worker\OrchestrationWorkerClient.cs" />
     <Compile Include="..\OrchestrationService\Worker\OrchestrationWorkerOptions.cs" Link="Worker\OrchestrationWorkerOptions.cs" />
   </ItemGroup>
 
