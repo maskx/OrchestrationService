@@ -1,5 +1,6 @@
 ﻿using DurableTask.Core;
 using DurableTask.Core.Common;
+using DurableTask.Core.Serializing;
 using maskx.DurableTask.SQLServer;
 using maskx.DurableTask.SQLServer.Settings;
 using maskx.DurableTask.SQLServer.Tracking;
@@ -18,6 +19,7 @@ namespace OrchestrationService.Tests
 {
     internal class TestHelpers
     {
+        public static DataConverter DataConverter { get; private set; } = new JsonDataConverter();
         public static IConfigurationRoot Configuration { get; private set; }
 
         public static string ConnectionString
@@ -158,6 +160,8 @@ namespace OrchestrationService.Tests
                  services.AddHostedService<CommunicationWorker>();
 
                  #endregion CommunicationWorker
+
+                 services.AddSingleton<OrchestrationWorkerClient>();
              });
         }
     }

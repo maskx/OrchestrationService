@@ -1,13 +1,12 @@
-﻿using DurableTask.Core.Serializing;
+﻿using DurableTask.Core;
+using DurableTask.Core.Serializing;
+using maskx.OrchestrationService;
 using maskx.OrchestrationService.Worker;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using Xunit;
-using Microsoft.Extensions.DependencyInjection;
-using DurableTask.Core;
-using maskx.OrchestrationService;
 
 namespace OrchestrationService.Tests.OrchestrationWorkerTests
 {

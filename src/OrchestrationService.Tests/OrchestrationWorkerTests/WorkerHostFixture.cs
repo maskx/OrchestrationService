@@ -3,20 +3,26 @@ using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
 using Xunit;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace OrchestrationService.Tests.OrchestrationWorkerTests
 {
     public class WorkerHostFixture : IDisposable
     {
         private IHost workerHost = null;
+        public OrchestrationWorker OrchestrationWorker { get; private set; }
+        public OrchestrationWorkerClient OrchestrationWorkerClient { get; private set; }
 
         public WorkerHostFixture()
         {
             CommunicationWorkerOptions options = new CommunicationWorkerOptions();
             options.HubName = "NoRule";
-            List<Type> orchestrationTypes = new List<Type>();
+            var orchestrationTypes = new List<Type>();
+            orchestrationTypes.Add(typeof(TestOrchestration));
             workerHost = TestHelpers.CreateHostBuilder(options, orchestrationTypes).Build();
             workerHost.RunAsync();
+            OrchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
+            OrchestrationWorkerClient = workerHost.Services.GetService<OrchestrationWorkerClient>();
         }
 
         public void Dispose()

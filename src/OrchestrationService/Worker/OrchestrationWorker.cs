@@ -36,7 +36,7 @@ namespace maskx.OrchestrationService.Worker
         {
             this.serviceProvider = serviceProvider;
             this.logger = logger;
-            this.options = options.Value;
+            this.options = options?.Value;
             this.jobProvider = serviceProvider.GetService<IJobProvider>();
             this.orchestrationManager = new DynamicNameVersionObjectManager<TaskOrchestration>();
             this.activityManager = new DynamicNameVersionObjectManager<TaskActivity>();
@@ -133,6 +133,7 @@ namespace maskx.OrchestrationService.Worker
         public async Task<OrchestrationInstance> JumpStartOrchestrationAsync(Job job)
         {
             ObjectCreator<TaskOrchestration> creator = this.orchestrationManager.GetCreator(job.Orchestration.Uri);
+            // TODO: support load TaskOrchestration from uri
             if (creator == null)
             {
                 creator = this.orchestrationCreatorFactory.Create<ObjectCreator<TaskOrchestration>>(job.Orchestration.Creator, job.Orchestration.Uri);
