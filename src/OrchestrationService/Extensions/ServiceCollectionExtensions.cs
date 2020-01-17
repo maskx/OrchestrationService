@@ -81,7 +81,31 @@ namespace maskx.OrchestrationService.Extensions
 
             if (options.CommunicationWorkerOptions == null)
             {
-                services.Configure<Worker.OrchestrationWorkerOptions>((opt) => { opt = options.OrchestrationWorkerOptions; });
+                services.Configure<Worker.OrchestrationWorkerOptions>((opt) =>
+                {
+                    opt.AutoCreate = options.OrchestrationWorkerOptions.AutoCreate;
+                    opt.FetchJobCount = options.OrchestrationWorkerOptions.FetchJobCount;
+                    opt.GetBuildInOrchestrators = () =>
+                    {
+                        IList<Type> orc;
+                        if (options.OrchestrationWorkerOptions == null || options.OrchestrationWorkerOptions.GetBuildInOrchestrators == null)
+                            orc = new List<Type>();
+                        else
+                            orc = options.OrchestrationWorkerOptions.GetBuildInOrchestrators();
+                        return orc;
+                    };
+                    opt.GetBuildInTaskActivities = () =>
+                    {
+                        IList<Type> act;
+                        if (options.OrchestrationWorkerOptions == null || options.OrchestrationWorkerOptions.GetBuildInTaskActivities == null)
+                            act = new List<Type>();
+                        else
+                            act = options.OrchestrationWorkerOptions.GetBuildInTaskActivities();
+                        act.Add(typeof(TaskActivity));
+                        return act;
+                    };
+                    opt.GetBuildInTaskActivitiesFromInterface = options.OrchestrationWorkerOptions.GetBuildInTaskActivitiesFromInterface;
+                });
             }
             else
             {
@@ -107,6 +131,7 @@ namespace maskx.OrchestrationService.Extensions
                         else
                             act = options.OrchestrationWorkerOptions.GetBuildInTaskActivities();
                         act.Add(typeof(AsyncRequestActivity));
+                        act.Add(typeof(TaskActivity));
                         return act;
                     };
                     opt.GetBuildInTaskActivitiesFromInterface = options.OrchestrationWorkerOptions.GetBuildInTaskActivitiesFromInterface;

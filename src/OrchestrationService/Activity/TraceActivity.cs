@@ -1,13 +1,14 @@
 ﻿using DurableTask.Core;
-using DurableTask.Core.Tracing;
 
 namespace maskx.OrchestrationService.Activity
 {
     public class TraceActivity : TaskActivity<TraceActivityInput, TaskResult>
     {
+        private const string Source = "OrchestrationService-TraceActivity";
+
         protected override TaskResult Execute(TaskContext context, TraceActivityInput input)
         {
-            TraceHelper.TraceInstance(input.EventLevel, input.EventType, context.OrchestrationInstance, input.Format, input.Args);
+            TraceActivityEventSource.Log.TraceEvent(input.EventLevel, Source, context.OrchestrationInstance.InstanceId, context.OrchestrationInstance.ExecutionId, input.Message, input.Info, input.EventType);
             return new TaskResult() { Code = 200 };
         }
     }

@@ -130,6 +130,7 @@ namespace OrchestrationService.Tests
 
                  activityTypes.Add(typeof(AsyncRequestActivity));
                  activityTypes.Add(typeof(HttpRequestActivity));
+                 activityTypes.Add(typeof(TraceActivity));
                  services.Configure<OrchestrationWorkerOptions>(options =>
                  {
                      options.GetBuildInOrchestrators = () => orchestrationTypes;

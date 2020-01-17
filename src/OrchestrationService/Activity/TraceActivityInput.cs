@@ -6,7 +6,7 @@ namespace maskx.OrchestrationService.Activity
     {
         public TraceEventType EventLevel { get; set; }
         public string EventType { get; set; }
-        public string Format { get; set; }
-        public object[] Args { get; set; }
+        public string Message { get; set; }
+        public string Info { get; set; }
     }
 }

@@ -19,6 +19,7 @@ namespace OrchestrationService.Tests
     {
         private IHost workerHost = null;
         private OrchestrationWorker orchestrationWorker;
+        public OrchestrationWorkerClient OrchestrationWorkerClient { get; private set; }
 
         public TraceActivityTest()
         {
@@ -29,6 +30,7 @@ namespace OrchestrationService.Tests
             workerHost = TestHelpers.CreateHostBuilder(options, orchestrationTypes).Build();
             workerHost.RunAsync();
             orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
+            OrchestrationWorkerClient = workerHost.Services.GetService<OrchestrationWorkerClient>();
         }
 
         public void Dispose()
@@ -40,6 +42,38 @@ namespace OrchestrationService.Tests
         [Fact(DisplayName = "Trace")]
         public void Trace()
         {
+            OrchestrationTrackingArgs trackingArgs = null;
+            var _ = new TraceActivityEventListener((args) =>
+            {
+                trackingArgs = args;
+            });
+            var instance = OrchestrationWorkerClient.JumpStartOrchestrationAsync(new Job
+            {
+                InstanceId = Guid.NewGuid().ToString("N"),
+                Orchestration = new OrchestrationSetting()
+                {
+                    Creator = "DICreator",
+                    Uri = typeof(TestOrchestration).FullName + "_"
+                },
+                Input = ""
+            }).Result;
+            while (true)
+            {
+                var result = OrchestrationWorkerClient.WaitForOrchestrationAsync(instance, TimeSpan.FromSeconds(30)).Result;
+                if (result != null)
+                {
+                    Assert.Equal(OrchestrationStatus.Completed, result.OrchestrationStatus);
+                    Assert.Equal("1", result.Output);
+                    break;
+                }
+            }
+            Assert.NotNull(trackingArgs);
+            Assert.Equal(trackingArgs.ExecutionId, instance.ExecutionId);
+            Assert.Equal(trackingArgs.InstanceId, instance.InstanceId);
+            Assert.Equal(EventLevel.Informational, trackingArgs.EventLevel);
+            Assert.Equal("TestOrchestration-Begin", trackingArgs.EventType);
+            Assert.Equal("123", trackingArgs.Message);
+            Assert.Empty(trackingArgs.Info);
         }
 
         public class TestOrchestration : TaskOrchestration<int, string>
@@ -50,7 +84,7 @@ namespace OrchestrationService.Tests
                 {
                     EventLevel = TraceEventType.Information,
                     EventType = "TestOrchestration-Begin",
-                    Format = "123",
+                    Message = "123",
                 });
                 return 1;
             }
