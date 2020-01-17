@@ -27,6 +27,8 @@
     <Compile Include="..\OrchestrationService\Activity\HttpRequestInput.cs" Link="Activity\HttpRequestInput.cs" />
     <Compile Include="..\OrchestrationService\Activity\SQLServerActivity.cs" Link="Activity\SQLServerActivity.cs" />
     <Compile Include="..\OrchestrationService\Activity\SQLServerInput.cs" Link="Activity\SQLServerInput.cs" />
+    <Compile Include="..\OrchestrationService\Activity\TraceActivity.cs" Link="Activity\TraceActivity.cs" />
+    <Compile Include="..\OrchestrationService\Activity\TraceActivityInput.cs" Link="Activity\TraceActivityInput.cs" />
     <Compile Include="..\OrchestrationService\DICreator.cs" Link="DICreator.cs" />
     <Compile Include="..\OrchestrationService\DynamicNameVersionObjectManager.cs" Link="DynamicNameVersionObjectManager.cs" />
     <Compile Include="..\OrchestrationService\Extensions\CommunicationWorkerOptions.cs" Link="Extensions\CommunicationWorkerOptions.cs" />

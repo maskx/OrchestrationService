@@ -10,7 +10,7 @@ namespace maskx.OrchestrationService.Worker
         public OrchestrationEventListener(OrchestrationWorker worker)
         {
             this.worker = worker;
-            this.EnableEvents(DefaultEventSource.Log, EventLevel.LogAlways);
+            this.EnableEvents(DefaultEventSource.Log, EventLevel.Informational);
         }
 
         protected override void OnEventWritten(EventWrittenEventArgs eventData)
