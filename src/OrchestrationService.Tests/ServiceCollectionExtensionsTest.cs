@@ -70,8 +70,8 @@ namespace OrchestrationService.Tests
                 AutoCreate = true,
                 OrchestrationWorkerOptions = new maskx.OrchestrationService.Extensions.OrchestrationWorkerOptions()
                 {
-                    GetBuildInOrchestrators = () => { return orchestrationTypes; },
-                    GetBuildInTaskActivities = () => { return activityTypes; }
+                    GetBuildInOrchestrators = (sp) => { return orchestrationTypes; },
+                    GetBuildInTaskActivities = (sp) => { return activityTypes; }
                 }
             };
             RunHost<SqlServerConfiguration>(sqlConfig);

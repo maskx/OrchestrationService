@@ -133,8 +133,8 @@ namespace OrchestrationService.Tests
                  activityTypes.Add(typeof(TraceActivity));
                  services.Configure<OrchestrationWorkerOptions>(options =>
                  {
-                     options.GetBuildInOrchestrators = () => orchestrationTypes;
-                     options.GetBuildInTaskActivities = () => activityTypes;
+                     options.GetBuildInOrchestrators = (sp) => orchestrationTypes;
+                     options.GetBuildInTaskActivities = (sp) => activityTypes;
                  });
 
                  services.AddSingleton<OrchestrationWorker>();

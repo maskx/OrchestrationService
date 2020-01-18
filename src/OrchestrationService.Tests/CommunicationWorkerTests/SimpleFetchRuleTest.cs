@@ -22,7 +22,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
         {
             CommunicationWorkerOptions options = new CommunicationWorkerOptions();
             options.HubName = "NoRule";
-            options.GetFetchRules = () =>
+            options.GetFetchRules = (sp) =>
             {
                 var r1 = new FetchRule()
                 {
