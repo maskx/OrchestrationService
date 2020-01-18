@@ -39,14 +39,14 @@ namespace maskx.OrchestrationService.Worker
         {
             if (this.options.GetBuildInOrchestrators != null)
             {
-                foreach (var activity in this.options.GetBuildInTaskActivities())
+                foreach (var activity in this.options.GetBuildInTaskActivities(serviceProvider))
                 {
                     this.activityManager.TryAdd(new DICreator<TaskActivity>(serviceProvider, activity));
                 }
             }
             if (this.options.GetBuildInTaskActivities != null)
             {
-                foreach (var orchestrator in this.options.GetBuildInOrchestrators())
+                foreach (var orchestrator in this.options.GetBuildInOrchestrators(serviceProvider))
                 {
                     this.orchestrationManager.TryAdd(new DICreator<TaskOrchestration>(serviceProvider, orchestrator));
                 }
@@ -54,7 +54,7 @@ namespace maskx.OrchestrationService.Worker
 
             if (this.options.GetBuildInTaskActivitiesFromInterface != null)
             {
-                var interfaceActivitys = this.options.GetBuildInTaskActivitiesFromInterface();
+                var interfaceActivitys = this.options.GetBuildInTaskActivitiesFromInterface(serviceProvider);
                 foreach (var @interface in interfaceActivitys.Keys)
                 {
                     var activities = interfaceActivitys[@interface];

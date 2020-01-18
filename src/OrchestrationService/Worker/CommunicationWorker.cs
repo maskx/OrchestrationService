@@ -21,12 +21,14 @@ namespace maskx.OrchestrationService.Worker
         private readonly Dictionary<string, ICommunicationProcessor> processors;
         private DataConverter dataConverter = new JsonDataConverter();
         private ConcurrentBag<Task> ProcessorTasks = new ConcurrentBag<Task>();
+        private readonly IServiceProvider serviceProvider;
 
         public CommunicationWorker(
             IServiceProvider serviceProvider,
             IOrchestrationServiceClient orchestrationServiceClient,
             IOptions<CommunicationWorkerOptions> options)
         {
+            this.serviceProvider = serviceProvider;
             this.options = options?.Value;
             this.taskHubClient = new TaskHubClient(orchestrationServiceClient);
             this.processors = new Dictionary<string, ICommunicationProcessor>();
@@ -206,7 +208,7 @@ namespace maskx.OrchestrationService.Worker
             StringBuilder sb = new StringBuilder("declare @RequestId nvarchar(50);");
             if (this.options.GetFetchRules != null)
             {
-                var fetchRules = this.options.GetFetchRules();
+                var fetchRules = this.options.GetFetchRules(serviceProvider);
                 if (fetchRules.Count > 0)
                     return sb.Append(FetchRule.BuildFetchCommand(fetchRules, options)).ToString();
             }

@@ -19,7 +19,7 @@ namespace maskx.OrchestrationService.Extensions
         /// <summary>
         /// 获取Job的规则
         /// </summary>
-        public Func<List<FetchRule>> GetFetchRules { get; set; }
+        public Func<IServiceProvider, List<FetchRule>> GetFetchRules { get; set; }
 
         /// <summary>
         /// 扩展的规则筛选字段

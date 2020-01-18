@@ -85,22 +85,22 @@ namespace maskx.OrchestrationService.Extensions
                 {
                     opt.AutoCreate = options.OrchestrationWorkerOptions.AutoCreate;
                     opt.FetchJobCount = options.OrchestrationWorkerOptions.FetchJobCount;
-                    opt.GetBuildInOrchestrators = () =>
+                    opt.GetBuildInOrchestrators = (sp) =>
                     {
                         IList<Type> orc;
                         if (options.OrchestrationWorkerOptions == null || options.OrchestrationWorkerOptions.GetBuildInOrchestrators == null)
                             orc = new List<Type>();
                         else
-                            orc = options.OrchestrationWorkerOptions.GetBuildInOrchestrators();
+                            orc = options.OrchestrationWorkerOptions.GetBuildInOrchestrators(sp);
                         return orc;
                     };
-                    opt.GetBuildInTaskActivities = () =>
+                    opt.GetBuildInTaskActivities = (sp) =>
                     {
                         IList<Type> act;
                         if (options.OrchestrationWorkerOptions == null || options.OrchestrationWorkerOptions.GetBuildInTaskActivities == null)
                             act = new List<Type>();
                         else
-                            act = options.OrchestrationWorkerOptions.GetBuildInTaskActivities();
+                            act = options.OrchestrationWorkerOptions.GetBuildInTaskActivities(sp);
                         act.Add(typeof(TaskActivity));
                         return act;
                     };
@@ -113,23 +113,23 @@ namespace maskx.OrchestrationService.Extensions
                 {
                     opt.AutoCreate = options.OrchestrationWorkerOptions.AutoCreate;
                     opt.FetchJobCount = options.OrchestrationWorkerOptions.FetchJobCount;
-                    opt.GetBuildInOrchestrators = () =>
+                    opt.GetBuildInOrchestrators = (sp) =>
                     {
                         IList<Type> orc;
                         if (options.OrchestrationWorkerOptions == null || options.OrchestrationWorkerOptions.GetBuildInOrchestrators == null)
                             orc = new List<Type>();
                         else
-                            orc = options.OrchestrationWorkerOptions.GetBuildInOrchestrators();
+                            orc = options.OrchestrationWorkerOptions.GetBuildInOrchestrators(sp);
                         orc.Add(typeof(AsyncRequestOrchestration));
                         return orc;
                     };
-                    opt.GetBuildInTaskActivities = () =>
+                    opt.GetBuildInTaskActivities = (sp) =>
                     {
                         IList<Type> act;
                         if (options.OrchestrationWorkerOptions == null || options.OrchestrationWorkerOptions.GetBuildInTaskActivities == null)
                             act = new List<Type>();
                         else
-                            act = options.OrchestrationWorkerOptions.GetBuildInTaskActivities();
+                            act = options.OrchestrationWorkerOptions.GetBuildInTaskActivities(sp);
                         act.Add(typeof(AsyncRequestActivity));
                         act.Add(typeof(TaskActivity));
                         return act;

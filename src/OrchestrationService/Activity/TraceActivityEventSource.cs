@@ -200,7 +200,6 @@ namespace maskx.OrchestrationService.Activity
                 data[5].DataPointer = (IntPtr)chPtrEventType;
                 data[5].Size = (eventType.Length + 1) * 2;
 
-                // todo: use WriteEventWithRelatedActivityIdCore for correlation
                 WriteEventCore(eventId, EventDataCount, data);
             }
         }
