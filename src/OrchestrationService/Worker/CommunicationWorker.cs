@@ -20,7 +20,12 @@ namespace maskx.OrchestrationService.Worker
         private string fetchCommandText;
         private readonly Dictionary<string, ICommunicationProcessor> processors;
         private DataConverter dataConverter = new JsonDataConverter();
+
+        /// <summary>
+        /// TODO: int count is ok, should remove ConcurrentBag
+        /// </summary>
         private ConcurrentBag<Task> ProcessorTasks = new ConcurrentBag<Task>();
+
         private readonly IServiceProvider serviceProvider;
 
         public CommunicationWorker(
@@ -106,10 +111,6 @@ namespace maskx.OrchestrationService.Worker
                 }
                 if (jobs.Count == 0)
                     await Task.Delay(this.options.IdelMilliseconds);
-                while (options.MaxConcurrencyRequest - ProcessorTasks.Count < 1)
-                {
-                    await Task.Delay(this.options.IdelMilliseconds);
-                }
             }
         }
 
@@ -196,7 +197,7 @@ namespace maskx.OrchestrationService.Worker
                                             ExecutionId = job.ExecutionId
                                         },
                                         job.EventName,
-                                      dataConverter.Serialize(new TaskResult() { Code = job.ResponseCode, Content = job.ResponseContent })
+                                        dataConverter.Serialize(new TaskResult() { Code = job.ResponseCode, Content = job.ResponseContent })
                                         ));
                 }
             }

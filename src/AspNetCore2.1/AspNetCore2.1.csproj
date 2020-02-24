@@ -30,6 +30,7 @@
     <Compile Include="..\OrchestrationService\Activity\SQLServerActivity.cs" Link="Activity\SQLServerActivity.cs" />
     <Compile Include="..\OrchestrationService\Activity\SQLServerInput.cs" Link="Activity\SQLServerInput.cs" />
     <Compile Include="..\OrchestrationService\Activity\TraceActivity.cs" Link="Activity\TraceActivity.cs" />
+    <Compile Include="..\OrchestrationService\Activity\TraceActivityEventListener.cs" Link="Activity\TraceActivityEventListener.cs" />
     <Compile Include="..\OrchestrationService\Activity\TraceActivityEventSource.cs" Link="Activity\TraceActivityEventSource.cs" />
     <Compile Include="..\OrchestrationService\Activity\TraceActivityInput.cs" Link="Activity\TraceActivityInput.cs" />
     <Compile Include="..\OrchestrationService\DICreator.cs" Link="DICreator.cs" />

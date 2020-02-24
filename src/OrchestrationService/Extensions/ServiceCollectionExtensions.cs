@@ -59,8 +59,8 @@ namespace maskx.OrchestrationService.Extensions
 
         public static IServiceCollection UsingOrchestration(this IServiceCollection services, OrchestrationServiceConfiguration options)
         {
-            services.AddSingleton<IOrchestrationService>(options.OrchestrationService);
-            services.AddSingleton<IOrchestrationServiceClient>(options.OrchestrationServiceClient);
+            services.AddSingleton(options.OrchestrationService);
+            services.AddSingleton(options.OrchestrationServiceClient);
 
             #region OrchestrationWorker
 
@@ -76,7 +76,7 @@ namespace maskx.OrchestrationService.Extensions
             }
             else
             {
-                services.AddSingleton<IOrchestrationCreatorFactory>((sp) => options.GetOrchestrationCreatorFactory(sp));
+                services.AddSingleton((sp) => options.GetOrchestrationCreatorFactory(sp));
             }
 
             if (options.CommunicationWorkerOptions == null)

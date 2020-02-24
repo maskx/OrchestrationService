@@ -18,7 +18,7 @@ namespace maskx.OrchestrationService.Extensions
         public string SchemaName { get; set; } = "dbo";
 
         public SQLServerOrchestrationServiceSettings OrchestrationServiceSettings { get; set; } = new SQLServerOrchestrationServiceSettings();
-        public OrchestrationWorkerOptions OrchestrationWorkerOptions { get; set; }
-        public CommunicationWorkerOptions CommunicationWorkerOptions { get; set; }
+        public OrchestrationWorkerOptions OrchestrationWorkerOptions { get; set; } = new OrchestrationWorkerOptions();
+        public CommunicationWorkerOptions CommunicationWorkerOptions { get; set; } = new CommunicationWorkerOptions();
     }
 }

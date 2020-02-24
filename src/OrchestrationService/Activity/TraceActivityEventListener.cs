@@ -22,7 +22,7 @@ namespace maskx.OrchestrationService.Activity
                 Source = payload[0]?.ToString(),
                 InstanceId = payload[1]?.ToString(),
                 ExecutionId = payload[2]?.ToString(),
-                TimeStamp = eventData.TimeStamp,
+                // TimeStamp = eventData.TimeStamp,
                 Message = payload[3]?.ToString(),
                 Info = payload[4]?.ToString(),
                 EventType = payload[5]?.ToString()
