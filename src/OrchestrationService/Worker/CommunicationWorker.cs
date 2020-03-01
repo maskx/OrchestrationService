@@ -77,7 +77,7 @@ namespace maskx.OrchestrationService.Worker
                     }
                     else
                     {
-                        if (batchJobs.TryGetValue(processor.Name, out List<List<CommunicationJob>> procJobs))
+                        if (!batchJobs.TryGetValue(processor.Name, out List<List<CommunicationJob>> procJobs))
                         {
                             procJobs = new List<List<CommunicationJob>>();
                             batchJobs[processor.Name] = procJobs;

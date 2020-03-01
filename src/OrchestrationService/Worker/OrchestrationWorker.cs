@@ -92,7 +92,11 @@ namespace maskx.OrchestrationService.Worker
             }
 
             this.taskHubWorker.StartAsync().Wait();
-
+            if (this.options.IncludeDetails)
+            {
+                this.taskHubWorker.TaskOrchestrationDispatcher.IncludeDetails = true;
+                this.taskHubWorker.TaskActivityDispatcher.IncludeDetails = true;
+            }
             return base.StartAsync(cancellationToken);
         }
 
