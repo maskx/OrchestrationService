@@ -21,11 +21,7 @@ namespace maskx.OrchestrationService.Worker
         private readonly Dictionary<string, ICommunicationProcessor> processors;
         private DataConverter dataConverter = new JsonDataConverter();
 
-        /// <summary>
-        /// TODO: int count is ok, should remove ConcurrentBag
-        /// </summary>
-        private ConcurrentBag<Task> ProcessorTasks = new ConcurrentBag<Task>();
-
+        private int RunningTaskCount = 0;
         private readonly IServiceProvider serviceProvider;
 
         public CommunicationWorker(
@@ -69,11 +65,12 @@ namespace maskx.OrchestrationService.Worker
                     var processor = this.processors[job.Processor];
                     if (processor.MaxBatchCount == 1)
                     {
-                        ProcessorTasks.Add(ProcessJobs(processor, job)
-                            .ContinueWith((t) =>
-                            {
-                                ProcessorTasks.TryTake(out Task _);
-                            }));
+                        Interlocked.Increment(ref RunningTaskCount);
+                        var _ = ProcessJobs(processor, job)
+                             .ContinueWith((t) =>
+                             {
+                                 Interlocked.Decrement(ref RunningTaskCount);
+                             });
                     }
                     else
                     {
@@ -102,11 +99,12 @@ namespace maskx.OrchestrationService.Worker
                 {
                     foreach (var item in batchJob.Value)
                     {
-                        ProcessorTasks.Add(ProcessJobs(this.processors[batchJob.Key], item.ToArray())
+                        Interlocked.Increment(ref RunningTaskCount);
+                        var _ = ProcessJobs(this.processors[batchJob.Key], item.ToArray())
                             .ContinueWith((t) =>
                             {
-                                ProcessorTasks.TryTake(out Task _);
-                            }));
+                                Interlocked.Decrement(ref RunningTaskCount);
+                            });
                     }
                 }
                 if (jobs.Count == 0)
@@ -117,7 +115,7 @@ namespace maskx.OrchestrationService.Worker
         private async Task<List<CommunicationJob>> FetchJob()
         {
             List<CommunicationJob> jobs = new List<CommunicationJob>();
-            if (options.MaxConcurrencyRequest - ProcessorTasks.Count < 1)
+            if (options.MaxConcurrencyRequest - RunningTaskCount < 1)
             {
                 return jobs;
             }
@@ -125,7 +123,7 @@ namespace maskx.OrchestrationService.Worker
             {
                 db.AddStatement(fetchCommandText, new
                 {
-                    MaxCount = options.MaxConcurrencyRequest - ProcessorTasks.Count
+                    MaxCount = options.MaxConcurrencyRequest - RunningTaskCount
                 });
                 await db.ExecuteReaderAsync((reader, index) =>
                 {
