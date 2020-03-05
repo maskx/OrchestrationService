@@ -84,6 +84,7 @@ inner join (
         // {1} limitation where
         // {2} Communication table name
         private const string ruleTemplate = @"
+set @RequestId=null;
 update top(1) T
 set @RequestId=T.RequestId,T.[Status]=N'Locked'
 output INSERTED.*

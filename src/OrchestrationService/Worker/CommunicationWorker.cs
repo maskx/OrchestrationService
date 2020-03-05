@@ -128,64 +128,52 @@ namespace maskx.OrchestrationService.Worker
             {
                 return jobs;
             }
-            bool isEnd=false;
-            while(jobs.Count<(options.MaxConcurrencyRequest - RunningTaskCount))
+            using (var db = new DbAccess(this.options.ConnectionString))
             {
-                int i = 0;
-                using (var db = new DbAccess(this.options.ConnectionString))
+                db.AddStatement(fetchCommandText, new
                 {
-                    db.AddStatement(fetchCommandText, new
+                    MaxCount = options.MaxConcurrencyRequest - RunningTaskCount
+                });
+                await db.ExecuteReaderAsync((reader, index) =>
+                {
+                    var job = new CommunicationJob()
                     {
-                        MaxCount = options.MaxConcurrencyRequest - RunningTaskCount
-                    });
-                    await db.ExecuteReaderAsync((reader, index) =>
-                    {
-                        var job = new CommunicationJob()
-                        {
-                            InstanceId = reader["InstanceId"].ToString(),
-                            ExecutionId = reader["ExecutionId"].ToString(),
-                            EventName = reader["EventName"].ToString(),
-                            RequestId = reader["RequestId"].ToString(),
-                            Processor = reader["Processor"].ToString(),
-                            RequestTo = reader["RequestTo"]?.ToString(),
+                        InstanceId = reader["InstanceId"].ToString(),
+                        ExecutionId = reader["ExecutionId"].ToString(),
+                        EventName = reader["EventName"].ToString(),
+                        RequestId = reader["RequestId"].ToString(),
+                        Processor = reader["Processor"].ToString(),
+                        RequestTo = reader["RequestTo"]?.ToString(),
 
-                            RequestOperation = reader["RequestOperation"]?.ToString(),
-                            RequsetContent = reader["RequsetContent"]?.ToString(),
-                            RequestProperty = reader["RequestProperty"]?.ToString(),
-                            Status = (CommunicationJob.JobStatus)Enum.Parse(typeof(CommunicationJob.JobStatus), reader["Status"].ToString()),
-                            ResponseContent = reader["ResponseContent"]?.ToString(),
-                        };
-                        if (reader["Context"] != DBNull.Value)
-                        {
-                            job.Context = reader["Context"].ToString();
-                        }
-                        if (reader["ResponseCode"] != DBNull.Value)
-                            job.ResponseCode = (int)reader["ResponseCode"];
-                        job.RuleField = new Dictionary<string, object>();
-                        foreach (var item in options.RuleFields)
-                        {
-                            job.RuleField.Add(item, reader[item]);
-                        }
-                        jobs.Add(job);
-                        i++;
-                    });
-                    if (i == 0)
+                        RequestOperation = reader["RequestOperation"]?.ToString(),
+                        RequsetContent = reader["RequsetContent"]?.ToString(),
+                        RequestProperty = reader["RequestProperty"]?.ToString(),
+                        Status = (CommunicationJob.JobStatus)Enum.Parse(typeof(CommunicationJob.JobStatus), reader["Status"].ToString()),
+                        ResponseContent = reader["ResponseContent"]?.ToString(),
+                    };
+                    if (reader["Context"] != DBNull.Value)
                     {
-                        isEnd = true;
+                        job.Context = reader["Context"].ToString();
                     }
-
-                }
-                if (isEnd)
-                    break;
+                    if (reader["ResponseCode"] != DBNull.Value)
+                        job.ResponseCode = (int)reader["ResponseCode"];
+                    job.RuleField = new Dictionary<string, object>();
+                    foreach (var item in options.RuleFields)
+                    {
+                        job.RuleField.Add(item, reader[item]);
+                    }
+                    jobs.Add(job);
+                });
             }
             return jobs;
-        } 
-
+        }
 
 
         private async Task ProcessJobs(ICommunicationProcessor processor, params CommunicationJob[] jobs)
         {
-            var response = await processor.ProcessAsync(jobs);
+            //使用Task.Run包装CommunicationProcessor里的代码执行，避免CommunicationProcessor里有类似于Thread.Sleep这样阻塞线程的情况
+            //CommunicationProcessor里不要使用Task.WaitAll,建议使用Task.WhenAll
+            var response = await Task.Run(async () => await processor.ProcessAsync(jobs));
             await Task.WhenAll(UpdateJobs(response), RaiseEvent(response));
         }
 
