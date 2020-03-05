@@ -85,7 +85,7 @@ inner join (
         // {2} Communication table name
         private const string ruleTemplate = @"
 update top(1) T
-set @RequestId=T.RequestId=newid(),T.[Status]=N'Locked'
+set @RequestId=T.RequestId,T.[Status]=N'Locked'
 output INSERTED.*
 FROM {2} AS T {0}
 where [status]=N'Pending' and [NextFetchTime]<=getutcdate() and {1}
@@ -103,7 +103,7 @@ end
         // {1} Communication table name
         private const string otherTemplate = @"
 update top(@MaxCount-@Count) T
-set @RequestId=T.RequestId=newid(),T.[Status]=N'Locked'
+set @RequestId=T.RequestId,T.[Status]=N'Locked'
 output INSERTED.*
 FROM {1} AS T
 where [status]=N'Pending' and [NextFetchTime]<=getutcdate() and not ({0})

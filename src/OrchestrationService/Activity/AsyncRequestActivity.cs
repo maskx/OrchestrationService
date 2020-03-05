@@ -70,9 +70,9 @@ USING (VALUES (@InstanceId,@ExecutionId,@EventName)) AS SOURCE ([InstanceId],[Ex
 ON [Target].InstanceId = [Source].InstanceId AND [Target].ExecutionId = [Source].ExecutionId AND [Target].EventName = [Source].EventName
 WHEN NOT MATCHED THEN
     INSERT
-        ([NextFetchTime],[CreateTime],[InstanceId],[ExecutionId],[EventName],[Status],[RequestTo],[RequestOperation],[RequsetContent],[RequestProperty],[Processor]{0})
+        ([RequestId],[NextFetchTime],[CreateTime],[InstanceId],[ExecutionId],[EventName],[Status],[RequestTo],[RequestOperation],[RequsetContent],[RequestProperty],[Processor]{0})
     values
-        (getutcdate(),getutcdate(),@InstanceId,@ExecutionId,@EventName,@Status,@RequestTo,@RequestOperation,@RequsetContent,@RequestProperty,@Processor {1})
+        (newid(),getutcdate(),getutcdate(),@InstanceId,@ExecutionId,@EventName,@Status,@RequestTo,@RequestOperation,@RequsetContent,@RequestProperty,@Processor {1})
 ;";
     }
 }

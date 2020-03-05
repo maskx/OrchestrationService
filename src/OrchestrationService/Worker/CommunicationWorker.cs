@@ -4,6 +4,7 @@ using maskx.OrchestrationService.SQL;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -58,57 +59,65 @@ namespace maskx.OrchestrationService.Worker
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                var jobs = await FetchJob();
-                Dictionary<string, List<List<CommunicationJob>>> batchJobs = new Dictionary<string, List<List<CommunicationJob>>>();
-                foreach (var job in jobs)
+                try
                 {
-                    var processor = this.processors[job.Processor];
-                    if (processor.MaxBatchCount == 1)
+
+                    var jobs = await FetchJob();
+                    Dictionary<string, List<List<CommunicationJob>>> batchJobs = new Dictionary<string, List<List<CommunicationJob>>>();
+                    foreach (var job in jobs)
                     {
-                        Interlocked.Increment(ref RunningTaskCount);
-                        var _ = ProcessJobs(processor, job)
-                             .ContinueWith((t) =>
-                             {
-                                 Interlocked.Decrement(ref RunningTaskCount);
-                             });
-                    }
-                    else
-                    {
-                        if (!batchJobs.TryGetValue(processor.Name, out List<List<CommunicationJob>> procJobs))
+                        var processor = this.processors[job.Processor];
+                        if (processor.MaxBatchCount == 1)
                         {
-                            procJobs = new List<List<CommunicationJob>>();
-                            batchJobs[processor.Name] = procJobs;
+                            Interlocked.Increment(ref RunningTaskCount);
+                            var _ = ProcessJobs(processor, job)
+                                 .ContinueWith((t) =>
+                                 {
+                                     Interlocked.Decrement(ref RunningTaskCount);
+                                 });
                         }
-                        List<CommunicationJob> jobList = null;
-                        foreach (var communicationJobs in procJobs)
+                        else
                         {
-                            if (communicationJobs.Count < processor.MaxBatchCount)
+                            if (!batchJobs.TryGetValue(processor.Name, out List<List<CommunicationJob>> procJobs))
                             {
-                                jobList = communicationJobs;
+                                procJobs = new List<List<CommunicationJob>>();
+                                batchJobs[processor.Name] = procJobs;
                             }
-                        }
-                        if (jobList == null)
-                        {
-                            jobList = new List<CommunicationJob>();
-                            procJobs.Add(jobList);
-                        }
-                        jobList.Add(job);
-                    }
-                }
-                foreach (var batchJob in batchJobs)
-                {
-                    foreach (var item in batchJob.Value)
-                    {
-                        Interlocked.Increment(ref RunningTaskCount);
-                        var _ = ProcessJobs(this.processors[batchJob.Key], item.ToArray())
-                            .ContinueWith((t) =>
+                            List<CommunicationJob> jobList = null;
+                            foreach (var communicationJobs in procJobs)
                             {
-                                Interlocked.Decrement(ref RunningTaskCount);
-                            });
+                                if (communicationJobs.Count < processor.MaxBatchCount)
+                                {
+                                    jobList = communicationJobs;
+                                }
+                            }
+                            if (jobList == null)
+                            {
+                                jobList = new List<CommunicationJob>();
+                                procJobs.Add(jobList);
+                            }
+                            jobList.Add(job);
+                        }
                     }
+                    foreach (var batchJob in batchJobs)
+                    {
+                        foreach (var item in batchJob.Value)
+                        {
+                            Interlocked.Increment(ref RunningTaskCount);
+                            var _ = ProcessJobs(this.processors[batchJob.Key], item.ToArray())
+                                .ContinueWith((t) =>
+                                {
+                                    Interlocked.Decrement(ref RunningTaskCount);
+                                });
+                        }
+                    }
+                    if (jobs.Count == 0)
+                        await Task.Delay(this.options.IdelMilliseconds);
+                }catch(Exception e)
+                {
+                    var x=e.ToString();
+                    ////todo: trace ex
                 }
-                if (jobs.Count == 0)
-                    await Task.Delay(this.options.IdelMilliseconds);
             }
         }
 
@@ -119,40 +128,60 @@ namespace maskx.OrchestrationService.Worker
             {
                 return jobs;
             }
-            using (var db = new DbAccess(this.options.ConnectionString))
+            bool isEnd=false;
+            while(jobs.Count<(options.MaxConcurrencyRequest - RunningTaskCount))
             {
-                db.AddStatement(fetchCommandText, new
+                int i = 0;
+                using (var db = new DbAccess(this.options.ConnectionString))
                 {
-                    MaxCount = options.MaxConcurrencyRequest - RunningTaskCount
-                });
-                await db.ExecuteReaderAsync((reader, index) =>
-                {
-                    var job = new CommunicationJob()
+                    db.AddStatement(fetchCommandText, new
                     {
-                        InstanceId = reader["InstanceId"].ToString(),
-                        ExecutionId = reader["ExecutionId"].ToString(),
-                        EventName = reader["EventName"].ToString(),
-                        RequestId = reader["RequestId"].ToString(),
-                        Processor = reader["Processor"].ToString(),
-                        RequestTo = reader["RequestTo"]?.ToString(),
-                        RequestOperation = reader["RequestOperation"]?.ToString(),
-                        RequsetContent = reader["RequsetContent"]?.ToString(),
-                        RequestProperty = reader["RequestProperty"]?.ToString(),
-                        Status = (CommunicationJob.JobStatus)Enum.Parse(typeof(CommunicationJob.JobStatus), reader["Status"].ToString()),
-                        ResponseContent = reader["ResponseContent"]?.ToString(),
-                    };
-                    if (reader["ResponseCode"] != DBNull.Value)
-                        job.ResponseCode = (int)reader["ResponseCode"];
-                    job.RuleField = new Dictionary<string, object>();
-                    foreach (var item in options.RuleFields)
+                        MaxCount = options.MaxConcurrencyRequest - RunningTaskCount
+                    });
+                    await db.ExecuteReaderAsync((reader, index) =>
                     {
-                        job.RuleField.Add(item, reader[item]);
+                        var job = new CommunicationJob()
+                        {
+                            InstanceId = reader["InstanceId"].ToString(),
+                            ExecutionId = reader["ExecutionId"].ToString(),
+                            EventName = reader["EventName"].ToString(),
+                            RequestId = reader["RequestId"].ToString(),
+                            Processor = reader["Processor"].ToString(),
+                            RequestTo = reader["RequestTo"]?.ToString(),
+
+                            RequestOperation = reader["RequestOperation"]?.ToString(),
+                            RequsetContent = reader["RequsetContent"]?.ToString(),
+                            RequestProperty = reader["RequestProperty"]?.ToString(),
+                            Status = (CommunicationJob.JobStatus)Enum.Parse(typeof(CommunicationJob.JobStatus), reader["Status"].ToString()),
+                            ResponseContent = reader["ResponseContent"]?.ToString(),
+                        };
+                        if (reader["Context"] != DBNull.Value)
+                        {
+                            job.Context = reader["Context"].ToString();
+                        }
+                        if (reader["ResponseCode"] != DBNull.Value)
+                            job.ResponseCode = (int)reader["ResponseCode"];
+                        job.RuleField = new Dictionary<string, object>();
+                        foreach (var item in options.RuleFields)
+                        {
+                            job.RuleField.Add(item, reader[item]);
+                        }
+                        jobs.Add(job);
+                        i++;
+                    });
+                    if (i == 0)
+                    {
+                        isEnd = true;
                     }
-                    jobs.Add(job);
-                });
+
+                }
+                if (isEnd)
+                    break;
             }
             return jobs;
-        }
+        } 
+
+
 
         private async Task ProcessJobs(ICommunicationProcessor processor, params CommunicationJob[] jobs)
         {
@@ -170,6 +199,7 @@ namespace maskx.OrchestrationService.Worker
                     {
                         Status = job.Status.ToString(),
                         job.NextFetchTime,
+                        job.Context,
                         job.ResponseCode,
                         job.RequestId,
                         job.ResponseContent,
@@ -195,7 +225,7 @@ namespace maskx.OrchestrationService.Worker
                                             ExecutionId = job.ExecutionId
                                         },
                                         job.EventName,
-                                        dataConverter.Serialize(new TaskResult() { Code = job.ResponseCode, Content = job.ResponseContent })
+                                        dataConverter.Serialize(new TaskResult() { Code = job.ResponseCode, Content = dataConverter.Serialize(new CommunicationResult { ResponseContent = job.ResponseContent, Context = job.Context })})
                                         ));
                 }
             }
@@ -249,6 +279,7 @@ BEGIN
 	    [LockedUntilUtc] [datetime2](7) NULL,
 	    [ResponseContent] [nvarchar](max) NULL,
 	    [ResponseCode] [int] NULL,
+        [Context] [nvarchar](max) NULL,
 	    [RequestId] [nvarchar](50) NULL,
 	    [CompletedTime] [datetime2](7) NULL,
 	    [CreateTime] [datetime2](7) NULL,
@@ -270,7 +301,7 @@ END", new { table = options.CommunicationTableName });
         // {1} Communication table name
         private const string fetchTemplate = @"
 update top({0}) T
-set @RequestId=T.RequestId=newid(),T.[Status]=N'Locked'
+set T.[Status]=N'Locked'
 output INSERTED.*
 FROM {1} AS T
 where [status]=N'Pending' and [NextFetchTime]<=getutcdate();
@@ -279,7 +310,7 @@ where [status]=N'Pending' and [NextFetchTime]<=getutcdate();
         // {0} Communication table name
         private const string updatejobTemplate = @"
 update {0}
-set [Status]=@Status,[NextFetchTime]=@NextFetchTime, [ResponseCode]=@ResponseCode,[ResponseContent]=@ResponseContent,CompletedTime=@CompletedTime
+set [Status]=@Status,[NextFetchTime]=@NextFetchTime,[Context]=@Context, [ResponseCode]=@ResponseCode,[ResponseContent]=@ResponseContent,CompletedTime=@CompletedTime
 where RequestId=@RequestId;";
     }
 }
