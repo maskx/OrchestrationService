@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.Tracing;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -41,6 +42,7 @@ namespace maskx.OrchestrationService.Worker
             }
             if (this.options.AutoCreate)
                 this.CreateIfNotExistsAsync(false).Wait();
+
         }
 
         public override async Task StartAsync(CancellationToken cancellationToken)
@@ -61,7 +63,6 @@ namespace maskx.OrchestrationService.Worker
             {
                 try
                 {
-
                     var jobs = await FetchJob();
                     Dictionary<string, List<List<CommunicationJob>>> batchJobs = new Dictionary<string, List<List<CommunicationJob>>>();
                     foreach (var job in jobs)
@@ -115,8 +116,8 @@ namespace maskx.OrchestrationService.Worker
                         await Task.Delay(this.options.IdelMilliseconds);
                 }catch(Exception e)
                 {
-                    var x=e.ToString();
-                    ////todo: trace ex
+                    CommunicationEventSource.Log.TraceEvent(System.Diagnostics.TraceEventType.Critical, "CommunicationWorker",  e.Message, e.ToString(), "Error");
+
                 }
             }
         }

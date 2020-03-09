@@ -47,8 +47,10 @@
     <Compile Include="..\OrchestrationService\SQL\DbAccess.cs" Link="SQL\DbAccess.cs" />
     <Compile Include="..\OrchestrationService\SQL\DbCommandHelper.cs" Link="SQL\DbCommandHelper.cs" />
     <Compile Include="..\OrchestrationService\TaskResult.cs" Link="TaskResult.cs" />
+    <Compile Include="..\OrchestrationService\Worker\CommunicationEventSource.cs" Link="Worker\CommunicationEventSource.cs" />
     <Compile Include="..\OrchestrationService\Worker\CommunicationJob.cs" Link="Worker\CommunicationJob.cs" />
     <Compile Include="..\OrchestrationService\Worker\CommunicationResult.cs" Link="Worker\CommunicationResult.cs" />
+    <Compile Include="..\OrchestrationService\Worker\CommunicationTrackingArgs.cs" Link="Worker\CommunicationTrackingArgs.cs" />
     <Compile Include="..\OrchestrationService\Worker\CommunicationWorker.cs" Link="Worker\CommunicationWorker.cs" />
     <Compile Include="..\OrchestrationService\Worker\CommunicationWorkerOptions.cs" Link="Worker\CommunicationWorkerOptions.cs" />
     <Compile Include="..\OrchestrationService\Worker\FetchRule.cs" Link="Worker\FetchRule.cs" />
