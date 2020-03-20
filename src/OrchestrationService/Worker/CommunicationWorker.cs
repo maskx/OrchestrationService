@@ -104,11 +104,12 @@ namespace maskx.OrchestrationService.Worker
                     {
                         foreach (var item in batchJob.Value)
                         {
-                            Interlocked.Increment(ref RunningTaskCount);
+                            //为RunningTaskCount增减每个CommunicationProcessor里JobCount
+                            Interlocked.Add(ref RunningTaskCount,item.Count);
                             var _ = ProcessJobs(this.processors[batchJob.Key], item.ToArray())
                                 .ContinueWith((t) =>
                                 {
-                                    Interlocked.Decrement(ref RunningTaskCount);
+                                    Interlocked.Add(ref RunningTaskCount,0-item.Count);
                                 });
                         }
                     }
