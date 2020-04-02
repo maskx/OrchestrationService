@@ -126,6 +126,7 @@ namespace maskx.OrchestrationService.Worker
                 }
                 catch (Exception ex)
                 {
+                    CommunicationEventSource.Log.TraceEvent(System.Diagnostics.TraceEventType.Critical, "OrchestrationWorker", ex.Message, ex.ToString(), "Error");
                     throw ex;
                 }
                 sw.Stop();
