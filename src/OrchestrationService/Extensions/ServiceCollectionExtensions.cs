@@ -35,6 +35,7 @@ namespace maskx.OrchestrationService.Extensions
             };
             if (options.OrchestrationWorkerOptions != null)
             {
+                configuration.OrchestrationWorkerOptions.IncludeDetails = options.OrchestrationWorkerOptions.IncludeDetails;
                 configuration.OrchestrationWorkerOptions.FetchJobCount = options.OrchestrationWorkerOptions.FetchJobCount;
                 configuration.OrchestrationWorkerOptions.GetBuildInOrchestrators = options.OrchestrationWorkerOptions.GetBuildInOrchestrators;
                 configuration.OrchestrationWorkerOptions.GetBuildInTaskActivities = options.OrchestrationWorkerOptions.GetBuildInTaskActivities;
@@ -79,7 +80,7 @@ namespace maskx.OrchestrationService.Extensions
                 services.AddSingleton((sp) => options.GetOrchestrationCreatorFactory(sp));
             }
 
-            if (options.CommunicationWorkerOptions == null)
+            if (options.OrchestrationWorkerOptions == null)
             {
                 services.Configure<Worker.OrchestrationWorkerOptions>((opt) =>
                 {
@@ -111,6 +112,7 @@ namespace maskx.OrchestrationService.Extensions
             {
                 services.Configure<Worker.OrchestrationWorkerOptions>(opt =>
                 {
+                    opt.IncludeDetails = options.OrchestrationWorkerOptions.IncludeDetails;
                     opt.AutoCreate = options.OrchestrationWorkerOptions.AutoCreate;
                     opt.FetchJobCount = options.OrchestrationWorkerOptions.FetchJobCount;
                     opt.GetBuildInOrchestrators = (sp) =>
@@ -151,6 +153,7 @@ namespace maskx.OrchestrationService.Extensions
                 {
                     opt.AutoCreate = options.CommunicationWorkerOptions.AutoCreate;
                     opt.ConnectionString = options.CommunicationWorkerOptions.ConnectionString;
+                    opt.RuleFields = options.CommunicationWorkerOptions.RuleFields;
                     opt.GetFetchRules = options.CommunicationWorkerOptions.GetFetchRules;
                     opt.HubName = options.CommunicationWorkerOptions.HubName;
                     opt.IdelMilliseconds = options.CommunicationWorkerOptions.IdelMilliseconds;
