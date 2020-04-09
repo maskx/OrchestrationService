@@ -146,7 +146,8 @@ namespace maskx.OrchestrationService.Worker
                         RequestId = reader["RequestId"].ToString(),
                         Processor = reader["Processor"].ToString(),
                         RequestTo = reader["RequestTo"]?.ToString(),
-
+                        CreateTime = DateTime.Parse(reader["CreateTime"].ToString()),
+                        NextFetchTime = DateTime.Parse(reader["NextFetchTime"].ToString()),
                         RequestOperation = reader["RequestOperation"]?.ToString(),
                         RequsetContent = reader["RequsetContent"]?.ToString(),
                         RequestProperty = reader["RequestProperty"]?.ToString(),

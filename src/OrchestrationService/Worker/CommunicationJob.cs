@@ -19,6 +19,7 @@ namespace maskx.OrchestrationService.Worker
         public string RequestId { get; set; }
         public string Context { get; set; }
         public JobStatus Status { get; set; }
+        public DateTime CreateTime { get; set; }
 
         public DateTime NextFetchTime { get; set; }
 
