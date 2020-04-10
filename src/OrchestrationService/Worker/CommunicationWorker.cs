@@ -4,11 +4,8 @@ using maskx.OrchestrationService.SQL;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics.Tracing;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -35,26 +32,20 @@ namespace maskx.OrchestrationService.Worker
             this.options = options?.Value;
             this.taskHubClient = new TaskHubClient(orchestrationServiceClient);
             this.processors = new Dictionary<string, ICommunicationProcessor>();
-            var p = serviceProvider.GetServices<ICommunicationProcessor>();
-            foreach (var item in p)
-            {
-                this.processors.Add(item.Name, item);
-            }
-            if (this.options.AutoCreate)
-                this.CreateIfNotExistsAsync(false).Wait();
-
         }
 
         public override async Task StartAsync(CancellationToken cancellationToken)
         {
-            await CreateIfNotExistsAsync(false);
+            var p = this.serviceProvider.GetServices<ICommunicationProcessor>();
+            foreach (var item in p)
+            {
+                item.CommunicationWorker = this;
+                this.processors.Add(item.Name, item);
+            }
+            if (this.options.AutoCreate)
+                await CreateIfNotExistsAsync(false);
             fetchCommandText = BuildFetchCommand();
             await base.StartAsync(cancellationToken);
-        }
-
-        public override Task StopAsync(CancellationToken cancellationToken)
-        {
-            return base.StopAsync(cancellationToken);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -105,20 +96,20 @@ namespace maskx.OrchestrationService.Worker
                         foreach (var item in batchJob.Value)
                         {
                             //为RunningTaskCount增减每个CommunicationProcessor里JobCount
-                            Interlocked.Add(ref RunningTaskCount,item.Count);
+                            Interlocked.Add(ref RunningTaskCount, item.Count);
                             var _ = ProcessJobs(this.processors[batchJob.Key], item.ToArray())
                                 .ContinueWith((t) =>
                                 {
-                                    Interlocked.Add(ref RunningTaskCount,0-item.Count);
+                                    Interlocked.Add(ref RunningTaskCount, 0 - item.Count);
                                 });
                         }
                     }
                     if (jobs.Count == 0)
                         await Task.Delay(this.options.IdelMilliseconds);
-                }catch(Exception e)
+                }
+                catch (Exception e)
                 {
-                    CommunicationEventSource.Log.TraceEvent(System.Diagnostics.TraceEventType.Critical, "CommunicationWorker",  e.Message, e.ToString(), "Error");
-
+                    CommunicationEventSource.Log.TraceEvent(System.Diagnostics.TraceEventType.Critical, "CommunicationWorker", e.Message, e.ToString(), "Error");
                 }
             }
         }
@@ -151,7 +142,7 @@ namespace maskx.OrchestrationService.Worker
                         RequestOperation = reader["RequestOperation"]?.ToString(),
                         RequsetContent = reader["RequsetContent"]?.ToString(),
                         RequestProperty = reader["RequestProperty"]?.ToString(),
-                        Status = (CommunicationJob.JobStatus)Enum.Parse(typeof(CommunicationJob.JobStatus), reader["Status"].ToString()),
+                        Status = (CommunicationJob.JobStatus)(int)reader["Status"],
                         ResponseContent = reader["ResponseContent"]?.ToString(),
                     };
                     if (reader["Context"] != DBNull.Value)
@@ -171,7 +162,6 @@ namespace maskx.OrchestrationService.Worker
             return jobs;
         }
 
-
         private async Task ProcessJobs(ICommunicationProcessor processor, params CommunicationJob[] jobs)
         {
             //使用Task.Run包装CommunicationProcessor里的代码执行，避免CommunicationProcessor里有类似于Thread.Sleep这样阻塞线程的情况
@@ -180,7 +170,7 @@ namespace maskx.OrchestrationService.Worker
             await Task.WhenAll(UpdateJobs(response), RaiseEvent(response));
         }
 
-        private async Task UpdateJobs(params CommunicationJob[] jobs)
+        public async Task UpdateJobs(params CommunicationJob[] jobs)
         {
             using (var db = new DbAccess(this.options.ConnectionString))
             {
@@ -188,7 +178,7 @@ namespace maskx.OrchestrationService.Worker
                 {
                     db.AddStatement(string.Format(updatejobTemplate, options.CommunicationTableName), new
                     {
-                        Status = job.Status.ToString(),
+                        Status = (int)job.Status,
                         job.NextFetchTime,
                         job.Context,
                         job.ResponseCode,
@@ -216,7 +206,7 @@ namespace maskx.OrchestrationService.Worker
                                             ExecutionId = job.ExecutionId
                                         },
                                         job.EventName,
-                                        dataConverter.Serialize(new TaskResult() { Code = job.ResponseCode, Content = dataConverter.Serialize(new CommunicationResult { ResponseContent = job.ResponseContent, Context = job.Context })})
+                                        dataConverter.Serialize(new TaskResult() { Code = job.ResponseCode, Content = dataConverter.Serialize(new CommunicationResult { ResponseContent = job.ResponseContent, Context = job.Context }) })
                                         ));
                 }
             }
@@ -232,7 +222,12 @@ namespace maskx.OrchestrationService.Worker
                 if (fetchRules.Count > 0)
                     return sb.Append(FetchRule.BuildFetchCommand(fetchRules, options)).ToString();
             }
-            return sb.Append(string.Format(fetchTemplate, options.MaxConcurrencyRequest, options.CommunicationTableName)).ToString();
+            return sb.Append(string.Format(fetchTemplate,
+                options.MaxConcurrencyRequest,
+                options.CommunicationTableName,
+                (int)CommunicationJob.JobStatus.Completed,
+                (int)CommunicationJob.JobStatus.Locked,
+                options.IdelMilliseconds)).ToString();
         }
 
         public async Task DeleteCommunicationAsync()
@@ -266,7 +261,7 @@ BEGIN
 	    [RequestOperation] [nvarchar](50) NULL,
 	    [RequsetContent] [nvarchar](max) NULL,
 	    [RequestProperty] [nvarchar](max) NULL,
-	    [Status] [nvarchar](50) NULL,
+	    [Status] [int] NULL,
 	    [LockedUntilUtc] [datetime2](7) NULL,
 	    [ResponseContent] [nvarchar](max) NULL,
 	    [ResponseCode] [int] NULL,
@@ -290,18 +285,21 @@ END", new { table = options.CommunicationTableName });
 
         // {0} fetch count
         // {1} Communication table name
+        // {2} Completed status code
+        // {3} Locked status code
+        // {4} IdelMilliseconds
         private const string fetchTemplate = @"
 update top({0}) T
-set T.[Status]=N'Locked'
+set T.[Status]={3} ,T.[LockedUntilUtc]=DATEADD(millisecond,{4},[LockedUntilUtc])
 output INSERTED.*
 FROM {1} AS T
-where [status]=N'Pending' and [NextFetchTime]<=getutcdate();
+where [status]<{2} and [LockedUntilUtc]<=getutcdate();
 ";
 
         // {0} Communication table name
         private const string updatejobTemplate = @"
 update {0}
-set [Status]=@Status,[NextFetchTime]=@NextFetchTime,[Context]=@Context, [ResponseCode]=@ResponseCode,[ResponseContent]=@ResponseContent,CompletedTime=@CompletedTime
+set [Status]=@Status,[LockedUntilUtc]=@NextFetchTime,[NextFetchTime]=@NextFetchTime,[Context]=@Context, [ResponseCode]=@ResponseCode,[ResponseContent]=@ResponseContent,CompletedTime=@CompletedTime
 where RequestId=@RequestId;";
     }
 }

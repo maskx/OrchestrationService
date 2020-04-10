@@ -160,7 +160,8 @@ namespace maskx.OrchestrationService.Extensions
                     opt.MaxConcurrencyRequest = options.CommunicationWorkerOptions.MaxConcurrencyRequest;
                     opt.SchemaName = options.CommunicationWorkerOptions.SchemaName;
                 });
-                services.AddHostedService<CommunicationWorker>();
+                services.AddSingleton<CommunicationWorker>();
+                services.AddSingleton<IHostedService>(p => p.GetService<CommunicationWorker>());
             }
 
             #endregion CommunicationWorker

@@ -28,17 +28,17 @@ namespace maskx.OrchestrationService.Worker
             /// <summary>
             /// Pending to send request
             /// </summary>
-            Pending,
+            Pending = 0,
 
             /// <summary>
             /// start to send request and wait the response
             /// </summary>
-            Locked,
+            Locked = 1,
 
             /// <summary>
             /// had got finally response
             /// </summary>
-            Completed,
+            Completed = 2,
         }
     }
 }

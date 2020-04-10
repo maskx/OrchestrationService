@@ -1,6 +1,8 @@
 ﻿using maskx.OrchestrationService.Worker;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace OrchestrationService.Tests.CommunicationWorkerTests
 {
@@ -8,6 +10,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
     {
         public string Name { get; set; } = "MockCommunicationProcessor";
         public int MaxBatchCount { get; set; } = 1;
+        public CommunicationWorker CommunicationWorker { get; set; }
 
         public async Task<CommunicationJob[]> ProcessAsync(params CommunicationJob[] jobs)
         {
@@ -19,6 +22,8 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                 job.Status = CommunicationJob.JobStatus.Completed;
                 rtv.Add(job);
             }
+            // update job in processor
+            // worker.UpdateJobs(jobs);
             return rtv.ToArray();
         }
     }

@@ -51,7 +51,8 @@ namespace maskx.OrchestrationService.Worker
                             limitation.Group,
                             index,
                             limitation.On(index),
-                            options.CommunicationTableName);
+                            options.CommunicationTableName,
+                            (int)CommunicationJob.JobStatus.Locked);
                     limitaitonWhere.Add(
                         string.Format("T{0}.Locked<{1}",
                             index,
@@ -61,10 +62,18 @@ namespace maskx.OrchestrationService.Worker
                 sb.Append(string.Format(ruleTemplate,
                     limitationQuery,
                     string.Join(" and ", limitaitonWhere),
-                    options.CommunicationTableName));
+                    options.CommunicationTableName,
+                    (int)CommunicationJob.JobStatus.Completed,
+                    (int)CommunicationJob.JobStatus.Locked,
+                    options.IdelMilliseconds));
                 others.Add($"({rule.Where})");
             }
-            sb.Append(string.Format(otherTemplate, string.Join(" and ", others), options.CommunicationTableName));
+            sb.Append(string.Format(otherTemplate,
+                string.Join(" and ", others),
+                options.CommunicationTableName,
+                (int)CommunicationJob.JobStatus.Completed,
+                (int)CommunicationJob.JobStatus.Locked,
+                options.IdelMilliseconds));
             return sb.ToString();
         }
 
@@ -73,9 +82,10 @@ namespace maskx.OrchestrationService.Worker
         // {2} limit index
         // {3} on
         // {4} Communication table name
+        // {5} Locked status code
         private const string limitationTemplate = @"
 inner join (
-   select COUNT(case when [status]='Locked' then 1 else null end) as Locked,{1}
+   select COUNT(case when [status]={5} then 1 else null end) as Locked,{1}
    from {4} where {0} group by {1}
 ) as T{2}  on {3}
 ";
@@ -83,13 +93,16 @@ inner join (
         // {0} limitation query
         // {1} limitation where
         // {2} Communication table name
+        // {3} Completed status code
+        // {4} Locked status code
+        // {5} IdelMilliseconds
         private const string ruleTemplate = @"
 set @RequestId=null;
 update top(1) T
-set @RequestId=T.RequestId,T.[Status]=N'Locked'
+set @RequestId=T.RequestId,T.[Status]={4},T.[LockedUntilUtc]=DATEADD(millisecond,{5},[LockedUntilUtc])
 output INSERTED.*
 FROM {2} AS T {0}
-where [status]=N'Pending' and [NextFetchTime]<=getutcdate() and {1}
+where [status]<{3} and [LockedUntilUtc]<=getutcdate() and {1}
 if @RequestId is not null
 begin
     set @Count=@Count+1
@@ -102,12 +115,15 @@ end
 
         // {0} limitation where
         // {1} Communication table name
+        // {2} Completed status code
+        // {3} Locked status code
+        // {4} IdelMilliseconds
         private const string otherTemplate = @"
 update top(@MaxCount-@Count) T
-set @RequestId=T.RequestId,T.[Status]=N'Locked'
+set @RequestId=T.RequestId,T.[Status]={3},T.[LockedUntilUtc]=DATEADD(millisecond,{4},[LockedUntilUtc])
 output INSERTED.*
 FROM {1} AS T
-where [status]=N'Pending' and [NextFetchTime]<=getutcdate() and not ({0})
+where [status]<{2} and [LockedUntilUtc]<=getutcdate() and not ({0})
 ";
     }
 }

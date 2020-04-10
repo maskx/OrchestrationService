@@ -9,7 +9,7 @@ namespace maskx.OrchestrationService.Extensions
         /// <summary>
         /// Idel time when no job fetched
         /// </summary>
-        public int IdelMilliseconds { get; set; } = 500;
+        public int IdelMilliseconds { get; set; } = 10000;
 
         /// <summary>
         /// 外部系统请求的最大并发数

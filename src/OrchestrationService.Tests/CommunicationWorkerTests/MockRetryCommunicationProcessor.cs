@@ -8,6 +8,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
     {
         public string Name { get; set; } = "MockRetryCommunicationProcessor";
         public int MaxBatchCount { get; set; } = 1;
+        public CommunicationWorker CommunicationWorker { get; set; }
 
         public async Task<CommunicationJob[]> ProcessAsync(params CommunicationJob[] jobs)
         {

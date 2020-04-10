@@ -146,19 +146,21 @@ namespace OrchestrationService.Tests
 
                  services.AddSingleton<ICommunicationProcessor>(new MockCommunicationProcessor());
                  services.AddSingleton<ICommunicationProcessor>(new MockRetryCommunicationProcessor());
+
                  services.Configure<CommunicationWorkerOptions>((options) =>
-                 {
-                     TestHelpers.Configuration.GetSection("CommunicationWorker").Bind(options);
-                     if (communicationWorkerOptions != null)
-                     {
-                         options.GetFetchRules = communicationWorkerOptions.GetFetchRules;
-                         options.HubName = communicationWorkerOptions.HubName;
-                         options.MaxConcurrencyRequest = communicationWorkerOptions.MaxConcurrencyRequest;
-                         options.RuleFields.AddRange(communicationWorkerOptions.RuleFields);
-                         options.SchemaName = communicationWorkerOptions.SchemaName;
-                     }
-                 });
-                 services.AddHostedService<CommunicationWorker>();
+                {
+                    TestHelpers.Configuration.GetSection("CommunicationWorker").Bind(options);
+                    if (communicationWorkerOptions != null)
+                    {
+                        options.GetFetchRules = communicationWorkerOptions.GetFetchRules;
+                        options.HubName = communicationWorkerOptions.HubName;
+                        options.MaxConcurrencyRequest = communicationWorkerOptions.MaxConcurrencyRequest;
+                        options.RuleFields.AddRange(communicationWorkerOptions.RuleFields);
+                        options.SchemaName = communicationWorkerOptions.SchemaName;
+                    }
+                });
+                 services.AddSingleton<CommunicationWorker>();
+                 services.AddSingleton<IHostedService>(p => p.GetService<CommunicationWorker>());
 
                  #endregion CommunicationWorker
 

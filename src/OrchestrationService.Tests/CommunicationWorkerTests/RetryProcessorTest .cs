@@ -69,7 +69,8 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                     Assert.Equal(OrchestrationStatus.Completed, result.OrchestrationStatus);
                     var response = dataConverter.Deserialize<TaskResult>(result.Output);
                     Assert.Equal(200, response.Code);
-                    Assert.Equal("Retry->Completed", response.Content);
+                    var r = dataConverter.Deserialize<CommunicationResult>(response.Content);
+                    Assert.Equal("Retry->Completed", r.ResponseContent);
                     break;
                 }
             }
