@@ -50,8 +50,8 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
             };
             options.RuleFields.Add("SubscriptionId");
             options.RuleFields.Add("ManagementUnit");
-            List<Type> orchestrationTypes = new List<Type>();
-            orchestrationTypes.Add(typeof(TestOrchestration));
+            List<(string Name, string Version, Type Type)> orchestrationTypes = new List<(string Name, string Version, Type Type)>();
+            orchestrationTypes.Add((typeof(TestOrchestration).FullName, "", typeof(TestOrchestration)));
             workerHost = TestHelpers.CreateHostBuilder(options, orchestrationTypes).Build();
             workerHost.RunAsync();
             orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
@@ -73,8 +73,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                 InstanceId = instance.InstanceId,
                 Orchestration = new OrchestrationSetting()
                 {
-                    Creator = "DICreator",
-                    Uri = typeof(TestOrchestration).FullName + "_"
+                    Name = typeof(TestOrchestration).FullName
                 },
                 Input = dataConverter.Serialize(new AsyncRequestInput()
                 {
@@ -97,7 +96,8 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                     Assert.Equal(OrchestrationStatus.Completed, result.OrchestrationStatus);
                     var response = dataConverter.Deserialize<TaskResult>(result.Output);
                     Assert.Equal(200, response.Code);
-                    Assert.Equal("MockCommunicationProcessor", response.Content);
+                    var r = dataConverter.Deserialize<CommunicationResult>(response.Content);
+                    Assert.Equal("MockCommunicationProcessor", r.ResponseContent);
                     break;
                 }
             }

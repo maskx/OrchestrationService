@@ -2,8 +2,6 @@
 using maskx.OrchestrationService;
 using maskx.OrchestrationService.Worker;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using Xunit;
 
 namespace OrchestrationService.Tests.OrchestrationWorkerTests
@@ -27,8 +25,7 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
                 InstanceId = Guid.NewGuid().ToString("N"),
                 Orchestration = new OrchestrationSetting()
                 {
-                    Creator = "DICreator",
-                    Uri = typeof(TestOrchestration).FullName + "_"
+                    Name = typeof(TestOrchestration).Name,
                 },
                 Input = ""
             }).Result;

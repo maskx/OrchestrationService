@@ -62,14 +62,14 @@ namespace maskx.OrchestrationService.Worker
             {
                 foreach (var activity in this.options.GetBuildInTaskActivities(serviceProvider))
                 {
-                    this.activityManager.TryAdd(new DICreator<TaskActivity>(serviceProvider, activity));
+                    this.activityManager.TryAdd(new NameVersionDICreator<TaskActivity>(serviceProvider, activity.Name, activity.Version, activity.Type));
                 }
             }
             if (this.options.GetBuildInTaskActivities != null)
             {
                 foreach (var orchestrator in this.options.GetBuildInOrchestrators(serviceProvider))
                 {
-                    this.orchestrationManager.TryAdd(new DICreator<TaskOrchestration>(serviceProvider, orchestrator));
+                    this.orchestrationManager.TryAdd(new NameVersionDICreator<TaskOrchestration>(serviceProvider, orchestrator.Name, orchestrator.Version, orchestrator.Type));
                 }
             }
 
@@ -81,11 +81,12 @@ namespace maskx.OrchestrationService.Worker
                     var activities = interfaceActivitys[@interface];
                     foreach (var methodInfo in @interface.GetMethods())
                     {
-                        TaskActivity taskActivity = new ReflectionBasedTaskActivity(activities, methodInfo);
+                        TaskActivity taskActivity = new ReflectionBasedTaskActivity(activities.Instance, methodInfo);
                         ObjectCreator<TaskActivity> creator =
                             new NameValueObjectCreator<TaskActivity>(
                                 NameVersionHelper.GetDefaultName(methodInfo, true),
-                                NameVersionHelper.GetDefaultVersion(methodInfo), taskActivity);
+                                activities.Version,
+                                taskActivity);
                         this.activityManager.Add(creator);
                     }
                 }
@@ -137,16 +138,9 @@ namespace maskx.OrchestrationService.Worker
 
         public async Task<OrchestrationInstance> JumpStartOrchestrationAsync(Job job)
         {
-            ObjectCreator<TaskOrchestration> creator = this.orchestrationManager.GetCreator(job.Orchestration.Uri);
-            // TODO: support load TaskOrchestration from uri
-            if (creator == null)
-            {
-                creator = this.orchestrationCreatorFactory.Create<ObjectCreator<TaskOrchestration>>(job.Orchestration.Creator, job.Orchestration.Uri);
-                this.orchestrationManager.TryAdd(creator);
-            }
             return await this.taskHubClient.CreateOrchestrationInstanceAsync(
-                creator.Name,
-                creator.Version,
+                job.Orchestration.Name,
+                job.Orchestration.Version,
                 job.InstanceId,
                 job.Input);
         }

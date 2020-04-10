@@ -89,8 +89,9 @@ namespace OrchestrationService.Tests
 
         public static IHostBuilder CreateHostBuilder(
             CommunicationWorkerOptions communicationWorkerOptions = null,
-            List<Type> orchestrationTypes = null,
-            Action<HostBuilderContext, IServiceCollection> config = null)
+            List<(string Name, string Version, Type Type)> orchestrationTypes = null,
+            Action<HostBuilderContext, IServiceCollection> config = null,
+             List<(string Name, string Version, Type Type)> activityTypes = null)
         {
             return Host.CreateDefaultBuilder()
              .ConfigureAppConfiguration((hostingContext, config) =>
@@ -118,19 +119,23 @@ namespace OrchestrationService.Tests
                  services.AddSingleton<IOrchestrationCreatorFactory>((sp) =>
                  {
                      OrchestrationCreatorFactory orchestrationCreatorFactory = new OrchestrationCreatorFactory(sp);
-                     orchestrationCreatorFactory.RegistCreator("DICreator", typeof(DICreator<TaskOrchestration>));
-                     orchestrationCreatorFactory.RegistCreator("DefaultObjectCreator", typeof(DefaultObjectCreator<TaskOrchestration>));
+                     orchestrationCreatorFactory.RegistCreator("NameVersionDICreator", typeof(NameVersionDICreator<TaskOrchestration>));
                      return orchestrationCreatorFactory;
                  });
                  if (orchestrationTypes == null)
-                     orchestrationTypes = new List<Type>();
-                 List<Type> activityTypes = new List<Type>();
+                     orchestrationTypes = new List<(string Name, string Version, Type Type)>();
+                 if (activityTypes == null)
+                     activityTypes = new List<(string Name, string Version, Type Type)>();
 
-                 orchestrationTypes.Add(typeof(AsyncRequestOrchestration));
+                 orchestrationTypes.Add((typeof(AsyncRequestOrchestration).FullName, "", typeof(AsyncRequestOrchestration)));
 
-                 activityTypes.Add(typeof(AsyncRequestActivity));
-                 activityTypes.Add(typeof(HttpRequestActivity));
-                 activityTypes.Add(typeof(TraceActivity));
+                 // this is for default version, can be invoke by: context.ScheduleTask<TaskResult>(typeof(TraceActivity), new TraceActivityInput()
+                 activityTypes.Add((typeof(TraceActivity).FullName, "", typeof(TraceActivity)));
+                 activityTypes.Add((typeof(AsyncRequestActivity).FullName, "", typeof(AsyncRequestActivity)));
+                 activityTypes.Add((typeof(HttpRequestActivity).FullName, "", typeof(HttpRequestActivity)));
+                 // this is special version
+                 activityTypes.Add((typeof(TraceActivity).Name, "1.0", typeof(TraceActivity)));
+
                  services.Configure<OrchestrationWorkerOptions>(options =>
                  {
                      options.GetBuildInOrchestrators = (sp) => orchestrationTypes;

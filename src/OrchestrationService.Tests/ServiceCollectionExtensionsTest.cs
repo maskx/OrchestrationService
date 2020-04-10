@@ -39,8 +39,7 @@ namespace OrchestrationService.Tests
                 InstanceId = Guid.NewGuid().ToString("N"),
                 Orchestration = new OrchestrationSetting()
                 {
-                    Creator = "DICreator",
-                    Uri = typeof(OrchestrationWorkerTests.TestOrchestration).FullName + "_"
+                    Name = typeof(OrchestrationWorkerTests.TestOrchestration).Name
                 },
                 Input = ""
             }).Result;
@@ -59,9 +58,9 @@ namespace OrchestrationService.Tests
         [Fact(DisplayName = "UsingSqlServer")]
         public void UsingSqlServer()
         {
-            var orchestrationTypes = new List<Type>();
-            orchestrationTypes.Add(typeof(OrchestrationWorkerTests.TestOrchestration));
-            var activityTypes = new List<Type>();
+            var orchestrationTypes = new List<(string Name, string Version, Type Type)>();
+            orchestrationTypes.Add(("TestOrchestration", "", typeof(OrchestrationWorkerTests.TestOrchestration)));
+            var activityTypes = new List<(string Name, string Version, Type Type)>();
             var sqlConfig = new SqlServerConfiguration()
             {
                 ConnectionString = TestHelpers.ConnectionString,

@@ -25,8 +25,8 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
         {
             CommunicationWorkerOptions options = new CommunicationWorkerOptions();
             options.HubName = "NoRule";
-            List<Type> orchestrationTypes = new List<Type>();
-            orchestrationTypes.Add(typeof(TestOrchestration));
+            List<(string Name, string Version, Type Type)> orchestrationTypes = new List<(string Name, string Version, Type Type)>();
+            orchestrationTypes.Add((typeof(TestOrchestration).FullName, "", typeof(TestOrchestration)));
             workerHost = TestHelpers.CreateHostBuilder(options, orchestrationTypes).Build();
             workerHost.RunAsync();
             orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
@@ -46,8 +46,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                 InstanceId = Guid.NewGuid().ToString("N"),
                 Orchestration = new OrchestrationSetting()
                 {
-                    Creator = "DICreator",
-                    Uri = typeof(TestOrchestration).FullName + "_"
+                    Name = typeof(TestOrchestration).FullName
                 },
                 Input = dataConverter.Serialize(new AsyncRequestInput()
                 {

@@ -41,6 +41,7 @@
     <Compile Include="..\OrchestrationService\Extensions\ServiceCollectionExtensions.cs" Link="Extensions\ServiceCollectionExtensions.cs" />
     <Compile Include="..\OrchestrationService\Extensions\SqlServerConfiguration.cs" Link="Extensions\SqlServerConfiguration.cs" />
     <Compile Include="..\OrchestrationService\IOrchestrationCreatorFactory.cs" Link="IOrchestrationCreatorFactory.cs" />
+    <Compile Include="..\OrchestrationService\NameVersionDICreator.cs" Link="NameVersionDICreator.cs" />
     <Compile Include="..\OrchestrationService\OrchestrationCreatorFactory.cs" Link="OrchestrationCreatorFactory.cs" />
     <Compile Include="..\OrchestrationService\OrchestrationSetting.cs" Link="OrchestrationSetting.cs" />
     <Compile Include="..\OrchestrationService\Orchestration\AsyncRequestOrchestration.cs" Link="Orchestration\AsyncRequestOrchestration.cs" />

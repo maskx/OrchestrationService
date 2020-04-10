@@ -30,8 +30,7 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
                 InstanceId = Guid.NewGuid().ToString("N"),
                 Orchestration = new OrchestrationSetting()
                 {
-                    Creator = "DICreator",
-                    Uri = typeof(TestOrchestration).FullName + "_"
+                    Name = typeof(TestOrchestration).Name
                 },
                 Input = ""
             }).Result;

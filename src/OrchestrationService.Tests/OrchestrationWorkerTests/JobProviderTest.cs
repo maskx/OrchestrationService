@@ -21,8 +21,8 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
         {
             CommunicationWorkerOptions options = new CommunicationWorkerOptions();
             options.HubName = "NoRule";
-            List<Type> orchestrationTypes = new List<Type>();
-            orchestrationTypes.Add(typeof(TestOrchestration));
+            List<(string Name, string Version, Type Type)> orchestrationTypes = new List<(string Name, string Version, Type Type)>();
+            orchestrationTypes.Add(("TestOrchestration", "", typeof(TestOrchestration)));
             workerHost = TestHelpers.CreateHostBuilder(options, orchestrationTypes, (cxt, services) =>
             {
                 services.AddSingleton<IJobProvider>(new JobProvider());
@@ -47,8 +47,7 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
                 InstanceId = instance.InstanceId,
                 Orchestration = new OrchestrationSetting()
                 {
-                    Creator = "DICreator",
-                    Uri = typeof(TestOrchestration).FullName + "_"
+                    Name = typeof(TestOrchestration).Name
                 },
                 Input = ""
             }).Wait();
@@ -73,8 +72,7 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
                 InstanceId = instance.InstanceId,
                 Orchestration = new OrchestrationSetting()
                 {
-                    Creator = "DICreator",
-                    Uri = typeof(TestOrchestration).FullName + "_"
+                    Name = typeof(TestOrchestration).Name
                 },
                 Input = ""
             });

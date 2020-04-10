@@ -70,8 +70,7 @@ namespace maskx.OrchestrationService.Extensions
                 services.AddSingleton<IOrchestrationCreatorFactory>((sp) =>
                 {
                     OrchestrationCreatorFactory orchestrationCreatorFactory = new OrchestrationCreatorFactory(sp);
-                    orchestrationCreatorFactory.RegistCreator("DICreator", typeof(DICreator<TaskOrchestration>));
-                    orchestrationCreatorFactory.RegistCreator("DefaultObjectCreator", typeof(DefaultObjectCreator<TaskOrchestration>));
+                    orchestrationCreatorFactory.RegistCreator("NameVersionDICreator", typeof(NameVersionDICreator<TaskOrchestration>));
                     return orchestrationCreatorFactory;
                 });
             }
@@ -88,21 +87,20 @@ namespace maskx.OrchestrationService.Extensions
                     opt.FetchJobCount = options.OrchestrationWorkerOptions.FetchJobCount;
                     opt.GetBuildInOrchestrators = (sp) =>
                     {
-                        IList<Type> orc;
+                        IList<(string Name, string Version, Type Type)> orc;
                         if (options.OrchestrationWorkerOptions == null || options.OrchestrationWorkerOptions.GetBuildInOrchestrators == null)
-                            orc = new List<Type>();
+                            orc = new List<(string Name, string Version, Type Type)>();
                         else
                             orc = options.OrchestrationWorkerOptions.GetBuildInOrchestrators(sp);
                         return orc;
                     };
                     opt.GetBuildInTaskActivities = (sp) =>
                     {
-                        IList<Type> act;
+                        IList<(string Name, string Version, Type Type)> act;
                         if (options.OrchestrationWorkerOptions == null || options.OrchestrationWorkerOptions.GetBuildInTaskActivities == null)
-                            act = new List<Type>();
+                            act = new List<(string Name, string Version, Type Type)>();
                         else
                             act = options.OrchestrationWorkerOptions.GetBuildInTaskActivities(sp);
-                        act.Add(typeof(TaskActivity));
                         return act;
                     };
                     opt.GetBuildInTaskActivitiesFromInterface = options.OrchestrationWorkerOptions.GetBuildInTaskActivitiesFromInterface;
@@ -117,23 +115,22 @@ namespace maskx.OrchestrationService.Extensions
                     opt.FetchJobCount = options.OrchestrationWorkerOptions.FetchJobCount;
                     opt.GetBuildInOrchestrators = (sp) =>
                     {
-                        IList<Type> orc;
+                        IList<(string Name, string Version, Type Type)> orc;
                         if (options.OrchestrationWorkerOptions == null || options.OrchestrationWorkerOptions.GetBuildInOrchestrators == null)
-                            orc = new List<Type>();
+                            orc = new List<(string Name, string Version, Type Type)>();
                         else
                             orc = options.OrchestrationWorkerOptions.GetBuildInOrchestrators(sp);
-                        orc.Add(typeof(AsyncRequestOrchestration));
+                        orc.Add((typeof(AsyncRequestOrchestration).FullName, "", typeof(AsyncRequestOrchestration)));
                         return orc;
                     };
                     opt.GetBuildInTaskActivities = (sp) =>
                     {
-                        IList<Type> act;
+                        IList<(string Name, string Version, Type Type)> act;
                         if (options.OrchestrationWorkerOptions == null || options.OrchestrationWorkerOptions.GetBuildInTaskActivities == null)
-                            act = new List<Type>();
+                            act = new List<(string Name, string Version, Type Type)>();
                         else
                             act = options.OrchestrationWorkerOptions.GetBuildInTaskActivities(sp);
-                        act.Add(typeof(AsyncRequestActivity));
-                        act.Add(typeof(TaskActivity));
+                        act.Add((typeof(AsyncRequestActivity).FullName, "", typeof(AsyncRequestActivity)));
                         return act;
                     };
                     opt.GetBuildInTaskActivitiesFromInterface = options.OrchestrationWorkerOptions.GetBuildInTaskActivitiesFromInterface;

@@ -17,8 +17,8 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
         {
             CommunicationWorkerOptions options = new CommunicationWorkerOptions();
             options.HubName = "NoRule";
-            var orchestrationTypes = new List<Type>();
-            orchestrationTypes.Add(typeof(TestOrchestration));
+            var orchestrationTypes = new List<(string Name, string Version, Type Type)>();
+            orchestrationTypes.Add(("TestOrchestration", "", typeof(TestOrchestration)));
             workerHost = TestHelpers.CreateHostBuilder(options, orchestrationTypes).Build();
             workerHost.RunAsync();
             OrchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
