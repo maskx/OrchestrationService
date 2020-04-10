@@ -7,6 +7,11 @@ namespace maskx.OrchestrationService.Extensions
     public class CommunicationWorkerOptions
     {
         /// <summary>
+        /// Message locked time
+        /// </summary>
+        public double MessageLockedSeconds { get; set; } = 300;
+
+        /// <summary>
         /// Idel time when no job fetched
         /// </summary>
         public int IdelMilliseconds { get; set; } = 500;
