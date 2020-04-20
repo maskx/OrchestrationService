@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace maskx.OrchestrationService.Activity
 {
-    public class AsyncRequestActivity : TaskActivity<AsyncRequestInput, TaskResult>
+    public class AsyncRequestActivity : AsyncTaskActivity<AsyncRequestInput, TaskResult>
     {
         private readonly CommunicationWorkerOptions options;
         private readonly string commandText;
@@ -54,11 +54,6 @@ namespace maskx.OrchestrationService.Activity
                 await db.ExecuteNonQueryAsync();
             }
             return new TaskResult() { Code = 200 };
-        }
-
-        protected override TaskResult Execute(TaskContext context, AsyncRequestInput input)
-        {
-            return ExecuteAsync(context, input).Result;
         }
 
         //{0} rule columns

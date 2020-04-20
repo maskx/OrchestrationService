@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace maskx.OrchestrationService.Activity
 {
-    public class HttpRequestActivity : TaskActivity<HttpRequestInput, TaskResult>
+    public class HttpRequestActivity : AsyncTaskActivity<HttpRequestInput, TaskResult>
     {
         private IHttpClientFactory httpClientFactory;
 
@@ -56,11 +56,6 @@ namespace maskx.OrchestrationService.Activity
                 return new TaskResult() { Code = (int)response.Result.StatusCode, Content = content };
             }
             return new TaskResult() { Code = 400, Content = response.FinalException.Message };
-        }
-
-        protected override TaskResult Execute(TaskContext context, HttpRequestInput request)
-        {
-            return ExecuteAsync(context, request).Result;
         }
     }
 }
