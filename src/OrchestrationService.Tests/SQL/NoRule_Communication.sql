@@ -6,7 +6,7 @@ CREATE TABLE [dbo].[NoRule_Communication](
 	[Processor] [nvarchar](50) NULL,
 	[RequestTo] [nvarchar](50) NULL,
 	[RequestOperation] [nvarchar](50) NULL,
-	[RequsetContent] [nvarchar](max) NULL,
+	[RequestContent] [nvarchar](max) NULL,
 	[RequestProperty] [nvarchar](max) NULL,
 	[Status] [nvarchar](50) NULL,
 	[LockedUntilUtc] [datetime2](7) NULL,

@@ -85,7 +85,7 @@ namespace maskx.OrchestrationService.Worker
         // {5} Locked status code
         private const string limitationTemplate = @"
 inner join (
-   select COUNT(case when [status]={5} then 1 else null end) as Locked,{1}
+   select COUNT(case when [status]={5} and [LockedUntilUtc]>getutcdate() then 1 else null end) as Locked,{1}
    from {4} where {0} group by {1}
 ) as T{2}  on {3}
 ";
