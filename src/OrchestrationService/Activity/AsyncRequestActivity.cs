@@ -43,7 +43,7 @@ namespace maskx.OrchestrationService.Activity
             pars.Add("Status", (int)CommunicationJob.JobStatus.Pending);
             pars.Add("RequestTo", input.RequestTo);
             pars.Add("RequestOperation", input.RequestOperation);
-            pars.Add("RequsetContent", input.RequsetContent);
+            pars.Add("RequestContent", input.RequestContent);
             pars.Add("RequestProperty", input.RequestProperty);
             pars.Add("Processor", input.Processor);
             if (input.RuleField != null)
@@ -70,9 +70,9 @@ USING (VALUES (@InstanceId,@ExecutionId,@EventName)) AS SOURCE ([InstanceId],[Ex
 ON [Target].InstanceId = [Source].InstanceId AND [Target].ExecutionId = [Source].ExecutionId AND [Target].EventName = [Source].EventName
 WHEN NOT MATCHED THEN
     INSERT
-        ([RequestId],[LockedUntilUtc],[NextFetchTime],[CreateTime],[InstanceId],[ExecutionId],[EventName],[Status],[RequestTo],[RequestOperation],[RequsetContent],[RequestProperty],[Processor]{0})
+        ([RequestId],[LockedUntilUtc],[NextFetchTime],[CreateTime],[InstanceId],[ExecutionId],[EventName],[Status],[RequestTo],[RequestOperation],[RequestContent],[RequestProperty],[Processor]{0})
     values
-        (newid(),getutcdate(),getutcdate(),getutcdate(),@InstanceId,@ExecutionId,@EventName,@Status,@RequestTo,@RequestOperation,@RequsetContent,@RequestProperty,@Processor {1})
+        (newid(),getutcdate(),getutcdate(),getutcdate(),@InstanceId,@ExecutionId,@EventName,@Status,@RequestTo,@RequestOperation,@RequestContent,@RequestProperty,@Processor {1})
 ;";
     }
 }
