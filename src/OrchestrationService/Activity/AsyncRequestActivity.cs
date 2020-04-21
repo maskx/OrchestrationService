@@ -30,9 +30,15 @@ namespace maskx.OrchestrationService.Activity
 
         protected override async Task<TaskResult> ExecuteAsync(TaskContext context, AsyncRequestInput input)
         {
+            await SaveRequest(input, context.OrchestrationInstance);
+            return new TaskResult() { Code = 200 };
+        }
+
+        public async Task SaveRequest(AsyncRequestInput input, OrchestrationInstance instance)
+        {
             Dictionary<string, object> pars = new Dictionary<string, object>();
-            pars.Add("InstanceId", context.OrchestrationInstance.InstanceId);
-            pars.Add("ExecutionId", context.OrchestrationInstance.ExecutionId);
+            pars.Add("InstanceId", instance.InstanceId);
+            pars.Add("ExecutionId", instance.ExecutionId);
             pars.Add("EventName", input.EventName);
             pars.Add("Status", (int)CommunicationJob.JobStatus.Pending);
             pars.Add("RequestTo", input.RequestTo);
@@ -53,7 +59,6 @@ namespace maskx.OrchestrationService.Activity
                 db.AddStatement(this.commandText, pars);
                 await db.ExecuteNonQueryAsync();
             }
-            return new TaskResult() { Code = 200 };
         }
 
         //{0} rule columns
