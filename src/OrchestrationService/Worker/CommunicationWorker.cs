@@ -138,7 +138,7 @@ namespace maskx.OrchestrationService.Worker
                         Processor = reader["Processor"].ToString(),
                         RequestTo = reader["RequestTo"]?.ToString(),
                         CreateTime = DateTime.Parse(reader["CreateTime"].ToString()),
-                        NextFetchTime = DateTime.Parse(reader["NextFetchTime"].ToString()),
+                        LockedUntilUtc = DateTime.Parse(reader["LockedUntilUtc"].ToString()),
                         RequestOperation = reader["RequestOperation"]?.ToString(),
                         RequestContent = reader["RequestContent"]?.ToString(),
                         RequestProperty = reader["RequestProperty"]?.ToString(),
@@ -179,7 +179,7 @@ namespace maskx.OrchestrationService.Worker
                     db.AddStatement(string.Format(updatejobTemplate, options.CommunicationTableName), new
                     {
                         Status = (int)job.Status,
-                        job.NextFetchTime,
+                        job.LockedUntilUtc,
                         job.Context,
                         job.ResponseCode,
                         job.RequestId,
@@ -269,7 +269,6 @@ BEGIN
 	    [RequestId] [nvarchar](50) NULL,
 	    [CompletedTime] [datetime2](7) NULL,
 	    [CreateTime] [datetime2](7) NULL,
-        [NextFetchTime] [datetime2](7) NULL,
     CONSTRAINT [PK_{options.SchemaName}_{options.HubName}{CommunicationWorkerOptions.CommunicationTable}] PRIMARY KEY CLUSTERED
     (
 	    [InstanceId] ASC,
@@ -299,7 +298,7 @@ where [status]<{2} and [LockedUntilUtc]<=getutcdate();
         // {0} Communication table name
         private const string updatejobTemplate = @"
 update {0}
-set [Status]=@Status,[LockedUntilUtc]=@NextFetchTime,[NextFetchTime]=@NextFetchTime,[Context]=@Context, [ResponseCode]=@ResponseCode,[ResponseContent]=@ResponseContent,CompletedTime=@CompletedTime
+set [Status]=@Status,[LockedUntilUtc]=@LockedUntilUtc,[Context]=@Context, [ResponseCode]=@ResponseCode,[ResponseContent]=@ResponseContent,CompletedTime=@CompletedTime
 where RequestId=@RequestId;";
     }
 }

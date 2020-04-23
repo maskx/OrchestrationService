@@ -26,7 +26,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                 {
                     job.ResponseContent = "Retry";
                     job.Status = CommunicationJob.JobStatus.Pending;
-                    job.NextFetchTime = System.DateTime.UtcNow.AddMilliseconds(10);
+                    job.LockedUntilUtc = System.DateTime.UtcNow.AddMilliseconds(10);
                 }
 
                 rtv.Add(job);

@@ -15,7 +15,6 @@ CREATE TABLE [dbo].[NoRule_Communication](
 	[RequestId] [nvarchar](50) NULL,
 	[CompletedTime] [datetime2](7) NULL,
 	[CreateTime] [datetime2](7) NULL,
-	[NextFetchTime] [datetime2](7) NULL,
  CONSTRAINT [PK_NoRule_Communication] PRIMARY KEY CLUSTERED 
 (
 	[InstanceId] ASC,
