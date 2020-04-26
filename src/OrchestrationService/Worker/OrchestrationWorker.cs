@@ -116,20 +116,18 @@ namespace maskx.OrchestrationService.Worker
             {
                 var orchestrations = await this.jobProvider.FetchAsync(this.options.FetchJobCount);
                 sw.Restart();
-                try
-                {
+               
                     var taskLlist = new List<Task>();
                     foreach (var item in orchestrations)
                     {
-                        taskLlist.Add(JumpStartOrchestrationAsync(item));
+                       var instance = JumpStartOrchestrationAsync(item);
+                       if (instance != null)
+                       {
+                            taskLlist.Add(instance);
+                       }
                     }
                     await Task.WhenAll(taskLlist);
-                }
-                catch (Exception ex)
-                {
-                    CommunicationEventSource.Log.TraceEvent(System.Diagnostics.TraceEventType.Critical, "OrchestrationWorker", ex.Message, ex.ToString(), "Error");
-                    throw ex;
-                }
+              
                 sw.Stop();
                 if (sw.ElapsedMilliseconds < this.jobProvider.Interval)
                     await Task.Delay(this.jobProvider.Interval - (int)sw.ElapsedMilliseconds);
@@ -138,11 +136,19 @@ namespace maskx.OrchestrationService.Worker
 
         public async Task<OrchestrationInstance> JumpStartOrchestrationAsync(Job job)
         {
+         try
+           {
             return await this.taskHubClient.CreateOrchestrationInstanceAsync(
                 job.Orchestration.Name,
                 job.Orchestration.Version,
                 job.InstanceId,
                 job.Input);
+            }
+            catch (Exception ex)
+            {
+                CommunicationEventSource.Log.TraceEvent(System.Diagnostics.TraceEventType.Critical, "OrchestrationWorker", string.Format("Orchestration Start Failed: Id-{0},Message-{1}",job.InstanceId,ex.Message), ex.ToString(), "Error");
+                return null;
+            }
         }
     }
 }
