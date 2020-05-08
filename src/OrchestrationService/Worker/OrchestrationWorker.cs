@@ -116,18 +116,18 @@ namespace maskx.OrchestrationService.Worker
             {
                 var orchestrations = await this.jobProvider.FetchAsync(this.options.FetchJobCount);
                 sw.Restart();
-               
-                    var taskLlist = new List<Task>();
-                    foreach (var item in orchestrations)
+
+                var taskLlist = new List<Task>();
+                foreach (var item in orchestrations)
+                {
+                    var instance = JumpStartOrchestrationAsync(item);
+                    if (instance != null)
                     {
-                       var instance = JumpStartOrchestrationAsync(item);
-                       if (instance != null)
-                       {
-                            taskLlist.Add(instance);
-                       }
+                        taskLlist.Add(instance);
                     }
-                    await Task.WhenAll(taskLlist);
-              
+                }
+                await Task.WhenAll(taskLlist);
+
                 sw.Stop();
                 if (sw.ElapsedMilliseconds < this.jobProvider.Interval)
                     await Task.Delay(this.jobProvider.Interval - (int)sw.ElapsedMilliseconds);
@@ -136,17 +136,17 @@ namespace maskx.OrchestrationService.Worker
 
         public async Task<OrchestrationInstance> JumpStartOrchestrationAsync(Job job)
         {
-         try
-           {
-            return await this.taskHubClient.CreateOrchestrationInstanceAsync(
-                job.Orchestration.Name,
-                job.Orchestration.Version,
-                job.InstanceId,
-                job.Input);
+            try
+            {
+                return await this.taskHubClient.CreateOrchestrationInstanceAsync(
+                    job.Orchestration.Name,
+                    job.Orchestration.Version,
+                    job.InstanceId,
+                    job.Input);
             }
             catch (Exception ex)
             {
-                CommunicationEventSource.Log.TraceEvent(System.Diagnostics.TraceEventType.Critical, "OrchestrationWorker", string.Format("Orchestration Start Failed: Id-{0},Message-{1}",job.InstanceId,ex.Message), ex.ToString(), "Error");
+                CommunicationEventSource.Log.TraceEvent(TraceEventType.Critical, "OrchestrationWorker", string.Format("Orchestration Start Failed: Id-{0},Message-{1}", job.InstanceId, ex.Message), ex.ToString(), "Error");
                 return null;
             }
         }
