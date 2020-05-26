@@ -289,7 +289,7 @@ END", new { table = options.CommunicationTableName });
         // {4} IdelMilliseconds
         private const string fetchTemplate = @"
 update top({0}) T
-set T.[Status]={3} ,T.[LockedUntilUtc]=DATEADD(millisecond,{4},[LockedUntilUtc])
+set T.[Status]={3} ,T.[LockedUntilUtc]=DATEADD(millisecond,{4},getutcdate())
 output INSERTED.*
 FROM {1} AS T
 where [status]<{2} and [LockedUntilUtc]<=getutcdate();
