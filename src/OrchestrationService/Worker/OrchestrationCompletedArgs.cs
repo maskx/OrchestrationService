@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace maskx.OrchestrationService.Worker
+﻿namespace maskx.OrchestrationService.Worker
 {
     public class OrchestrationCompletedArgs
     {
