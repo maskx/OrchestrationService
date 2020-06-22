@@ -14,42 +14,48 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
     [Trait("C", "CommunicationWorker")]
     public class SimpleFetchRuleTest : IDisposable
     {
-        private DataConverter dataConverter = new JsonDataConverter();
-        private IHost workerHost = null;
-        private OrchestrationWorker orchestrationWorker;
+        private readonly DataConverter dataConverter = new JsonDataConverter();
+        private readonly IHost workerHost = null;
+        private readonly OrchestrationWorker orchestrationWorker;
 
         public SimpleFetchRuleTest()
         {
-            CommunicationWorkerOptions options = new CommunicationWorkerOptions();
-            options.HubName = "NoRule";
-            options.GetFetchRules = (sp) =>
+            CommunicationWorkerOptions options = new CommunicationWorkerOptions
             {
-                var r1 = new FetchRule()
+                HubName = "NoRule",
+                GetFetchRules = (sp) =>
                 {
-                    What = new Dictionary<string, string>() { { "Processor", "MockCommunicationProcessor" } },
-                };
-                r1.Limitions.Add(new Limitation()
-                {
-                    Concurrency = 1,
-                    Scope = new List<string>()
+                    var r1 = new FetchRule()
                     {
+                        What = new Dictionary<string, string>() { { "Processor", "MockCommunicationProcessor" } },
+                    };
+                    r1.Limitions.Add(new Limitation()
+                    {
+                        Concurrency = 1,
+                        Scope = new List<string>()
+                        {
                         "RequestOperation"
-                    }
-                });
-                r1.Limitions.Add(new Limitation
-                {
-                    Concurrency = 5,
-                    Scope = new List<string>()
+                        }
+                    });
+                    r1.Limitions.Add(new Limitation
                     {
+                        Concurrency = 5,
+                        Scope = new List<string>()
+                        {
                         "RequestTo"
-                    }
-                });
-                List<FetchRule> fetchRules = new List<FetchRule>();
-                fetchRules.Add(r1);
-                return fetchRules;
+                        }
+                    });
+                    List<FetchRule> fetchRules = new List<FetchRule>
+                    {
+                        r1
+                    };
+                    return fetchRules;
+                }
             };
-            List<(string Name, string Version, Type Type)> orchestrationTypes = new List<(string Name, string Version, Type Type)>();
-            orchestrationTypes.Add((typeof(TestOrchestration).FullName, "", typeof(TestOrchestration)));
+            List<(string Name, string Version, Type Type)> orchestrationTypes = new List<(string Name, string Version, Type Type)>
+            {
+                (typeof(TestOrchestration).FullName, "", typeof(TestOrchestration))
+            };
             workerHost = TestHelpers.CreateHostBuilder(options, orchestrationTypes).Build();
             workerHost.RunAsync();
             orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();

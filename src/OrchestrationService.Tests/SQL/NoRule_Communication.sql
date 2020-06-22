@@ -8,13 +8,14 @@ CREATE TABLE [dbo].[NoRule_Communication](
 	[RequestOperation] [nvarchar](50) NULL,
 	[RequestContent] [nvarchar](max) NULL,
 	[RequestProperty] [nvarchar](max) NULL,
-	[Status] [nvarchar](50) NULL,
+	[Status] int NULL,
 	[LockedUntilUtc] [datetime2](7) NULL,
 	[ResponseContent] [nvarchar](max) NULL,
 	[ResponseCode] [int] NULL,
 	[RequestId] [nvarchar](50) NULL,
 	[CompletedTime] [datetime2](7) NULL,
 	[CreateTime] [datetime2](7) NULL,
+	[Context] nvarchar(max) null,
  CONSTRAINT [PK_NoRule_Communication] PRIMARY KEY CLUSTERED 
 (
 	[InstanceId] ASC,

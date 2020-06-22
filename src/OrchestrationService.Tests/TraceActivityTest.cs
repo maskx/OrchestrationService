@@ -17,19 +17,21 @@ namespace OrchestrationService.Tests
     [Trait("c", "TraceActivityTest")]
     public class TraceActivityTest
     {
-        private IHost workerHost = null;
-        private OrchestrationWorker orchestrationWorker;
+        private readonly IHost workerHost = null;
         public OrchestrationWorkerClient OrchestrationWorkerClient { get; private set; }
 
         public TraceActivityTest()
         {
-            CommunicationWorkerOptions options = new CommunicationWorkerOptions();
-            options.HubName = "NoRule";
-            List<(string Name, string Version, Type Type)> orchestrationTypes = new List<(string Name, string Version, Type Type)>();
-            orchestrationTypes.Add((typeof(TestOrchestration).FullName, "", typeof(TestOrchestration)));
+            CommunicationWorkerOptions options = new CommunicationWorkerOptions
+            {
+                HubName = "NoRule"
+            };
+            List<(string Name, string Version, Type Type)> orchestrationTypes = new List<(string Name, string Version, Type Type)>
+            {
+                (typeof(TestOrchestration).FullName, "", typeof(TestOrchestration))
+            };
             workerHost = TestHelpers.CreateHostBuilder(options, orchestrationTypes).Build();
             workerHost.RunAsync();
-            orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
             OrchestrationWorkerClient = workerHost.Services.GetService<OrchestrationWorkerClient>();
         }
 

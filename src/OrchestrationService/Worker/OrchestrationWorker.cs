@@ -13,7 +13,6 @@ namespace maskx.OrchestrationService.Worker
 {
     public class OrchestrationWorker : BackgroundService
     {
-        private readonly ILogger<OrchestrationWorker> logger;
         private readonly TaskHubWorker taskHubWorker;
         private readonly TaskHubClient taskHubClient;
         internal readonly IJobProvider jobProvider;
@@ -25,17 +24,15 @@ namespace maskx.OrchestrationService.Worker
         private readonly DynamicNameVersionObjectManager<TaskOrchestration> orchestrationManager;
 
         private readonly DynamicNameVersionObjectManager<TaskActivity> activityManager;
-        private readonly IOrchestrationCreatorFactory orchestrationCreatorFactory;
+      
 
-        public OrchestrationWorker(ILogger<OrchestrationWorker> logger,
+        public OrchestrationWorker(
             IOrchestrationService orchestrationService,
             IOrchestrationServiceClient orchestrationServiceClient,
             IOptions<OrchestrationWorkerOptions> options,
-            IServiceProvider serviceProvider,
-            IOrchestrationCreatorFactory orchestrationCreatorFactory)
+            IServiceProvider serviceProvider)
         {
             this.serviceProvider = serviceProvider;
-            this.logger = logger;
             this.options = options?.Value;
             this.jobProvider = serviceProvider.GetService<IJobProvider>();
             this.orchestrationManager = new DynamicNameVersionObjectManager<TaskOrchestration>();
@@ -44,7 +41,7 @@ namespace maskx.OrchestrationService.Worker
                 this.orchestrationManager,
                 this.activityManager);
             this.taskHubClient = new TaskHubClient(orchestrationServiceClient);
-            this.orchestrationCreatorFactory = orchestrationCreatorFactory;
+          
             if (this.options.AutoCreate)
                 this.taskHubWorker.orchestrationService.CreateIfNotExistsAsync().Wait();
             // catch Orchestration Completed event

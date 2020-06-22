@@ -12,7 +12,6 @@ namespace maskx.OrchestrationService.Worker
     {
         private readonly OrchestrationWorkerOptions options;
         private readonly TaskHubClient taskHubClient;
-        private readonly IOrchestrationCreatorFactory orchestrationCreatorFactory;
 
         // hold orchestrationManager and activityManager, so we can remove unused orchestration
         private readonly DynamicNameVersionObjectManager<TaskOrchestration> orchestrationManager;
@@ -22,14 +21,12 @@ namespace maskx.OrchestrationService.Worker
 
         public OrchestrationWorkerClient(
             IOrchestrationServiceClient orchestrationServiceClient,
-            IOrchestrationCreatorFactory orchestrationCreatorFactory,
             IOptions<OrchestrationWorkerOptions> options,
             IServiceProvider serviceProvider)
         {
             this.serviceProvider = serviceProvider;
             this.options = options?.Value;
             this.taskHubClient = new TaskHubClient(orchestrationServiceClient);
-            this.orchestrationCreatorFactory = orchestrationCreatorFactory;
             this.orchestrationManager = new DynamicNameVersionObjectManager<TaskOrchestration>();
             this.activityManager = new DynamicNameVersionObjectManager<TaskActivity>();
             Init();

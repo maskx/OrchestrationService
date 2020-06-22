@@ -13,16 +13,19 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
     [Trait("C", "JobProvider")]
     public class JobProviderTest
     {
-        private DataConverter dataConverter = new JsonDataConverter();
-        private IHost workerHost = null;
-        private OrchestrationWorker orchestrationWorker;
+        private readonly IHost workerHost = null;
+        private readonly OrchestrationWorker orchestrationWorker;
 
         public JobProviderTest()
         {
-            CommunicationWorkerOptions options = new CommunicationWorkerOptions();
-            options.HubName = "NoRule";
-            List<(string Name, string Version, Type Type)> orchestrationTypes = new List<(string Name, string Version, Type Type)>();
-            orchestrationTypes.Add(("TestOrchestration", "", typeof(TestOrchestration)));
+            CommunicationWorkerOptions options = new CommunicationWorkerOptions
+            {
+                HubName = "NoRule"
+            };
+            List<(string Name, string Version, Type Type)> orchestrationTypes = new List<(string Name, string Version, Type Type)>
+            {
+                ("TestOrchestration", "", typeof(TestOrchestration))
+            };
             workerHost = TestHelpers.CreateHostBuilder(options, orchestrationTypes, (cxt, services) =>
             {
                 services.AddSingleton<IJobProvider>(new JobProvider());

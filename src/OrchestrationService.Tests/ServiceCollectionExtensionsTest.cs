@@ -14,7 +14,7 @@ namespace OrchestrationService.Tests
     [Trait("c", "ServiceCollectionExtensionsTest")]
     public class ServiceCollectionExtensionsTest
     {
-        private void RunHost<T>(T config)
+        private void RunHost<T>(Action<IServiceCollection> config)
         {
             var webHost = Host.CreateDefaultBuilder()
                 .ConfigureAppConfiguration((hostingContext, config) =>
@@ -25,10 +25,7 @@ namespace OrchestrationService.Tests
                 })
                 .ConfigureServices((hostContext, services) =>
                 {
-                    if (typeof(T) == typeof(SqlServerConfiguration))
-                        services.UsingOrchestration(config as SqlServerConfiguration);
-                    else
-                        services.UsingOrchestration(config as OrchestrationServiceConfiguration);
+                    config(services);
                 })
                 .Build();
             webHost.RunAsync();
@@ -73,7 +70,34 @@ namespace OrchestrationService.Tests
                     GetBuildInTaskActivities = (sp) => { return activityTypes; }
                 }
             };
-            RunHost<SqlServerConfiguration>(sqlConfig);
+            RunHost<SqlServerConfiguration>((sp) => sp.UsingOrchestration(sqlConfig));
+        }
+        [Fact(DisplayName = "UsingSqlServerFunc")]
+        public void UsingSqlServerFunc()
+        {
+            var orchestrationTypes = new List<(string Name, string Version, Type Type)>();
+            orchestrationTypes.Add(("TestOrchestration", "", typeof(OrchestrationWorkerTests.TestOrchestration)));
+            var activityTypes = new List<(string Name, string Version, Type Type)>();
+            var sqlConfig = new SqlServerConfiguration()
+            {
+                ConnectionString = TestHelpers.ConnectionString,
+                HubName = "sql",
+                SchemaName = "sql",
+                AutoCreate = true,
+                OrchestrationWorkerOptions = new maskx.OrchestrationService.Extensions.OrchestrationWorkerOptions()
+                {
+                    GetBuildInOrchestrators = (sp) => { return orchestrationTypes; },
+                    GetBuildInTaskActivities = (sp) => { return activityTypes; }
+                }
+            };
+            RunHost<SqlServerConfiguration>((sp) =>
+            {
+                sp.UsingOrchestration((sp) =>
+                {
+                    return sqlConfig;
+
+                });
+            });
         }
     }
 }

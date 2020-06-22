@@ -18,7 +18,7 @@ namespace maskx.OrchestrationService.Worker
         private readonly CommunicationWorkerOptions options;
         private string fetchCommandText;
         private readonly Dictionary<string, ICommunicationProcessor> processors;
-        private DataConverter dataConverter = new JsonDataConverter();
+        private readonly DataConverter dataConverter = new JsonDataConverter();
 
         private int RunningTaskCount = 0;
         private readonly IServiceProvider serviceProvider;
@@ -36,6 +36,8 @@ namespace maskx.OrchestrationService.Worker
 
         public override async Task StartAsync(CancellationToken cancellationToken)
         {
+            if (this.options == null)
+                return;
             var p = this.serviceProvider.GetServices<ICommunicationProcessor>();
             foreach (var item in p)
             {
@@ -172,24 +174,22 @@ namespace maskx.OrchestrationService.Worker
 
         public async Task UpdateJobs(params CommunicationJob[] jobs)
         {
-            using (var db = new DbAccess(this.options.ConnectionString))
+            using var db = new DbAccess(this.options.ConnectionString);
+            foreach (var job in jobs)
             {
-                foreach (var job in jobs)
+                db.AddStatement(string.Format(updatejobTemplate, options.CommunicationTableName), new
                 {
-                    db.AddStatement(string.Format(updatejobTemplate, options.CommunicationTableName), new
-                    {
-                        Status = (int)job.Status,
-                        job.LockedUntilUtc,
-                        job.Context,
-                        job.ResponseCode,
-                        job.RequestId,
-                        job.ResponseContent,
-                        CompletedTime = CommunicationJob.JobStatus.Completed == job.Status ? DateTime.UtcNow : default(DateTime)
-                    });
-                }
-
-                await db.ExecuteNonQueryAsync();
+                    Status = (int)job.Status,
+                    job.LockedUntilUtc,
+                    job.Context,
+                    job.ResponseCode,
+                    job.RequestId,
+                    job.ResponseContent,
+                    CompletedTime = CommunicationJob.JobStatus.Completed == job.Status ? DateTime.UtcNow : default
+                });
             }
+
+            await db.ExecuteNonQueryAsync();
         }
 
         private async Task RaiseEvent(params CommunicationJob[] jobs)
@@ -232,24 +232,21 @@ namespace maskx.OrchestrationService.Worker
 
         public async Task DeleteCommunicationAsync()
         {
-            using (var db = new DbAccess(options.ConnectionString))
-            {
-                db.AddStatement($"DROP TABLE IF EXISTS {options.CommunicationTableName}");
-                await db.ExecuteNonQueryAsync();
-            }
+            using var db = new DbAccess(options.ConnectionString);
+            db.AddStatement($"DROP TABLE IF EXISTS {options.CommunicationTableName}");
+            await db.ExecuteNonQueryAsync();
         }
 
         public async Task CreateIfNotExistsAsync(bool recreate)
         {
             if (recreate) await DeleteCommunicationAsync();
-            using (var db = new DbAccess(options.ConnectionString))
-            {
-                db.AddStatement($@"IF(SCHEMA_ID(@schema) IS NULL)
+            using var db = new DbAccess(options.ConnectionString);
+            db.AddStatement($@"IF(SCHEMA_ID(@schema) IS NULL)
                     BEGIN
                         EXEC sp_executesql N'CREATE SCHEMA [{options.SchemaName}]'
                     END", new { schema = options.SchemaName });
 
-                db.AddStatement($@"
+            db.AddStatement($@"
 IF(OBJECT_ID(@table) IS NULL)
 BEGIN
     CREATE TABLE {options.CommunicationTableName} (
@@ -278,8 +275,7 @@ BEGIN
     ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
 END", new { table = options.CommunicationTableName });
 
-                await db.ExecuteNonQueryAsync();
-            }
+            await db.ExecuteNonQueryAsync();
         }
 
         // {0} fetch count

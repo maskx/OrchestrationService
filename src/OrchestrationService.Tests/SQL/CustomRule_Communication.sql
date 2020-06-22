@@ -8,7 +8,7 @@ CREATE TABLE [dbo].[CustomRule_Communication](
 	[RequestOperation] [nvarchar](50) NULL,
 	[RequestContent] [nvarchar](max) NULL,
 	[RequestProperty] [nvarchar](max) NULL,
-	[Status] [nvarchar](50) NULL,
+	[Status] int NULL,
 	[LockedUntilUtc] [datetime2](7) NULL,
 	[ResponseContent] [nvarchar](max) NULL,
 	[ResponseCode] [int] NULL,
@@ -17,6 +17,7 @@ CREATE TABLE [dbo].[CustomRule_Communication](
 	[CreateTime] [datetime2](7) NULL,
 	[SubscriptionId] nvarchar(50) null,
 	[ManagementUnit] nvarchar(50) null,
+	[Context] nvarchar(max) null,
  CONSTRAINT [PK_CustomRule_Communication] PRIMARY KEY CLUSTERED 
 (
 	[InstanceId] ASC,

@@ -11,7 +11,7 @@ namespace maskx.OrchestrationService.SQL
     {
         private readonly DbProviderFactory providerFactory;
         private DbConnection connection;
-        private DbCommand command;
+        private readonly DbCommand command;
 
         private enum RetryAction
         {
@@ -28,7 +28,7 @@ namespace maskx.OrchestrationService.SQL
         {
             providerFactory = dbProviderFactory;
 
-            connection = dbProviderFactory.CreateConnection();
+            connection = providerFactory.CreateConnection();
             connection.ConnectionString = connectionString;
             this.command = connection.CreateCommand();
         }
@@ -151,9 +151,7 @@ namespace maskx.OrchestrationService.SQL
             var retryAction = RetryAction.None;
             if (connection is SqlConnection)
             {
-                SqlException e = dbException as SqlException;
-
-                if (e == null)
+                if (!(dbException is SqlException e))
                     retryAction = RetryAction.None;
                 else
                     switch (e.Number)   // sys.messages
@@ -181,9 +179,7 @@ namespace maskx.OrchestrationService.SQL
 
         private void OnReconnecting()
         {
-            SqlConnection conn = connection as SqlConnection;
-
-            if (conn == null)
+            if (!(connection is SqlConnection conn))
                 return;
 
             SqlConnection.ClearPool(conn);

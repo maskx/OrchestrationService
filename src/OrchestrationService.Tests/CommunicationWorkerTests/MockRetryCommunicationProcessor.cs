@@ -10,7 +10,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
         public int MaxBatchCount { get; set; } = 1;
         public CommunicationWorker CommunicationWorker { get; set; }
 
-        public async Task<CommunicationJob[]> ProcessAsync(params CommunicationJob[] jobs)
+        public Task<CommunicationJob[]> ProcessAsync(params CommunicationJob[] jobs)
         {
             List<CommunicationJob> rtv = new List<CommunicationJob>();
             foreach (var job in jobs)
@@ -31,7 +31,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
 
                 rtv.Add(job);
             }
-            return rtv.ToArray();
+            return Task.FromResult(rtv.ToArray());
         }
     }
 }
