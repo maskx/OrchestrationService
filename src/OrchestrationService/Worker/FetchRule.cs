@@ -69,7 +69,7 @@ namespace maskx.OrchestrationService.Worker
                 others.Add($"({rule.Where})");
             }
             sb.Append(string.Format(otherTemplate,
-                string.Join(" and ", others),
+                string.Join(" or ", others),
                 options.CommunicationTableName,
                 (int)CommunicationJob.JobStatus.Completed,
                 (int)CommunicationJob.JobStatus.Locked,
