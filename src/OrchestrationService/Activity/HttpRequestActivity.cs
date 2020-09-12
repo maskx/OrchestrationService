@@ -42,7 +42,7 @@ namespace maskx.OrchestrationService.Activity
             {
                 return await client.SendAsync(request);
             });
-            string content = string.Empty;
+            object content = string.Empty;
             if (response.FaultType == null)
             {
                 try
@@ -51,11 +51,11 @@ namespace maskx.OrchestrationService.Activity
                 }
                 catch (Exception ex)
                 {
-                    content = ex.Message;
+                    content = ex;
                 }
-                return new TaskResult() { Code = (int)response.Result.StatusCode, Content = content };
+                return new TaskResult((int)response.Result.StatusCode, content);
             }
-            return new TaskResult() { Code = 400, Content = response.FinalException.Message };
+            return new TaskResult(400, response.FinalException);
         }
     }
 }

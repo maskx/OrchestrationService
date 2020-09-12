@@ -206,7 +206,7 @@ namespace maskx.OrchestrationService.Worker
                                             ExecutionId = job.ExecutionId
                                         },
                                         job.EventName,
-                                        dataConverter.Serialize(new TaskResult() { Code = job.ResponseCode, Content = dataConverter.Serialize(new CommunicationResult { ResponseContent = job.ResponseContent, Context = job.Context }) })
+                                        dataConverter.Serialize(new TaskResult(job.ResponseCode, new CommunicationResult { ResponseContent = job.ResponseContent, Context = job.Context }))
                                         ));
                 }
             }
