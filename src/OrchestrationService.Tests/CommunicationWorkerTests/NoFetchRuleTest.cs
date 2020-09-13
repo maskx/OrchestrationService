@@ -68,7 +68,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                     Assert.Equal(OrchestrationStatus.Completed, result.OrchestrationStatus);
                     var response = dataConverter.Deserialize<TaskResult>(result.Output);
                     Assert.Equal(200, response.Code);
-                    var r = dataConverter.Deserialize<CommunicationResult>(response.Content);
+                    var r =response.Content as CommunicationResult;
                     Assert.Equal("MockCommunicationProcessor", r.ResponseContent);
                     break;
                 }

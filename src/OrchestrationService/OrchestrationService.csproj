@@ -15,9 +15,9 @@
 
   <ItemGroup>
     <PackageReference Include="maskx.DurableTask.SQLServer" Version="0.1.2" />
-    <PackageReference Include="Microsoft.Azure.DurableTask.Core" Version="2.4.0" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.1.7" />
-    <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="3.1.7" />
+    <PackageReference Include="Microsoft.Azure.DurableTask.Core" Version="2.4.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.1.8" />
+    <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="3.1.8" />
     <PackageReference Include="Polly.Contrib.WaitAndRetry" Version="1.1.1" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.2" />
   </ItemGroup>

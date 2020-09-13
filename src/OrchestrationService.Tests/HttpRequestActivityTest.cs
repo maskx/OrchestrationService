@@ -63,7 +63,7 @@ namespace OrchestrationService.Tests
                     Assert.Equal(OrchestrationStatus.Completed, result.OrchestrationStatus);
                     var response = dataConverter.Deserialize<TaskResult>(result.Output);
                     Assert.Equal(200, response.Code);
-                    Assert.Contains("russellwhyte", response.Content);
+                    Assert.Contains("russellwhyte", response.Content.ToString());
                     break;
                 }
             }
@@ -114,7 +114,7 @@ namespace OrchestrationService.Tests
                     Assert.Equal(OrchestrationStatus.Completed, result.OrchestrationStatus);
                     var response = dataConverter.Deserialize<TaskResult>(result.Output);
                     Assert.Equal(200, response.Code);
-                    Assert.Contains("russellwhyte", response.Content);
+                    Assert.Contains("russellwhyte", response.Content.ToString());
                     break;
                 }
             }
@@ -146,7 +146,7 @@ namespace OrchestrationService.Tests
                     Assert.Equal(OrchestrationStatus.Completed, result.OrchestrationStatus);
                     var response = dataConverter.Deserialize<TaskResult>(result.Output);
                     Assert.Equal(204, response.Code);
-                    Assert.Empty(response.Content);
+                    Assert.Empty(response.Content.ToString());
                     break;
                 }
             }
@@ -183,7 +183,7 @@ namespace OrchestrationService.Tests
                     Assert.Equal(OrchestrationStatus.Completed, result.OrchestrationStatus);
                     var response = dataConverter.Deserialize<TaskResult>(result.Output);
                     Assert.Equal(204, response.Code);
-                    Assert.Empty(response.Content);
+                    Assert.Empty(response.Content.ToString());
                     break;
                 }
             }
