@@ -1,8 +1,6 @@
 ﻿using maskx.OrchestrationService.Worker;
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace OrchestrationService.Tests.CommunicationWorkerTests
 {

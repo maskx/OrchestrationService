@@ -17,6 +17,7 @@ namespace maskx.OrchestrationService.Worker
         private readonly TaskHubClient taskHubClient;
         private readonly CommunicationWorkerOptions options;
         private string fetchCommandText;
+        private string updateCommandText;
         private readonly Dictionary<string, ICommunicationProcessor> processors;
 
         private int RunningTaskCount = 0;
@@ -51,6 +52,11 @@ namespace maskx.OrchestrationService.Worker
             if (this.options.AutoCreate)
                 await CreateIfNotExistsAsync(false);
             RefreshFetchCommand();
+            updateCommandText = string.Format(updatejobTemplate,
+                options.CommunicationTableName,
+                (int)CommunicationJob.JobStatus.Completed,
+                options.MessageLockedSeconds
+                );
             await base.StartAsync(cancellationToken);
         }
         public override Task StopAsync(CancellationToken cancellationToken)
@@ -186,15 +192,13 @@ namespace maskx.OrchestrationService.Worker
             using var db = new DbAccess(this.options.ConnectionString);
             foreach (var job in jobs)
             {
-                db.AddStatement(string.Format(updatejobTemplate, options.CommunicationTableName), new
+                db.AddStatement(updateCommandText, new
                 {
                     Status = (int)job.Status,
-                    job.LockedUntilUtc,
                     job.Context,
                     job.ResponseCode,
                     job.RequestId,
-                    job.ResponseContent,
-                    CompletedTime = CommunicationJob.JobStatus.Completed == job.Status ? DateTime.UtcNow : default
+                    job.ResponseContent
                 });
             }
 
@@ -305,9 +309,11 @@ where [status]<{2} and [LockedUntilUtc]<=getutcdate();
 ";
 
         // {0} Communication table name
+        // {1} Completed status code
+        // {2} MessageLockedSeconds
         private const string updatejobTemplate = @"
 update {0} WITH(READPAST)
-set [Status]=@Status,[LockedUntilUtc]=@LockedUntilUtc,[Context]=@Context, [ResponseCode]=@ResponseCode,[ResponseContent]=@ResponseContent,CompletedTime=@CompletedTime
+set [Status]=@Status,[LockedUntilUtc]=DATEADD(millisecond,{2},getutcdate()),[Context]=@Context, [ResponseCode]=@ResponseCode,[ResponseContent]=@ResponseContent,CompletedTime=(case when @Status={1} then getutcdate() else null end)
 where RequestId=@RequestId;";
     }
 }

@@ -21,7 +21,7 @@ namespace maskx.OrchestrationService.Worker
         public JobStatus Status { get; set; }
         public DateTime CreateTime { get; set; }
 
-        public DateTime LockedUntilUtc { get; set; }
+        public DateTime LockedUntilUtc { get;internal set; }
 
         public enum JobStatus
         {
