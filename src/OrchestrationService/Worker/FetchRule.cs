@@ -96,6 +96,7 @@ inner join (
         // {3} Completed status code
         // {4} Locked status code
         // {5} IdelMilliseconds
+        // TODO: this should be MessageLockedSeconds
         private const string ruleTemplate = @"
 set @RequestId=null;
 update top(1) T
@@ -118,6 +119,7 @@ end
         // {2} Completed status code
         // {3} Locked status code
         // {4} IdelMilliseconds
+        // TODO: this should be MessageLockedSeconds
         private const string otherTemplate = @"
 update top(@MaxCount-@Count) T
 set @RequestId=T.RequestId,T.[Status]={3},T.[LockedUntilUtc]=DATEADD(millisecond,{4},getutcdate())

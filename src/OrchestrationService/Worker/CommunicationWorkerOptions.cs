@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace maskx.OrchestrationService.Worker
+﻿namespace maskx.OrchestrationService.Worker
 {
     public class CommunicationWorkerOptions : Extensions.CommunicationWorkerOptions
     {

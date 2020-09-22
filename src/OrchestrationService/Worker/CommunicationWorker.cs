@@ -1,5 +1,5 @@
 ﻿using DurableTask.Core;
-using DurableTask.Core.Serializing;
+using maskx.OrchestrationService.Activity;
 using maskx.OrchestrationService.SQL;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -18,7 +18,6 @@ namespace maskx.OrchestrationService.Worker
         private readonly CommunicationWorkerOptions options;
         private string fetchCommandText;
         private readonly Dictionary<string, ICommunicationProcessor> processors;
-        private readonly DataConverter dataConverter = new JsonDataConverter();
 
         private int RunningTaskCount = 0;
         private readonly IServiceProvider serviceProvider;
@@ -37,19 +36,30 @@ namespace maskx.OrchestrationService.Worker
         public override async Task StartAsync(CancellationToken cancellationToken)
         {
             if (this.options == null)
+            {
+                TraceActivityEventSource.Log.Critical(nameof(CommunicationWorker), string.Empty, string.Empty, "CommunicationWorker can not start","options is null", "Failed");
                 return;
+            }
+                
             var p = this.serviceProvider.GetServices<ICommunicationProcessor>();
             foreach (var item in p)
             {
+                // todo: CommunicationWorker can be set by DI ?
                 item.CommunicationWorker = this;
                 this.processors.Add(item.Name, item);
             }
             if (this.options.AutoCreate)
                 await CreateIfNotExistsAsync(false);
+            // todo: make this can be refreshed at runtime
             fetchCommandText = BuildFetchCommand();
             await base.StartAsync(cancellationToken);
         }
+        public override Task StopAsync(CancellationToken cancellationToken)
+        {
+            TraceActivityEventSource.Log.Critical(nameof(CommunicationWorker), string.Empty, string.Empty, "CommunicationWorker is stoped", "CommunicationWorker is stoped", "Failed");
 
+            return base.StopAsync(cancellationToken);
+        }
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             while (!stoppingToken.IsCancellationRequested)
@@ -283,6 +293,7 @@ END", new { table = options.CommunicationTableName });
         // {2} Completed status code
         // {3} Locked status code
         // {4} IdelMilliseconds
+        // TODO: this should be MessageLockedSeconds
         private const string fetchTemplate = @"
 update top({0}) T
 set T.[Status]={3} ,T.[LockedUntilUtc]=DATEADD(millisecond,{4},getutcdate())
