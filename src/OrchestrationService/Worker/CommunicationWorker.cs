@@ -37,10 +37,10 @@ namespace maskx.OrchestrationService.Worker
         {
             if (this.options == null)
             {
-                TraceActivityEventSource.Log.Critical(nameof(CommunicationWorker), string.Empty, string.Empty, "CommunicationWorker can not start","options is null", "Failed");
+                TraceActivityEventSource.Log.Critical(nameof(CommunicationWorker), string.Empty, string.Empty, "CommunicationWorker can not start", "options is null", "Failed");
                 return;
             }
-                
+
             var p = this.serviceProvider.GetServices<ICommunicationProcessor>();
             foreach (var item in p)
             {
@@ -50,8 +50,7 @@ namespace maskx.OrchestrationService.Worker
             }
             if (this.options.AutoCreate)
                 await CreateIfNotExistsAsync(false);
-            // todo: make this can be refreshed at runtime
-            fetchCommandText = BuildFetchCommand();
+            RefreshFetchCommand();
             await base.StartAsync(cancellationToken);
         }
         public override Task StopAsync(CancellationToken cancellationToken)
@@ -223,21 +222,25 @@ namespace maskx.OrchestrationService.Worker
             await Task.WhenAll(tasks);
         }
 
-        private string BuildFetchCommand()
+        public void RefreshFetchCommand()
         {
             StringBuilder sb = new StringBuilder("declare @RequestId nvarchar(50);");
             if (this.options.GetFetchRules != null)
             {
                 var fetchRules = this.options.GetFetchRules(serviceProvider);
                 if (fetchRules.Count > 0)
-                    return sb.Append(FetchRule.BuildFetchCommand(fetchRules, options)).ToString();
+                {
+                    fetchCommandText = sb.Append(FetchRule.BuildFetchCommand(fetchRules, options)).ToString();
+                    return;
+                }
+
             }
-            return sb.Append(string.Format(fetchTemplate,
+            fetchCommandText = sb.Append(string.Format(fetchTemplate,
                 options.MaxConcurrencyRequest,
                 options.CommunicationTableName,
                 (int)CommunicationJob.JobStatus.Completed,
                 (int)CommunicationJob.JobStatus.Locked,
-                options.IdelMilliseconds)).ToString();
+                options.MessageLockedSeconds)).ToString();
         }
 
         public async Task DeleteCommunicationAsync()
@@ -292,8 +295,7 @@ END", new { table = options.CommunicationTableName });
         // {1} Communication table name
         // {2} Completed status code
         // {3} Locked status code
-        // {4} IdelMilliseconds
-        // TODO: this should be MessageLockedSeconds
+        // {4} MessageLockedSeconds
         private const string fetchTemplate = @"
 update top({0}) T
 set T.[Status]={3} ,T.[LockedUntilUtc]=DATEADD(millisecond,{4},getutcdate())
