@@ -302,7 +302,7 @@ END", new { table = options.CommunicationTableName });
         // {4} MessageLockedSeconds
         private const string fetchTemplate = @"
 update top({0}) T WITH(READPAST)
-set T.[Status]={3} ,T.[LockedUntilUtc]=DATEADD(millisecond,{4},getutcdate())
+set T.[Status]={3} ,T.[LockedUntilUtc]=DATEADD(second,{4},getutcdate())
 output INSERTED.*
 FROM {1} AS T
 where [status]<{2} and [LockedUntilUtc]<=getutcdate();
@@ -313,7 +313,7 @@ where [status]<{2} and [LockedUntilUtc]<=getutcdate();
         // {2} MessageLockedSeconds
         private const string updatejobTemplate = @"
 update {0} WITH(READPAST)
-set [Status]=@Status,[LockedUntilUtc]=DATEADD(millisecond,{2},getutcdate()),[Context]=@Context, [ResponseCode]=@ResponseCode,[ResponseContent]=@ResponseContent,CompletedTime=(case when @Status={1} then getutcdate() else null end)
+set [Status]=@Status,[LockedUntilUtc]=DATEADD(second,{2},getutcdate()),[Context]=@Context, [ResponseCode]=@ResponseCode,[ResponseContent]=@ResponseContent,CompletedTime=(case when @Status={1} then getutcdate() else null end)
 where RequestId=@RequestId;";
     }
 }

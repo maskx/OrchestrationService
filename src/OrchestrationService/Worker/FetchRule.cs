@@ -99,7 +99,7 @@ inner join (
         private const string ruleTemplate = @"
 set @RequestId=null;
 update top(1) T WITH(READPAST)
-set @RequestId=T.RequestId,T.[Status]={4},T.[LockedUntilUtc]=DATEADD(millisecond,{5},getutcdate())
+set @RequestId=T.RequestId,T.[Status]={4},T.[LockedUntilUtc]=DATEADD(second,{5},getutcdate())
 output INSERTED.*
 FROM {2} AS T {0}
 where [status]<{3} and [LockedUntilUtc]<=getutcdate() and {1}
@@ -120,7 +120,7 @@ end
         // {4} MessageLockedSeconds
         private const string otherTemplate = @"
 update top(@MaxCount-@Count) T WITH(READPAST)
-set @RequestId=T.RequestId,T.[Status]={3},T.[LockedUntilUtc]=DATEADD(millisecond,{4},getutcdate())
+set @RequestId=T.RequestId,T.[Status]={3},T.[LockedUntilUtc]=DATEADD(second,{4},getutcdate())
 output INSERTED.*
 FROM {1} AS T
 where [status]<{2} and [LockedUntilUtc]<=getutcdate() and not ({0})
