@@ -85,8 +85,8 @@ namespace maskx.OrchestrationService.Worker
         // {5} Locked status code
         private const string limitationTemplate = @"
 inner join (
-   select COUNT(case when [status]={5} and [LockedUntilUtc]>getutcdate() then 1 else null end) as Locked,{1}
-   from {4} where {0} group by {1}
+   select COUNT(case when [status]={5} and [LockedUntilUtc]>getutcdate() then 1 else null end) as Locked,{1} 
+   from {4} WITH(READPAST) where {0} group by {1}
 ) as T{2}  on {3}
 ";
 
@@ -98,7 +98,7 @@ inner join (
         // {5} MessageLockedSeconds
         private const string ruleTemplate = @"
 set @RequestId=null;
-update top(1) T
+update top(1) T WITH(READPAST)
 set @RequestId=T.RequestId,T.[Status]={4},T.[LockedUntilUtc]=DATEADD(millisecond,{5},getutcdate())
 output INSERTED.*
 FROM {2} AS T {0}
@@ -119,7 +119,7 @@ end
         // {3} Locked status code
         // {4} MessageLockedSeconds
         private const string otherTemplate = @"
-update top(@MaxCount-@Count) T
+update top(@MaxCount-@Count) T WITH(READPAST)
 set @RequestId=T.RequestId,T.[Status]={3},T.[LockedUntilUtc]=DATEADD(millisecond,{4},getutcdate())
 output INSERTED.*
 FROM {1} AS T

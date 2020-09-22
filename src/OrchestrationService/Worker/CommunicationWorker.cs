@@ -297,7 +297,7 @@ END", new { table = options.CommunicationTableName });
         // {3} Locked status code
         // {4} MessageLockedSeconds
         private const string fetchTemplate = @"
-update top({0}) T
+update top({0}) T WITH(READPAST)
 set T.[Status]={3} ,T.[LockedUntilUtc]=DATEADD(millisecond,{4},getutcdate())
 output INSERTED.*
 FROM {1} AS T
@@ -306,7 +306,7 @@ where [status]<{2} and [LockedUntilUtc]<=getutcdate();
 
         // {0} Communication table name
         private const string updatejobTemplate = @"
-update {0}
+update {0} WITH(READPAST)
 set [Status]=@Status,[LockedUntilUtc]=@LockedUntilUtc,[Context]=@Context, [ResponseCode]=@ResponseCode,[ResponseContent]=@ResponseContent,CompletedTime=@CompletedTime
 where RequestId=@RequestId;";
     }
