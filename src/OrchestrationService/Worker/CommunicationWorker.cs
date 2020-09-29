@@ -6,7 +6,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,9 +17,23 @@ namespace maskx.OrchestrationService.Worker
     {
         private readonly TaskHubClient taskHubClient;
         private readonly CommunicationWorkerOptions options;
-        private string fetchCommandText;
-        private string updateCommandText;
         private readonly Dictionary<string, ICommunicationProcessor> processors;
+        // 'todo: communication table add agentId column
+        string _AgentId;
+        private string AgentId
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(_AgentId))
+                {
+                    var name = Dns.GetHostName();
+                    var ip = Dns.GetHostEntry(name).AddressList.FirstOrDefault(x => x.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
+                    _AgentId = $"{Environment.MachineName}_{ip}";
+                }
+
+                return _AgentId;
+            }
+        }
 
         private int RunningTaskCount = 0;
         private readonly IServiceProvider serviceProvider;
@@ -51,12 +66,6 @@ namespace maskx.OrchestrationService.Worker
             }
             if (this.options.AutoCreate)
                 await CreateIfNotExistsAsync(false);
-            RefreshFetchCommand();
-            updateCommandText = string.Format(updatejobTemplate,
-                options.CommunicationTableName,
-                (int)CommunicationJob.JobStatus.Completed,
-                options.MessageLockedSeconds
-                );
             await base.StartAsync(cancellationToken);
         }
         public override Task StopAsync(CancellationToken cancellationToken)
@@ -138,43 +147,44 @@ namespace maskx.OrchestrationService.Worker
             {
                 return jobs;
             }
-            using (var db = new DbAccess(this.options.ConnectionString))
+            using (var db = new SQLServerAccess(this.options.ConnectionString))
             {
-                db.AddStatement(fetchCommandText, new
-                {
-                    MaxCount = options.MaxConcurrencyRequest - RunningTaskCount
-                });
-                await db.ExecuteReaderAsync((reader, index) =>
-                {
-                    var job = new CommunicationJob()
-                    {
-                        InstanceId = reader["InstanceId"].ToString(),
-                        ExecutionId = reader["ExecutionId"].ToString(),
-                        EventName = reader["EventName"].ToString(),
-                        RequestId = reader["RequestId"].ToString(),
-                        Processor = reader["Processor"].ToString(),
-                        RequestTo = reader["RequestTo"]?.ToString(),
-                        CreateTime = DateTime.Parse(reader["CreateTime"].ToString()),
-                        LockedUntilUtc = DateTime.Parse(reader["LockedUntilUtc"].ToString()),
-                        RequestOperation = reader["RequestOperation"]?.ToString(),
-                        RequestContent = reader["RequestContent"]?.ToString(),
-                        RequestProperty = reader["RequestProperty"]?.ToString(),
-                        Status = (CommunicationJob.JobStatus)(int)reader["Status"],
-                        ResponseContent = reader["ResponseContent"]?.ToString(),
-                    };
-                    if (reader["Context"] != DBNull.Value)
-                    {
-                        job.Context = reader["Context"].ToString();
-                    }
-                    if (reader["ResponseCode"] != DBNull.Value)
-                        job.ResponseCode = (int)reader["ResponseCode"];
-                    job.RuleField = new Dictionary<string, object>();
-                    foreach (var item in options.RuleFields)
-                    {
-                        job.RuleField.Add(item, reader[item]);
-                    }
-                    jobs.Add(job);
-                });
+                await db.ExecuteStoredProcedureASync(this.options.FetchCommunicationJobSPName, (reader, index) =>
+                 {
+                     var job = new CommunicationJob()
+                     {
+                         InstanceId = reader["InstanceId"].ToString(),
+                         ExecutionId = reader["ExecutionId"].ToString(),
+                         EventName = reader["EventName"].ToString(),
+                         RequestId = reader["RequestId"].ToString(),
+                         Processor = reader["Processor"].ToString(),
+                         RequestTo = reader["RequestTo"]?.ToString(),
+                         CreateTime = DateTime.Parse(reader["CreateTime"].ToString()),
+                         LockedUntilUtc = DateTime.Parse(reader["LockedUntilUtc"].ToString()),
+                         RequestOperation = reader["RequestOperation"]?.ToString(),
+                         RequestContent = reader["RequestContent"]?.ToString(),
+                         RequestProperty = reader["RequestProperty"]?.ToString(),
+                         Status = (CommunicationJob.JobStatus)(int)reader["Status"],
+                         ResponseContent = reader["ResponseContent"]?.ToString(),
+                     };
+                     if (reader["Context"] != DBNull.Value)
+                     {
+                         job.Context = reader["Context"].ToString();
+                     }
+                     if (reader["ResponseCode"] != DBNull.Value)
+                         job.ResponseCode = (int)reader["ResponseCode"];
+                     job.RuleField = new Dictionary<string, object>();
+                     foreach (var item in options.RuleFields)
+                     {
+                         job.RuleField.Add(item, reader[item]);
+                     }
+                     jobs.Add(job);
+                 }, new
+                 {
+                     LockedBy = AgentId,
+                     MessageLockedSeconds = this.options.MessageLockedSeconds,
+                     MaxCount = options.MaxConcurrencyRequest - RunningTaskCount
+                 });
             }
             return jobs;
         }
@@ -189,20 +199,19 @@ namespace maskx.OrchestrationService.Worker
 
         public async Task UpdateJobs(params CommunicationJob[] jobs)
         {
-            using var db = new DbAccess(this.options.ConnectionString);
+            using var db = new SQLServerAccess(this.options.ConnectionString);
             foreach (var job in jobs)
             {
-                db.AddStatement(updateCommandText, new
+                await db.ExecuteStoredProcedureASync(options.UpdateCommunicationSPName, new
                 {
                     Status = (int)job.Status,
                     job.Context,
                     job.ResponseCode,
                     job.RequestId,
-                    job.ResponseContent
+                    job.ResponseContent,
+                    options.MessageLockedSeconds
                 });
             }
-
-            await db.ExecuteNonQueryAsync();
         }
 
         private async Task RaiseEvent(params CommunicationJob[] jobs)
@@ -225,95 +234,15 @@ namespace maskx.OrchestrationService.Worker
             }
             await Task.WhenAll(tasks);
         }
-
-        public void RefreshFetchCommand()
-        {
-            StringBuilder sb = new StringBuilder("declare @RequestId nvarchar(50);");
-            if (this.options.GetFetchRules != null)
-            {
-                var fetchRules = this.options.GetFetchRules(serviceProvider);
-                if (fetchRules.Count > 0)
-                {
-                    fetchCommandText = sb.Append(FetchRule.BuildFetchCommand(fetchRules, options)).ToString();
-                    return;
-                }
-
-            }
-            fetchCommandText = sb.Append(string.Format(fetchTemplate,
-                options.MaxConcurrencyRequest,
-                options.CommunicationTableName,
-                (int)CommunicationJob.JobStatus.Completed,
-                (int)CommunicationJob.JobStatus.Locked,
-                options.MessageLockedSeconds)).ToString();
-        }
-
         public async Task DeleteCommunicationAsync()
         {
-            using var db = new DbAccess(options.ConnectionString);
-            db.AddStatement($"DROP TABLE IF EXISTS {options.CommunicationTableName}");
-            await db.ExecuteNonQueryAsync();
+            await Utilities.Utility.ExecuteSqlScriptAsync("drop-schema.sql", this.options);
         }
 
         public async Task CreateIfNotExistsAsync(bool recreate)
         {
             if (recreate) await DeleteCommunicationAsync();
-            using var db = new DbAccess(options.ConnectionString);
-            db.AddStatement($@"IF(SCHEMA_ID(@schema) IS NULL)
-                    BEGIN
-                        EXEC sp_executesql N'CREATE SCHEMA [{options.SchemaName}]'
-                    END", new { schema = options.SchemaName });
-
-            db.AddStatement($@"
-IF(OBJECT_ID(@table) IS NULL)
-BEGIN
-    CREATE TABLE {options.CommunicationTableName} (
-        [InstanceId] [nvarchar](50) NOT NULL,
-	    [ExecutionId] [nvarchar](50) NOT NULL,
-	    [EventName] [nvarchar](50) NOT NULL,
-	    [Processor] [nvarchar](50) NULL,
-	    [RequestTo] [nvarchar](50) NULL,
-	    [RequestOperation] [nvarchar](50) NULL,
-	    [RequestContent] [nvarchar](max) NULL,
-	    [RequestProperty] [nvarchar](max) NULL,
-	    [Status] [int] NULL,
-	    [LockedUntilUtc] [datetime2](7) NULL,
-	    [ResponseContent] [nvarchar](max) NULL,
-	    [ResponseCode] [int] NULL,
-        [Context] [nvarchar](max) NULL,
-	    [RequestId] [nvarchar](50) NULL,
-	    [CompletedTime] [datetime2](7) NULL,
-	    [CreateTime] [datetime2](7) NULL,
-    CONSTRAINT [PK_{options.SchemaName}_{options.HubName}{CommunicationWorkerOptions.CommunicationTable}] PRIMARY KEY CLUSTERED
-    (
-	    [InstanceId] ASC,
-	    [ExecutionId] ASC,
-	    [EventName] ASC
-    )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
-    ) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
-END", new { table = options.CommunicationTableName });
-
-            await db.ExecuteNonQueryAsync();
+            await Utilities.Utility.ExecuteSqlScriptAsync("create-schema.sql", this.options);
         }
-
-        // {0} fetch count
-        // {1} Communication table name
-        // {2} Completed status code
-        // {3} Locked status code
-        // {4} MessageLockedSeconds
-        private const string fetchTemplate = @"
-update top({0}) T WITH(READPAST)
-set T.[Status]={3} ,T.[LockedUntilUtc]=DATEADD(second,{4},getutcdate())
-output INSERTED.*
-FROM {1} AS T
-where [status]<{2} and [LockedUntilUtc]<=getutcdate();
-";
-
-        // {0} Communication table name
-        // {1} Completed status code
-        // {2} MessageLockedSeconds
-        private const string updatejobTemplate = @"
-update {0} WITH(READPAST)
-set [Status]=@Status,[LockedUntilUtc]=DATEADD(second,{2},getutcdate()),[Context]=@Context, [ResponseCode]=@ResponseCode,[ResponseContent]=@ResponseContent,CompletedTime=(case when @Status={1} then getutcdate() else null end)
-where RequestId=@RequestId;";
     }
 }

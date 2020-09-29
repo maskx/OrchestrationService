@@ -2,14 +2,11 @@
 using DurableTask.Core.Serializing;
 using maskx.OrchestrationService;
 using maskx.OrchestrationService.Activity;
-using maskx.OrchestrationService.Orchestration;
 using maskx.OrchestrationService.Worker;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Xunit;
 
 namespace OrchestrationService.Tests.CommunicationWorkerTests
@@ -25,6 +22,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
         {
             CommunicationWorkerOptions options = new CommunicationWorkerOptions();
             options.HubName = "NoRule";
+            options.AutoCreate = true;
             List<(string Name, string Version, Type Type)> orchestrationTypes = new List<(string Name, string Version, Type Type)>();
             orchestrationTypes.Add((typeof(TestOrchestration).FullName, "", typeof(TestOrchestration)));
             workerHost = TestHelpers.CreateHostBuilder(options, orchestrationTypes).Build();

@@ -1,8 +1,13 @@
-﻿using System;
+﻿using maskx.OrchestrationService.Worker;
+using Microsoft.SqlServer.Management.Common;
+using Polly.Bulkhead;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Data.Common;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace maskx.OrchestrationService.SQL
 {
@@ -12,7 +17,6 @@ namespace maskx.OrchestrationService.SQL
     internal static class DbCommandHelper
     {
         internal readonly static IDictionary<string, object> EmptyParameters = new Dictionary<string, object>();
-
         internal static void AddStatement(this DbCommand source, string sql, IDictionary<string, object> parameters = null)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
@@ -65,5 +69,6 @@ namespace maskx.OrchestrationService.SQL
             //allow method-chaining
             return source;
         }
+        
     }
 }

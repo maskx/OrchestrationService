@@ -8,7 +8,7 @@ namespace maskx.OrchestrationService.Worker
         /// 并发请求的上限
         /// </summary>
         public int Concurrency { get; set; }
-
+        // todo: 考虑 不做范围限制的情况
         /// <summary>
         /// 限制并发请求的范围，如Subscription、ManagementUnit
         /// </summary>

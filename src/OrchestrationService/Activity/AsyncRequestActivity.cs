@@ -54,7 +54,7 @@ namespace maskx.OrchestrationService.Activity
                 }
             }
 
-            using (var db = new DbAccess(this.options.ConnectionString))
+            using (var db = new SQLServerAccess(this.options.ConnectionString))
             {
                 db.AddStatement(this.commandText, pars);
                 await db.ExecuteNonQueryAsync();

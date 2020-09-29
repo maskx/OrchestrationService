@@ -50,6 +50,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
             };
             options.RuleFields.Add("SubscriptionId");
             options.RuleFields.Add("ManagementUnit");
+            options.AutoCreate = true;
             List<(string Name, string Version, Type Type)> orchestrationTypes = new List<(string Name, string Version, Type Type)>();
             orchestrationTypes.Add((typeof(TestOrchestration).FullName, "", typeof(TestOrchestration)));
             workerHost = TestHelpers.CreateHostBuilder(options, orchestrationTypes).Build();

@@ -162,6 +162,7 @@ namespace OrchestrationService.Tests
                         options.MaxConcurrencyRequest = communicationWorkerOptions.MaxConcurrencyRequest;
                         options.RuleFields.AddRange(communicationWorkerOptions.RuleFields);
                         options.SchemaName = communicationWorkerOptions.SchemaName;
+                        options.AutoCreate = communicationWorkerOptions.AutoCreate;
                     }
                 });
                  services.AddSingleton<CommunicationWorker>();

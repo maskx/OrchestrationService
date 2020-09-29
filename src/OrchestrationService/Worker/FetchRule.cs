@@ -3,8 +3,10 @@ using System.Text;
 
 namespace maskx.OrchestrationService.Worker
 {
+    // todo: 考虑 参数化, 避免sql字符串拼接
     public class FetchRule
     {
+        // todo: 考虑 what 为空的情况，比如对每一个订阅全部的请求做总量100的控制
         /// <summary>
         /// 需要限制并发请求的内容，如ServicType,RequestMethod，Operation
         /// </summary>
@@ -16,7 +18,7 @@ namespace maskx.OrchestrationService.Worker
         public List<Limitation> Limitions { get; set; } = new List<Limitation>();
 
         private string where;
-
+        // todo: 考虑 where 条件是 Null的情况
         public string Where
         {
             get
@@ -76,7 +78,7 @@ namespace maskx.OrchestrationService.Worker
                 options.MessageLockedSeconds));
             return sb.ToString();
         }
-
+        // todo: support empty where( the group by will be null)
         // {0} where
         // {1} group
         // {2} limit index
