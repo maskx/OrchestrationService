@@ -2,9 +2,7 @@
 using maskx.OrchestrationService.Worker;
 using Microsoft.SqlServer.Management.Common;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace maskx.OrchestrationService.Utilities

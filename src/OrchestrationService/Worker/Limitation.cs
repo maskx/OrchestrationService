@@ -1,44 +1,45 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 
 namespace maskx.OrchestrationService.Worker
 {
     public class Limitation
     {
+        public Guid Id { get; set; }
+        public Guid FetchRuleId { get; set; }
         /// <summary>
         /// 并发请求的上限
         /// </summary>
         public int Concurrency { get; set; }
-        // todo: 考虑 不做范围限制的情况
+
         /// <summary>
         /// 限制并发请求的范围，如Subscription、ManagementUnit
         /// </summary>
-        public List<string> Scope { get; set; }
+        public List<string> Scope { get; set; } = new List<string>();
+        public DateTime CreatedTimeUtc { get; set; }
+        public DateTime UpdatedTimeUtc { get; set; }
 
-        private string group;
-
-        public string Group
+        public static string SerializeScope(List<string> scope)
         {
-            get
+            if (scope == null || scope.Count == 0)
+                return null;
+            JsonSerializerOptions options = new JsonSerializerOptions()
             {
-                if (string.IsNullOrEmpty(group))
-                {
-                    if (Scope.Count > 0)
-                        group = string.Join(",", Scope);
-                }
-                return group;
-            }
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+            return JsonSerializer.Serialize(scope, options);
         }
-
-        public string On(int index)
+        public static List<string> DeserializeScope(string scope)
         {
-            if (Scope.Count == 0)
-                return string.Empty;
-            var s = new List<string>();
-            foreach (var item in Scope)
+            JsonSerializerOptions options = new JsonSerializerOptions()
             {
-                s.Add($"T{index}.{item}=T.{item}");
-            }
-            return string.Join(" and ", s);
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+            return JsonSerializer.Deserialize<List<string>>(scope, options);
         }
     }
 }

@@ -1,131 +1,61 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Unicode;
 
 namespace maskx.OrchestrationService.Worker
 {
-    // todo: 考虑 参数化, 避免sql字符串拼接
     public class FetchRule
     {
-        // todo: 考虑 what 为空的情况，比如对每一个订阅全部的请求做总量100的控制
+        public Guid Id { get; set; }
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public DateTime CreatedTimeUtc { get; set; }
+        public DateTime UpdatedTimeUtc { get; set; }
         /// <summary>
         /// 需要限制并发请求的内容，如ServicType,RequestMethod，Operation
         /// </summary>
-        public Dictionary<string, string> What { get; set; } = new Dictionary<string, string>();
+        public List<Where> What { get; set; } = new List<Where>();
 
         /// <summary>
         /// 限制并发请求的范围，如Subscription、ManagementUnit
         /// </summary>
         public List<Limitation> Limitions { get; set; } = new List<Limitation>();
-
-        private string where;
-        // todo: 考虑 where 条件是 Null的情况
-        public string Where
+        public static List<Where> DeserializeWhat(string str)
         {
-            get
+            JsonSerializerOptions options = new JsonSerializerOptions()
             {
-                if (string.IsNullOrEmpty(where))
-                {
-                    List<string> s = new List<string>();
-                    foreach (var item in What)
-                    {
-                        s.Add($"{item.Key}=N'{item.Value}'");
-                    }
-                    if (s.Count > 0)
-                        where = string.Join(" And ", s);
-                }
-                return where;
-            }
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+            return JsonSerializer.Deserialize<List<Where>>(str, options);
         }
-
-        public static string BuildFetchCommand(List<FetchRule> fetchRules, CommunicationWorkerOptions options)
+        public static string SerializeWhat(List<Where> what)
         {
-            StringBuilder sb = new StringBuilder("declare @Count int=0;");
-            List<string> others = new List<string>();
-            int index = 0;
-            foreach (var rule in fetchRules)
+            if (what == null || what.Count==0)
+                return null;
+            JsonSerializerOptions options = new JsonSerializerOptions()
             {
-                string limitationQuery = string.Empty;
-                List<string> limitaitonWhere = new List<string>();
-                foreach (var limitation in rule.Limitions)
-                {
-                    limitationQuery += string.Format(limitationTemplate,
-                            rule.Where,
-                            limitation.Group,
-                            index,
-                            limitation.On(index),
-                            options.CommunicationTableName,
-                            (int)CommunicationJob.JobStatus.Locked);
-                    limitaitonWhere.Add(
-                        string.Format("T{0}.Locked<{1}",
-                            index,
-                            limitation.Concurrency));
-                    index++;
-                }
-                sb.Append(string.Format(ruleTemplate,
-                    limitationQuery,
-                    string.Join(" and ", limitaitonWhere),
-                    options.CommunicationTableName,
-                    (int)CommunicationJob.JobStatus.Completed,
-                    (int)CommunicationJob.JobStatus.Locked,
-                    options.MessageLockedSeconds));
-                others.Add($"({rule.Where})");
-            }
-            sb.Append(string.Format(otherTemplate,
-                string.Join(" or ", others),
-                options.CommunicationTableName,
-                (int)CommunicationJob.JobStatus.Completed,
-                (int)CommunicationJob.JobStatus.Locked,
-                options.MessageLockedSeconds));
-            return sb.ToString();
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+            return JsonSerializer.Serialize(what, options);
         }
-        // todo: support empty where( the group by will be null)
-        // {0} where
-        // {1} group
-        // {2} limit index
-        // {3} on
-        // {4} Communication table name
-        // {5} Locked status code
-        private const string limitationTemplate = @"
-inner join (
-   select COUNT(case when [status]={5} and [LockedUntilUtc]>getutcdate() then 1 else null end) as Locked,{1} 
-   from {4} WITH(READPAST) where {0} group by {1}
-) as T{2}  on {3}
-";
-
-        // {0} limitation query
-        // {1} limitation where
-        // {2} Communication table name
-        // {3} Completed status code
-        // {4} Locked status code
-        // {5} MessageLockedSeconds
-        private const string ruleTemplate = @"
-set @RequestId=null;
-update top(1) T WITH(READPAST)
-set @RequestId=T.RequestId,T.[Status]={4},T.[LockedUntilUtc]=DATEADD(second,{5},getutcdate())
-output INSERTED.*
-FROM {2} AS T {0}
-where [status]<{3} and [LockedUntilUtc]<=getutcdate() and {1}
-if @RequestId is not null
-begin
-    set @Count=@Count+1
-end
-if @Count>=@MaxCount
-begin
-    return
-end
-";
-
-        // {0} limitation where
-        // {1} Communication table name
-        // {2} Completed status code
-        // {3} Locked status code
-        // {4} MessageLockedSeconds
-        private const string otherTemplate = @"
-update top(@MaxCount-@Count) T WITH(READPAST)
-set @RequestId=T.RequestId,T.[Status]={3},T.[LockedUntilUtc]=DATEADD(second,{4},getutcdate())
-output INSERTED.*
-FROM {1} AS T
-where [status]<{2} and [LockedUntilUtc]<=getutcdate() and not ({0})
-";
+    }
+    public class Where
+    {
+        public string Name { get; set; }
+        public string Operator { get; set; }
+        public string Value { get; set; }
+        public override string ToString()
+        {            
+            JsonSerializerOptions options = new JsonSerializerOptions() { 
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                PropertyNamingPolicy=JsonNamingPolicy.CamelCase
+            };
+            return JsonSerializer.Serialize<Where>(this,options);
+        }
     }
 }

@@ -26,10 +26,13 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
             {
                 ("TestOrchestration", "", typeof(TestOrchestration))
             };
-            workerHost = TestHelpers.CreateHostBuilder(options, orchestrationTypes, (cxt, services) =>
-            {
-                services.AddSingleton<IJobProvider>(new JobProvider());
-            }).Build();
+            workerHost = TestHelpers.CreateHostBuilder(
+                (cxt, services) =>
+                {
+                    services.AddSingleton<IJobProvider>(new JobProvider());
+                },
+                communicationWorkerOptions: options,
+                orchestrationWorkerOptions: new maskx.OrchestrationService.Extensions.OrchestrationWorkerOptions() { GetBuildInOrchestrators = (sp) => orchestrationTypes }).Build();
             workerHost.RunAsync();
             orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
         }
@@ -54,9 +57,10 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
                 },
                 Input = ""
             }).Wait();
+            var client = new TaskHubClient(workerHost.Services.GetService<IOrchestrationServiceClient>());
             while (true)
             {
-                var result = TestHelpers.TaskHubClient.WaitForOrchestrationAsync(instance, TimeSpan.FromSeconds(30)).Result;
+                var result = client.WaitForOrchestrationAsync(instance, TimeSpan.FromSeconds(30)).Result;
                 if (result != null)
                 {
                     Assert.Equal(OrchestrationStatus.Completed, result.OrchestrationStatus);
@@ -79,9 +83,10 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
                 },
                 Input = ""
             });
+            var client = new TaskHubClient(workerHost.Services.GetService<IOrchestrationServiceClient>());
             while (true)
             {
-                var result = TestHelpers.TaskHubClient.WaitForOrchestrationAsync(instance, TimeSpan.FromSeconds(30)).Result;
+                var result = client.WaitForOrchestrationAsync(instance, TimeSpan.FromSeconds(30)).Result;
                 if (result != null)
                 {
                     Assert.Equal(OrchestrationStatus.Completed, result.OrchestrationStatus);

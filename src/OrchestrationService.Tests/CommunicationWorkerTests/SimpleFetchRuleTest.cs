@@ -12,59 +12,67 @@ using Xunit;
 namespace OrchestrationService.Tests.CommunicationWorkerTests
 {
     [Trait("C", "CommunicationWorker")]
-    public class SimpleFetchRuleTest : IDisposable
+    public class SimpleFetchRuleTest:IDisposable
     {
         private readonly DataConverter dataConverter = new JsonDataConverter();
         private readonly IHost workerHost = null;
         private readonly OrchestrationWorker orchestrationWorker;
-
+        CommunicationWorker communicationWorker = null;
+        IOrchestrationService SQLServerOrchestrationService = null;
         public SimpleFetchRuleTest()
         {
             CommunicationWorkerOptions options = new CommunicationWorkerOptions
             {
-                HubName = "NoRule",
-                GetFetchRules = (sp) =>
-                {
-                    var r1 = new FetchRule()
-                    {
-                        What = new Dictionary<string, string>() { { "Processor", "MockCommunicationProcessor" } },
-                    };
-                    r1.Limitions.Add(new Limitation()
-                    {
-                        Concurrency = 1,
-                        Scope = new List<string>()
-                        {
-                        "RequestOperation"
-                        }
-                    });
-                    r1.Limitions.Add(new Limitation
-                    {
-                        Concurrency = 5,
-                        Scope = new List<string>()
-                        {
-                        "RequestTo"
-                        }
-                    });
-                    List<FetchRule> fetchRules = new List<FetchRule>
-                    {
-                        r1
-                    };
-                    return fetchRules;
-                }
+                
+                //GetFetchRules = (sp) =>
+                //{
+                //    var r1 = new FetchRule()
+                //    {
+                //        What = new Dictionary<string, string>() { { "Processor", "MockCommunicationProcessor" } },
+                //    };
+                //    r1.Limitions.Add(new Limitation()
+                //    {
+                //        Concurrency = 1,
+                //        Scope = new List<string>()
+                //        {
+                //        "RequestOperation"
+                //        }
+                //    });
+                //    r1.Limitions.Add(new Limitation
+                //    {
+                //        Concurrency = 5,
+                //        Scope = new List<string>()
+                //        {
+                //        "RequestTo"
+                //        }
+                //    });
+                //    List<FetchRule> fetchRules = new List<FetchRule>
+                //    {
+                //        r1
+                //    };
+                //    return fetchRules;
+                //}
             };
             List<(string Name, string Version, Type Type)> orchestrationTypes = new List<(string Name, string Version, Type Type)>
             {
                 (typeof(TestOrchestration).FullName, "", typeof(TestOrchestration))
             };
-            workerHost = TestHelpers.CreateHostBuilder(options, orchestrationTypes).Build();
+            workerHost = TestHelpers.CreateHostBuilder(
+                hubName : "NoRule",
+                orchestrationWorkerOptions: new maskx.OrchestrationService.Extensions.OrchestrationWorkerOptions() { GetBuildInOrchestrators = (sp) => orchestrationTypes }
+               ).Build();
             workerHost.RunAsync();
             orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
+            communicationWorker = workerHost.Services.GetService<CommunicationWorker>();
+            SQLServerOrchestrationService = workerHost.Services.GetService<IOrchestrationService>();
         }
 
         public void Dispose()
         {
-            if (workerHost != null)
-                workerHost.StopAsync();
+            if (communicationWorker != null)
+                communicationWorker.DeleteCommunicationAsync().Wait();
+            if (SQLServerOrchestrationService != null)
+                SQLServerOrchestrationService.DeleteAsync(true).Wait();
         }
 
         [Fact(DisplayName = "SimpleFetchRuleTest")]
@@ -86,10 +94,10 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                     RequestTo = "SPF"
                 })
             }).Wait();
-
+            var client = new TaskHubClient(workerHost.Services.GetService<IOrchestrationServiceClient>());
             while (true)
             {
-                var result = TestHelpers.TaskHubClient.WaitForOrchestrationAsync(instance, TimeSpan.FromSeconds(30)).Result;
+                var result = client.WaitForOrchestrationAsync(instance, TimeSpan.FromSeconds(30)).Result;
 
                 if (result != null)
                 {

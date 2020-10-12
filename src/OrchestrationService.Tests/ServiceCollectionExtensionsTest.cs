@@ -50,6 +50,12 @@ namespace OrchestrationService.Tests
                     break;
                 }
             }
+           var communicationWorker = webHost.Services.GetService<CommunicationWorker>();
+           var SQLServerOrchestrationService = webHost.Services.GetService<IOrchestrationService>();
+            if (communicationWorker != null)
+                communicationWorker.DeleteCommunicationAsync().Wait();
+            if (SQLServerOrchestrationService != null)
+                SQLServerOrchestrationService.DeleteAsync(true).Wait();
         }
 
         [Fact(DisplayName = "UsingSqlServer")]
@@ -70,7 +76,7 @@ namespace OrchestrationService.Tests
                     GetBuildInTaskActivities = (sp) => { return activityTypes; }
                 }
             };
-            RunHost<SqlServerConfiguration>((sp) => sp.UsingOrchestration(sqlConfig));
+            RunHost<SqlServerConfiguration>((sp) => sp.UsingOrchestration((sp)=>sqlConfig));
         }
         [Fact(DisplayName = "UsingSqlServerFunc")]
         public void UsingSqlServerFunc()

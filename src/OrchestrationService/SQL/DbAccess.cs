@@ -79,7 +79,7 @@ namespace maskx.OrchestrationService.SQL
         {
             if (string.IsNullOrEmpty(Command.CommandText))
                 return;
-            using (DbDataReader reader = await ExcuteWithRetry(() => Command.ExecuteReaderAsync()))
+            using (DbDataReader reader = await ExcuteWithRetry(() => Command.ExecuteReaderAsync(),false))
             {
                 dataReader?.Invoke(reader);
             }
@@ -89,7 +89,7 @@ namespace maskx.OrchestrationService.SQL
         {
             if (string.IsNullOrEmpty(Command.CommandText))
                 return;
-            using (DbDataReader reader = await ExcuteWithRetry(() => Command.ExecuteReaderAsync()))
+            using (DbDataReader reader = await ExcuteWithRetry(() => Command.ExecuteReaderAsync(),false))
             {
                 int resultSet = 0;
                 do

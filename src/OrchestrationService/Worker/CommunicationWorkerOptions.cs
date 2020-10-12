@@ -2,9 +2,12 @@
 {
     public class CommunicationWorkerOptions : Extensions.CommunicationWorkerOptions
     {
-        internal const string CommunicationTable = "_Communication";
-        internal const string FetchCommunicationJobSP = "_FetchCommunicationJob";
-        internal const string UpdateCommunication = "_UpdateCommunication";
+        private const string CommunicationTable = "_Communication";
+        private const string FetchCommunicationJobSP = "_FetchCommunicationJob";
+        private const string UpdateCommunication = "_UpdateCommunication";
+        private const string BuildFetchCommunicationJobSP = "_BuildFetchCommunicationJobSP";
+        private const string FetchRuleTable = "_FetchRule";
+        private const string FetchRuleLimitationTable = "_FetchRuleLimitation";
 
         /// <summary>
         /// Auto-creates the necessary resources for the CommunicationWorker
@@ -27,7 +30,9 @@
 
         public string CommunicationTableName => $"[{SchemaName}].[{HubName}{CommunicationTable}]";
         public string FetchCommunicationJobSPName => $"[{SchemaName}].[{HubName}{FetchCommunicationJobSP}]";
-        public string UpdateCommunicationSPName=> $"[{SchemaName}].[{HubName}{UpdateCommunication}]";
-
+        public string UpdateCommunicationSPName => $"[{SchemaName}].[{HubName}{UpdateCommunication}]";
+        public string BuildFetchCommunicationJobSPName => $"[{SchemaName}].[{HubName}{BuildFetchCommunicationJobSP}]";
+        public string FetchRuleTableName => $"[{SchemaName}].[{HubName}{FetchRuleTable}]";
+        public string FetchRuleLimitationTableName => $"[{SchemaName}].[{HubName}{FetchRuleLimitationTable}]";
     }
 }

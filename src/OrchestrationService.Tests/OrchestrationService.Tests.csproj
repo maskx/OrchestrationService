@@ -8,6 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Activity\**" />
+    <EmbeddedResource Remove="Activity\**" />
+    <None Remove="Activity\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="appsettings.json" />
   </ItemGroup>
 
@@ -37,9 +43,5 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OrchestrationService\OrchestrationService.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Activity\" />
   </ItemGroup>
 </Project>

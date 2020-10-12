@@ -14,27 +14,26 @@ using Xunit;
 namespace OrchestrationService.Tests
 {
     [Trait("C", "HttpRequestActivity")]
-    public class HttpRequestActivityTest : IDisposable
+    public class HttpRequestActivityTest :IDisposable
     {
         private DataConverter dataConverter = new JsonDataConverter();
         private IHost workerHost = null;
         private OrchestrationWorker orchestrationWorker;
-
+        CommunicationWorker communicationWorker = null;
+        IOrchestrationService SQLServerOrchestrationService = null;
         public HttpRequestActivityTest()
         {
-            CommunicationWorkerOptions options = new CommunicationWorkerOptions();
-            options.HubName = "NoRule";
             List<(string Name, string Version, Type Type)> orchestrationTypes = new List<(string Name, string Version, Type Type)>();
             orchestrationTypes.Add(("HttpOrchestration", "", typeof(HttpOrchestration)));
-            workerHost = TestHelpers.CreateHostBuilder(options, orchestrationTypes).Build();
+            workerHost = TestHelpers.CreateHostBuilder(
+                hubName: "HttpRequestActivityTest",
+                orchestrationWorkerOptions: new maskx.OrchestrationService.Extensions.OrchestrationWorkerOptions() { 
+                    GetBuildInOrchestrators = (sp) => orchestrationTypes }
+               ).Build();
             workerHost.RunAsync();
             orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
-        }
-
-        public void Dispose()
-        {
-            if (workerHost != null)
-                workerHost.StopAsync();
+            communicationWorker = workerHost.Services.GetService<CommunicationWorker>();
+            SQLServerOrchestrationService = workerHost.Services.GetService<IOrchestrationService>();
         }
 
         [Fact(DisplayName = "Get")]
@@ -55,9 +54,10 @@ namespace OrchestrationService.Tests
                 },
                 Input = dataConverter.Serialize(request)
             }).Result;
+            var client = new TaskHubClient(workerHost.Services.GetService<IOrchestrationServiceClient>());
             while (true)
             {
-                var result = TestHelpers.TaskHubClient.WaitForOrchestrationAsync(instance, TimeSpan.FromSeconds(30)).Result;
+                var result = client.WaitForOrchestrationAsync(instance, TimeSpan.FromSeconds(30)).Result;
                 if (result != null)
                 {
                     Assert.Equal(OrchestrationStatus.Completed, result.OrchestrationStatus);
@@ -106,9 +106,10 @@ namespace OrchestrationService.Tests
                 },
                 Input = dataConverter.Serialize(request)
             }).Result;
+            var client = new TaskHubClient(workerHost.Services.GetService<IOrchestrationServiceClient>());
             while (true)
             {
-                var result = TestHelpers.TaskHubClient.WaitForOrchestrationAsync(instance, TimeSpan.FromSeconds(30)).Result;
+                var result = client.WaitForOrchestrationAsync(instance, TimeSpan.FromSeconds(30)).Result;
                 if (result != null)
                 {
                     Assert.Equal(OrchestrationStatus.Completed, result.OrchestrationStatus);
@@ -138,9 +139,10 @@ namespace OrchestrationService.Tests
                 },
                 Input = dataConverter.Serialize(request)
             }).Result;
+            var client = new TaskHubClient(workerHost.Services.GetService<IOrchestrationServiceClient>());
             while (true)
             {
-                var result = TestHelpers.TaskHubClient.WaitForOrchestrationAsync(instance, TimeSpan.FromSeconds(30)).Result;
+                var result =client.WaitForOrchestrationAsync(instance, TimeSpan.FromSeconds(30)).Result;
                 if (result != null)
                 {
                     Assert.Equal(OrchestrationStatus.Completed, result.OrchestrationStatus);
@@ -175,9 +177,10 @@ namespace OrchestrationService.Tests
                 },
                 Input = dataConverter.Serialize(request)
             }).Result;
+            var client = new TaskHubClient(workerHost.Services.GetService<IOrchestrationServiceClient>());
             while (true)
             {
-                var result = TestHelpers.TaskHubClient.WaitForOrchestrationAsync(instance, TimeSpan.FromSeconds(30)).Result;
+                var result = client.WaitForOrchestrationAsync(instance, TimeSpan.FromSeconds(30)).Result;
                 if (result != null)
                 {
                     Assert.Equal(OrchestrationStatus.Completed, result.OrchestrationStatus);
@@ -187,6 +190,14 @@ namespace OrchestrationService.Tests
                     break;
                 }
             }
+        }
+
+        public void Dispose()
+        {
+            if (communicationWorker != null)
+                communicationWorker.DeleteCommunicationAsync().Wait();
+            if (SQLServerOrchestrationService != null)
+                SQLServerOrchestrationService.DeleteAsync(true).Wait();
         }
 
         public class HttpOrchestration : TaskOrchestration<TaskResult, string>

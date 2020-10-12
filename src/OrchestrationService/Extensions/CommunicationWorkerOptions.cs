@@ -1,6 +1,4 @@
-﻿using maskx.OrchestrationService.Worker;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace maskx.OrchestrationService.Extensions
 {
@@ -21,10 +19,6 @@ namespace maskx.OrchestrationService.Extensions
         /// </summary>
         public int MaxConcurrencyRequest { get; set; } = 100;
 
-        /// <summary>
-        /// 获取Job的规则
-        /// </summary>
-        public Func<IServiceProvider, List<FetchRule>> GetFetchRules { get; set; }
 
         /// <summary>
         /// 扩展的规则筛选字段

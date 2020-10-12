@@ -1,29 +1,25 @@
-﻿using DurableTask.Core.Serializing;
+﻿using DurableTask.Core;
+using DurableTask.Core.Serializing;
 using maskx.OrchestrationService.Worker;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
-using System.Text;
-using Microsoft.Extensions.DependencyInjection;
-using DurableTask.Core;
 using System.Threading.Tasks;
 using Xunit;
-using maskx.OrchestrationService;
 
 namespace OrchestrationService.Tests
 {
     [Trait("c", "NameVersionDICreatorTest")]
-    public class NameVersionDICreatorTest : IDisposable
+    public class NameVersionDICreatorTest :IDisposable
     {
         private DataConverter dataConverter = new JsonDataConverter();
         private IHost workerHost = null;
-        private OrchestrationWorker orchestrationWorker;
         private OrchestrationWorkerClient orchestrationWorkerClient;
-
+        CommunicationWorker communicationWorker = null;
+        IOrchestrationService SQLServerOrchestrationService = null;
         public NameVersionDICreatorTest()
         {
-            CommunicationWorkerOptions options = new CommunicationWorkerOptions();
-            options.HubName = "NoRule";
             List<(string Name, string Version, Type Type)> orchestrationTypes = new List<(string Name, string Version, Type Type)>();
             orchestrationTypes.Add(("TestOrchestration", "1", typeof(TestOrchestrationV1)));
             orchestrationTypes.Add(("TestOrchestration", "2", typeof(TestOrchestrationV2)));
@@ -31,16 +27,18 @@ namespace OrchestrationService.Tests
             List<(string Name, string Version, Type Type)> activityTypes = new List<(string Name, string Version, Type Type)>();
             activityTypes.Add(("TestActivity", "1", typeof(TestActivityV1)));
             activityTypes.Add(("TestActivity", "2", typeof(TestActivityV2)));
-            workerHost = TestHelpers.CreateHostBuilder(options, orchestrationTypes, null, activityTypes).Build();
+            workerHost = TestHelpers.CreateHostBuilder(
+                hubName : "NameVersionDICreatorTest",
+                orchestrationWorkerOptions: new maskx.OrchestrationService.Extensions.OrchestrationWorkerOptions()
+                {
+                    GetBuildInOrchestrators = (sp) => orchestrationTypes,
+                    GetBuildInTaskActivities = (sp) => activityTypes
+                }
+               ).Build();
             workerHost.RunAsync();
             orchestrationWorkerClient = workerHost.Services.GetService<OrchestrationWorkerClient>();
-            orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
-        }
-
-        public void Dispose()
-        {
-            if (workerHost != null)
-                workerHost.StopAsync();
+            communicationWorker = workerHost.Services.GetService<CommunicationWorker>();
+            SQLServerOrchestrationService = workerHost.Services.GetService<IOrchestrationService>();
         }
 
         [Fact(DisplayName = "OrchestarionVersion")]
@@ -64,9 +62,10 @@ namespace OrchestrationService.Tests
                     Version = "2"
                 }
             }).Result;
+            var client = new TaskHubClient(workerHost.Services.GetService<IOrchestrationServiceClient>());
             while (true)
             {
-                var r1 = TestHelpers.TaskHubClient.WaitForOrchestrationAsync(t1, TimeSpan.FromSeconds(30)).Result;
+                var r1 = client.WaitForOrchestrationAsync(t1, TimeSpan.FromSeconds(30)).Result;
                 if (r1 != null)
                 {
                     Assert.Equal(OrchestrationStatus.Completed, r1.OrchestrationStatus);
@@ -76,7 +75,7 @@ namespace OrchestrationService.Tests
             }
             while (true)
             {
-                var r2 = TestHelpers.TaskHubClient.WaitForOrchestrationAsync(t2, TimeSpan.FromSeconds(30)).Result;
+                var r2 = client.WaitForOrchestrationAsync(t2, TimeSpan.FromSeconds(30)).Result;
                 if (r2 != null)
                 {
                     Assert.Equal(OrchestrationStatus.Completed, r2.OrchestrationStatus);
@@ -107,9 +106,10 @@ namespace OrchestrationService.Tests
                 },
                 Input = dataConverter.Serialize(2)
             }).Result;
+            var client = new TaskHubClient(workerHost.Services.GetService<IOrchestrationServiceClient>());
             while (true)
             {
-                var r1 = TestHelpers.TaskHubClient.WaitForOrchestrationAsync(t1, TimeSpan.FromSeconds(30)).Result;
+                var r1 = client.WaitForOrchestrationAsync(t1, TimeSpan.FromSeconds(30)).Result;
                 if (r1 != null)
                 {
                     Assert.Equal(OrchestrationStatus.Completed, r1.OrchestrationStatus);
@@ -119,7 +119,7 @@ namespace OrchestrationService.Tests
             }
             while (true)
             {
-                var r2 = TestHelpers.TaskHubClient.WaitForOrchestrationAsync(t2, TimeSpan.FromSeconds(30)).Result;
+                var r2 = client.WaitForOrchestrationAsync(t2, TimeSpan.FromSeconds(30)).Result;
                 if (r2 != null)
                 {
                     Assert.Equal(OrchestrationStatus.Completed, r2.OrchestrationStatus);
@@ -127,6 +127,14 @@ namespace OrchestrationService.Tests
                     break;
                 }
             }
+        }
+
+        public void Dispose()
+        {
+            if (communicationWorker != null)
+                communicationWorker.DeleteCommunicationAsync().Wait();
+            if (SQLServerOrchestrationService != null)
+                SQLServerOrchestrationService.DeleteAsync(true).Wait();
         }
 
         public class TestActivityV1 : TaskActivity<int, int>

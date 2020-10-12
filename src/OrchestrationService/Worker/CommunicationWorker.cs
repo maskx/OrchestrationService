@@ -1,4 +1,5 @@
 ﻿using DurableTask.Core;
+using ImpromptuInterface;
 using maskx.OrchestrationService.Activity;
 using maskx.OrchestrationService.SQL;
 using Microsoft.Extensions.DependencyInjection;
@@ -243,6 +244,158 @@ namespace maskx.OrchestrationService.Worker
         {
             if (recreate) await DeleteCommunicationAsync();
             await Utilities.Utility.ExecuteSqlScriptAsync("create-schema.sql", this.options);
+        }
+
+        public async Task<List<FetchRule>> GetFetchRuleAsync()
+        {
+            using var db = new SQLServerAccess(options.ConnectionString);
+            db.AddStatement($"select Id,Name,Description,What,CreatedTimeUtc,UpdatedTimeUtc from {options.FetchRuleTableName}");
+            List<FetchRule> rules = new List<FetchRule>();
+            await db.ExecuteReaderAsync((reader, index) =>
+            {
+                rules.Add(new FetchRule()
+                {
+                    Id = reader.GetGuid(0),
+                    Name = reader["Name"].ToString(),
+                    Description = reader["Description"]?.ToString(),
+                    What = reader.IsDBNull(3) ? null : FetchRule.DeserializeWhat(reader["What"].ToString()),
+                    CreatedTimeUtc = reader.GetDateTime(4),
+                    UpdatedTimeUtc = reader.IsDBNull(5) ? default(DateTime) : reader.GetDateTime(5)
+                });
+            });
+            return rules;
+        }
+        public async Task<FetchRule> GetFetchRuleAsync(Guid id)
+        {
+            using var db = new SQLServerAccess(options.ConnectionString);
+            db.AddStatement($"select Id,Name,Description,What,CreatedTimeUtc,UpdatedTimeUtc from {options.FetchRuleTableName} where Id=@Id", new { Id = id });
+            db.AddStatement($"select Id,Concurrency,Scope from {options.FetchRuleLimitationTableName} where FetchRuleId=@FetchRuleId", new { FetchRuleId = id });
+            FetchRule rule = null;
+            await db.ExecuteReaderAsync((reader, index) =>
+            {
+                if (index == 0)
+                {
+                    rule = new FetchRule()
+                    {
+                        Id = id,
+                        Name = reader[1].ToString(),
+                        Description =reader.IsDBNull(2)?null: reader[2].ToString(),
+                        What = reader.IsDBNull(3) ? null : FetchRule.DeserializeWhat(reader[3].ToString()),
+                        CreatedTimeUtc = reader.GetDateTime(4),
+                        UpdatedTimeUtc = reader.IsDBNull(5) ? default(DateTime) : reader.GetDateTime(5)
+                    };
+                }
+                else
+                {
+                    rule.Limitions.Add(new Limitation()
+                    {
+                        Id = reader.GetGuid(0),
+                        FetchRuleId = id,
+                        Concurrency = reader.GetInt32(1),
+                        Scope = reader.IsDBNull(2) ? new List<string>() : Limitation.DeserializeScope(reader.GetString(2))
+                    });
+                }
+            });
+            return rule;
+        }
+        public async Task DeleteFetchRuleAsync(Guid id)
+        {
+            using var db = new SQLServerAccess(options.ConnectionString);
+            db.AddStatement($"delete {options.FetchRuleTableName} where Id=@Id", new { Id = id });
+            await db.ExecuteNonQueryAsync();
+        }
+        public async Task<FetchRule> CreateFetchRuleAsync(FetchRule fetchRule)
+        {
+            using var db = new SQLServerAccess(options.ConnectionString);
+            db.AddStatement($"INSERT INTO {options.FetchRuleTableName} ([Name],[Description],[What]) OUTPUT inserted.Id,inserted.CreatedTimeUtc,inserted.UpdatedTimeUtc  VALUES (@Name,@Description,@What)",
+                new
+                {
+                    Name = fetchRule.Name,
+                    Description = fetchRule.Description,
+                    What = FetchRule.SerializeWhat(fetchRule.What)
+                });
+            if (fetchRule.Limitions != null)
+            {
+                foreach (var limitation in fetchRule.Limitions)
+                {
+                    db.AddStatement($"INSERT INTO {options.FetchRuleLimitationTableName} (FetchRuleId,Concurrency,Scope) OUTPUT inserted.Id,inserted.CreatedTimeUtc,inserted.UpdatedTimeUtc VALUES (@FetchRuleId,@Concurrency,@Scope)",
+                   new
+                   {
+                       FetchRuleId = limitation.FetchRuleId,
+                       Concurrency = limitation.Concurrency,
+                       Scope = Limitation.SerializeScope(limitation.Scope)
+                   });
+                }
+            }            
+            await db.ExecuteReaderAsync((reader, index) =>
+            {
+                fetchRule.Id = reader.GetGuid(0);
+                fetchRule.CreatedTimeUtc = reader.GetDateTime(1);
+                fetchRule.UpdatedTimeUtc = reader.GetDateTime(2);
+            });
+
+            return fetchRule;
+        }
+        public async Task<FetchRule> UpdateFetchRuleAsync(FetchRule fetchRule)
+        {
+            using var db = new SQLServerAccess(options.ConnectionString);
+            db.AddStatement($"update {options.FetchRuleTableName} set Name=@Name,Description=@Description,What=@What,UpdatedTimeUtc=getutcdate() where Id=@Id",
+                new
+                {
+                    Name = fetchRule.Name,
+                    Description = fetchRule.Description,
+                    What = FetchRule.SerializeWhat(fetchRule.What),
+                    Id=fetchRule.Id
+                });
+            await db.ExecuteNonQueryAsync();
+            return fetchRule;
+        }
+        public async Task<Limitation> AddLimitationAsync(Limitation limitation)
+        {
+            using var db = new SQLServerAccess(options.ConnectionString);
+            db.AddStatement($"INSERT INTO {options.FetchRuleLimitationTableName} (FetchRuleId,Concurrency,Scope) OUTPUT inserted.Id,inserted.CreatedTimeUtc,inserted.UpdatedTimeUtc VALUES (@FetchRuleId,@Concurrency,@Scope)",
+                new
+                {
+                    FetchRuleId = limitation.FetchRuleId,
+                    Concurrency = limitation.Concurrency,
+                    Scope = Limitation.SerializeScope(limitation.Scope)
+                });
+            await db.ExecuteReaderAsync((reader, index) =>
+            {
+                limitation.Id = reader.GetGuid(0);
+                limitation.CreatedTimeUtc = reader.GetDateTime(1);
+                limitation.UpdatedTimeUtc = reader.GetDateTime(2);
+            });
+
+            return limitation;
+        }
+        public async Task DeleteLimitationAsync(Guid limitationId)
+        {
+            using var db = new SQLServerAccess(options.ConnectionString);
+            db.AddStatement($"delete {options.FetchRuleLimitationTableName} where Id=@Id", new { Id = limitationId });
+            await db.ExecuteNonQueryAsync();
+        }
+        public async Task<Limitation> UpdateLimitationAsync(Limitation limitation)
+        {
+            using var db = new SQLServerAccess(options.ConnectionString);
+            db.AddStatement($"update {options.FetchRuleLimitationTableName} set Concurrency=@Concurrency,Scope=@Scope,UpdatedTimeUtc=getutcdate() where Id=@Id",
+                new
+                {
+                    Id = limitation.Id,
+                    Concurrency = limitation.Concurrency,
+                    Scope = Limitation.SerializeScope(limitation.Scope)
+                });
+            await db.ExecuteNonQueryAsync();
+            return limitation;
+        }
+        /// <summary>
+        /// Apply the fetch rule settings 
+        /// </summary>
+        /// <returns></returns>
+        public async Task BuildFetchCommunicationJobSPAsync()
+        {
+            using var db = new SQLServerAccess(options.ConnectionString);
+            await db.ExecuteStoredProcedureASync(options.BuildFetchCommunicationJobSPName);
         }
     }
 }

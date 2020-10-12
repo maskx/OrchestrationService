@@ -164,76 +164,11 @@ var response = await context.CreateSubOrchestrationInstance<TaskResult>(
 
 Implement yourself ICommunicationProcessor to send the request to the target system
 
-### Add FetchRule
+### concurrency request limitation
 
 some system have concurrency request limitation, you can add FetchRule to control the concurrency request to the system
 
-```CSharp
-var options = new CommunicationWorkerOptions();
-options.GetFetchRules = () =>
-{
-    var r1 = new FetchRule()
-    {
-        What = new Dictionary<string, string>() { { "Processor", "MockCommunicationProcessor" } },
-    };
-    r1.Limitions.Add(new Limitation()
-    {
-        Concurrency = 1,
-        Scope = new List<string>()
-        {
-            "RequestOperation"
-        }
-    });
-    r1.Limitions.Add(new Limitation
-    {
-        Concurrency = 5,
-        Scope = new List<string>()
-        {
-            "RequestTo"
-        }
-    });
-    List<FetchRule> fetchRules = new List<FetchRule>();
-    fetchRules.Add(r1);
-    return fetchRules;
-};
-```
 
-### add yourself rule field
-
-1. Add your rule field to Communication table in database
-2. add your rule field in CommunicationWorkerOptions
-
-```CSharp
-var options = new CommunicationWorkerOptions();
-options.GetFetchRules = () =>
-{
-    var r1 = new FetchRule()
-    {
-        What = new Dictionary<string, string>() { { "Processor", "MockCommunicationProcessor" } },
-    };
-    r1.Limitions.Add(new Limitation()
-    {
-        Concurrency = 1,
-        Scope = new List<string>()
-        {
-            "SubscriptionId"
-        }
-    });
-    r1.Limitions.Add(new Limitation
-    {
-        Concurrency = 5,
-        Scope = new List<string>()
-        {
-            "ManagementUnit"
-        }
-    });
-    List<FetchRule> fetchRules = new List<FetchRule>();
-    fetchRules.Add(r1);
-    return fetchRules;
-};
-options.RuleFields.Add("SubscriptionId");
-options.RuleFields.Add("ManagementUnit");
-```
 
 ## TaskOrchestration
 

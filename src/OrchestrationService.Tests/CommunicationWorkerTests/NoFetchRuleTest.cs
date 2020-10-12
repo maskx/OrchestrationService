@@ -12,28 +12,33 @@ using Xunit;
 namespace OrchestrationService.Tests.CommunicationWorkerTests
 {
     [Trait("C", "CommunicationWorker")]
-    public class NoFetchRuleTest : IDisposable
+    public class NoFetchRuleTest :IDisposable
     {
         private DataConverter dataConverter = new JsonDataConverter();
         private IHost workerHost = null;
         private OrchestrationWorker orchestrationWorker;
-
+        CommunicationWorker communicationWorker = null;
+        IOrchestrationService SQLServerOrchestrationService = null;
         public NoFetchRuleTest()
         {
-            CommunicationWorkerOptions options = new CommunicationWorkerOptions();
-            options.HubName = "NoRule";
-            options.AutoCreate = true;
             List<(string Name, string Version, Type Type)> orchestrationTypes = new List<(string Name, string Version, Type Type)>();
             orchestrationTypes.Add((typeof(TestOrchestration).FullName, "", typeof(TestOrchestration)));
-            workerHost = TestHelpers.CreateHostBuilder(options, orchestrationTypes).Build();
+            workerHost = TestHelpers.CreateHostBuilder(
+                hubName : "NoFetchRuleTest",
+                orchestrationWorkerOptions: new maskx.OrchestrationService.Extensions.OrchestrationWorkerOptions() { GetBuildInOrchestrators = (sp) => orchestrationTypes }
+               ).Build();
             workerHost.RunAsync();
             orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
+            communicationWorker = workerHost.Services.GetService<CommunicationWorker>();
+            SQLServerOrchestrationService = workerHost.Services.GetService<IOrchestrationService>();
         }
 
         public void Dispose()
         {
-            if (workerHost != null)
-                workerHost.StopAsync();
+            if (communicationWorker != null)
+                communicationWorker.DeleteCommunicationAsync().Wait();
+            if (SQLServerOrchestrationService != null)
+                SQLServerOrchestrationService.DeleteAsync(true).Wait();
         }
 
         [Fact(DisplayName = "NoFetchRuleTest")]
@@ -58,9 +63,10 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                     var b = args;
                 }
             });
+            var client = new TaskHubClient(workerHost.Services.GetService<IOrchestrationServiceClient>());
             while (true)
             {
-                var result = TestHelpers.TaskHubClient.WaitForOrchestrationAsync(instance, TimeSpan.FromSeconds(30)).Result;
+                var result = client.WaitForOrchestrationAsync(instance, TimeSpan.FromSeconds(30)).Result;
                 if (result != null)
                 {
                     Assert.Equal(OrchestrationStatus.Completed, result.OrchestrationStatus);

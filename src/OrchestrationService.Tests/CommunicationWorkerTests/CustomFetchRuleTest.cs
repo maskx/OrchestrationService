@@ -12,56 +12,65 @@ using Xunit;
 namespace OrchestrationService.Tests.CommunicationWorkerTests
 {
     [Trait("C", "CommunicationWorker")]
-    public class CustomFetchRuleTest : IDisposable
+    public class CustomFetchRuleTest :IDisposable
     {
         private DataConverter dataConverter = new JsonDataConverter();
         private IHost workerHost = null;
         private OrchestrationWorker orchestrationWorker;
-
+        CommunicationWorker communicationWorker = null;
+        IOrchestrationService SQLServerOrchestrationService = null;
         public CustomFetchRuleTest()
         {
-            CommunicationWorkerOptions options = new CommunicationWorkerOptions();
-            options.HubName = "CustomRule";
-            options.GetFetchRules = (sp) =>
-            {
-                var r1 = new FetchRule()
-                {
-                    What = new Dictionary<string, string>() { { "Processor", "MockCommunicationProcessor" } },
-                };
-                r1.Limitions.Add(new Limitation()
-                {
-                    Concurrency = 1,
-                    Scope = new List<string>()
-                    {
-                        "SubscriptionId"
-                    }
-                });
-                r1.Limitions.Add(new Limitation
-                {
-                    Concurrency = 5,
-                    Scope = new List<string>()
-                    {
-                        "ManagementUnit"
-                    }
-                });
-                List<FetchRule> fetchRules = new List<FetchRule>();
-                fetchRules.Add(r1);
-                return fetchRules;
-            };
-            options.RuleFields.Add("SubscriptionId");
-            options.RuleFields.Add("ManagementUnit");
-            options.AutoCreate = true;
+            //options.GetFetchRules = (sp) =>
+            //{
+            //    var r1 = new FetchRule()
+            //    {
+            //        What = new Dictionary<string, string>() { { "Processor", "MockCommunicationProcessor" } },
+            //    };
+            //    r1.Limitions.Add(new Limitation()
+            //    {
+            //        Concurrency = 1,
+            //        Scope = new List<string>()
+            //        {
+            //            "SubscriptionId"
+            //        }
+            //    });
+            //    r1.Limitions.Add(new Limitation
+            //    {
+            //        Concurrency = 5,
+            //        Scope = new List<string>()
+            //        {
+            //            "ManagementUnit"
+            //        }
+            //    });
+            //    List<FetchRule> fetchRules = new List<FetchRule>();
+            //    fetchRules.Add(r1);
+            //    return fetchRules;
+            //};
+            //options.RuleFields.Add("SubscriptionId");
+            //options.RuleFields.Add("ManagementUnit");
+    
             List<(string Name, string Version, Type Type)> orchestrationTypes = new List<(string Name, string Version, Type Type)>();
             orchestrationTypes.Add((typeof(TestOrchestration).FullName, "", typeof(TestOrchestration)));
-            workerHost = TestHelpers.CreateHostBuilder(options, orchestrationTypes).Build();
+            workerHost = TestHelpers.CreateHostBuilder(
+                hubName : "CustomRule",
+                orchestrationWorkerOptions: new maskx.OrchestrationService.Extensions.OrchestrationWorkerOptions() {
+                    GetBuildInOrchestrators = (sp) => orchestrationTypes 
+                }
+               ).Build();
             workerHost.RunAsync();
             orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
+            communicationWorker = workerHost.Services.GetService<CommunicationWorker>();
+            SQLServerOrchestrationService = workerHost.Services.GetService<IOrchestrationService>();
         }
 
         public void Dispose()
         {
-            if (workerHost != null)
-                workerHost.StopAsync();
+            if (communicationWorker != null)
+                communicationWorker.DeleteCommunicationAsync().Wait();
+            if (SQLServerOrchestrationService != null)
+                SQLServerOrchestrationService.DeleteAsync(true).Wait();
+
         }
 
         [Fact(DisplayName = "CustomFetchRuleTest")]
@@ -87,10 +96,11 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                     }
                 })
             }).Wait();
-
+ 
+            var hubClient = new TaskHubClient(workerHost.Services.GetService<IOrchestrationServiceClient>());
             while (true)
             {
-                var result = TestHelpers.TaskHubClient.WaitForOrchestrationAsync(instance, TimeSpan.FromSeconds(30)).Result;
+                var result = hubClient.WaitForOrchestrationAsync(instance, TimeSpan.FromSeconds(30)).Result;
 
                 if (result != null)
                 {
