@@ -97,45 +97,17 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
             Assert.Equal(FetchRule.SerializeWhat(r.What),FetchRule.SerializeWhat(r3.What));
             Assert.Equal(r.Id, r3.Id);
         }
-        [Fact(DisplayName = "AddLimitationAsync")]
-        public async Task<Limitation> AddLimitationAsync()
+        [Fact(DisplayName = "UpdateFetchRuleScope")]
+        public async Task UpdateFetchRuleScope()
         {
-            var r = await CreateFetchRuleAsync();
-            var l = await communicationWorker.AddLimitationAsync(new Limitation()
-            {
-                FetchRuleId = r.Id,
-                Concurrency = 6
-            });
-            var r1 = await communicationWorker.GetFetchRuleAsync(r.Id);
-            Assert.Single(r1.Limitions);
-            var l1 = r1.Limitions[0];
-            Assert.Equal(l.Id, l1.Id);
-            Assert.Equal(l.FetchRuleId, l1.FetchRuleId);
-            Assert.Equal(6, l1.Concurrency);
-            Assert.Empty(l1.Scope);
-            return l1;
-        }
-        [Fact(DisplayName = "DeleteLimitationAsync")]
-        public async Task DeleteLimitationAsync()
-        {
-            var l1 = await AddLimitationAsync();
-            await communicationWorker.DeleteLimitationAsync(l1.Id);
-            var r = await communicationWorker.GetFetchRuleAsync(l1.FetchRuleId);
-            Assert.Empty(r.Limitions);
-        }
-        [Fact(DisplayName = "UpdateLimitationAsync")]
-        public async Task UpdateLimitationAsync()
-        {
-            var l = await AddLimitationAsync();
+            var l = await CreateFetchRuleAsync();
             l.Concurrency = 99;
             l.Scope.Add("EventName");
-            await communicationWorker.UpdateLimitationAsync(l);
-            var r =await communicationWorker.GetFetchRuleAsync(l.FetchRuleId);
-            Assert.Single(r.Limitions);
-            var l1 = r.Limitions[0];
-            Assert.Single(l1.Scope);
-            Assert.Equal("EventName",l1.Scope[0]);
-            Assert.Equal(99,l.Concurrency);
+            await communicationWorker.UpdateFetchRuleAsync(l);
+            var r =await communicationWorker.GetFetchRuleAsync(l.Id);
+            Assert.Single(r.Scope);
+            Assert.Equal("EventName",r.Scope[0]);
+            Assert.Equal(99,r.Concurrency);
         }
         [Fact(DisplayName = "BuildFetchCommunicationJobSPAsync")]
         public async Task BuildFetchCommunicationJobSPAsync()
@@ -148,12 +120,8 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
             await UpdateFetchRuleWhat();
             await communicationWorker.BuildFetchCommunicationJobSPAsync();
 
-            await AddLimitationAsync();
+            await UpdateFetchRuleScope();
             await communicationWorker.BuildFetchCommunicationJobSPAsync();
-
-            await UpdateLimitationAsync();
-            await communicationWorker.BuildFetchCommunicationJobSPAsync();
-
         }
 
         public void Dispose()

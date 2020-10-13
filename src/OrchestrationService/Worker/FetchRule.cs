@@ -20,9 +20,14 @@ namespace maskx.OrchestrationService.Worker
         public List<Where> What { get; set; } = new List<Where>();
 
         /// <summary>
+        /// 并发请求的上限
+        /// </summary>
+        public int Concurrency { get; set; }
+
+        /// <summary>
         /// 限制并发请求的范围，如Subscription、ManagementUnit
         /// </summary>
-        public List<Limitation> Limitions { get; set; } = new List<Limitation>();
+        public List<string> Scope { get; set; } = new List<string>();
         public static List<Where> DeserializeWhat(string str)
         {
             JsonSerializerOptions options = new JsonSerializerOptions()
@@ -42,6 +47,26 @@ namespace maskx.OrchestrationService.Worker
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             };
             return JsonSerializer.Serialize(what, options);
+        }
+        public static string SerializeScope(List<string> scope)
+        {
+            if (scope == null || scope.Count == 0)
+                return null;
+            JsonSerializerOptions options = new JsonSerializerOptions()
+            {
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+            return JsonSerializer.Serialize(scope, options);
+        }
+        public static List<string> DeserializeScope(string scope)
+        {
+            JsonSerializerOptions options = new JsonSerializerOptions()
+            {
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+            return JsonSerializer.Deserialize<List<string>>(scope, options);
         }
     }
     public class Where

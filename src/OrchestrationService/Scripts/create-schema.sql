@@ -41,7 +41,9 @@ BEGIN
 	CREATE TABLE [{0}].[{1}_FetchRule](
 		[Id] [uniqueidentifier] NOT NULL,
 		[Name] [nvarchar](50) NOT NULL,
+		[Concurrency] [int] NOT NULL,
 		[What] [nvarchar](1500) NULL,
+		[Scope] [nvarchar](1500) NULL,
 		[CreatedTimeUtc] [datetime2](7) NOT NULL,
 		[UpdatedTimeUtc] [datetime2](7) NOT NULL,
 		[Description] [nvarchar](50) NULL,
@@ -54,25 +56,6 @@ BEGIN
 	ALTER TABLE [{0}].[{1}_FetchRule] ADD  CONSTRAINT [DF_{1}_FetchRule_Id]  DEFAULT (newsequentialid()) FOR [Id]
 	ALTER TABLE [{0}].[{1}_FetchRule] ADD  CONSTRAINT [DF_{1}_FetchRule_CreatedTimeUtc]  DEFAULT (getutcdate()) FOR [CreatedTimeUtc]
 	ALTER TABLE [{0}].[{1}_FetchRule] ADD  CONSTRAINT [DF_{1}_FetchRule_UpdatedTimeUtc]  DEFAULT (getutcdate()) FOR [UpdatedTimeUtc]
-END
-GO
-IF  NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[{0}].[{1}_FetchRuleLimitation]') AND type in (N'U'))
-BEGIN
-	CREATE TABLE [{0}].[{1}_FetchRuleLimitation](
-		[Id] [uniqueidentifier] NOT NULL,
-		[FetchRuleId] [uniqueidentifier] NOT NULL,
-		[Concurrency] [int] NOT NULL,
-		[Scope] [nvarchar](1500) NULL,
-		[CreatedTimeUtc] [datetime2](7) NOT NULL,
-		[UpdatedTimeUtc] [datetime2](7) NOT NULL,
-	 CONSTRAINT [PK_{1}_FetchRuleWhat] PRIMARY KEY CLUSTERED 
-	(
-		[Id] ASC
-	)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-	) ON [PRIMARY]
-	ALTER TABLE [{0}].[{1}_FetchRuleLimitation] ADD  CONSTRAINT [DF_{1}_FetchRuleLimitation_Id]  DEFAULT (newsequentialid()) FOR [Id]
-	ALTER TABLE [{0}].[{1}_FetchRuleLimitation] ADD  CONSTRAINT [DF_{1}_FetchRuleLimitation_CreatedTimeUtc]  DEFAULT (getutcdate()) FOR [CreatedTimeUtc]
-	ALTER TABLE [{0}].[{1}_FetchRuleLimitation] ADD  CONSTRAINT [DF_{1}_FetchRuleLimitation_UpdatedTimeUtc]  DEFAULT (getutcdate()) FOR [UpdatedTimeUtc]
 END
 GO
 CREATE OR ALTER PROCEDURE [{0}].[{1}_UpdateCommunication]
@@ -111,22 +94,19 @@ CREATE OR ALTER PROCEDURE [{0}].[{1}_BuildFetchCommunicationJobSP]
 AS
 BEGIN
 	SET NOCOUNT ON;
-	declare @CommunicationTableFullName nvarchar(100)='[{0}].[{1}_Communication]'
-	declare @LockedStatusCode nvarchar(10)=N'4'
+	declare @LockedStatusCode nvarchar(10)=N'1'
 	declare @FetchRuleId uniqueidentifier
-	declare @What nvarchar(max)
-	declare @HasEmptyWhat bit=0
-	declare @Names nvarchar(1000)
-	declare @Where nvarchar(2000)
-	declare @LimitationWhere nvarchar(4000)
 	declare @Concurrency int
 	declare @Scope nvarchar(1000)
-	declare @groupby nvarchar(1000)
-	declare @on  nvarchar(1000)
-	declare @InnerSelect nvarchar(1000)
-	declare @TIndex int
-	declare @InnerTable nvarchar(10)
-	declare @Inner nvarchar(max)
+	declare @What nvarchar(max)
+	declare @TIndex int=1
+	declare @Names nvarchar(1000)
+	declare @Where nvarchar(2000)
+	declare @Groupby nvarchar(1000)
+	declare @On_Count nvarchar(1000)
+	declare @Join_Count nvarchar(50)
+	declare @Join_Index nvarchar(50)
+	declare @LimitationWhere nvarchar(4000)=N''
 	declare @SQLText NVARCHAR(MAX)
 	set @SQLText=N'CREATE OR ALTER PROCEDURE [{0}].[{1}_FetchCommunicationJob]'+'
 	@LockedBy nvarchar(100),
@@ -134,111 +114,104 @@ BEGIN
 	@MaxCount int
 AS
 BEGIN
-	declare @Count int=0;
+	declare @Count int=0
+	declare @Now datetime2=GETUTCDATE()
+	update top (@MaxCount) T WITH(READPAST)
+		set T.[Status]='+@LockedStatusCode+',T.[LockedUntilUtc]=DATEADD(second,@MessageLockedSeconds,@Now)
+	output INSERTED.*
+	FROM [{0}].[{1}_Communication] AS T
 	'
-	
-	declare rule_cursor cursor Forward_Only for select Id,What from [{0}].[{1}_FetchRule]
+
+	declare rule_cursor CURSOR FORWARD_ONLY FOR SELECT [Concurrency],[What],[Scope] FROM [{0}].[{1}_FetchRule]
 	open rule_cursor
-	fetch next from rule_cursor into @FetchRuleId,@What
+	FETCH NEXT FROM rule_cursor INTO @Concurrency,@What,@Scope
 	while @@FETCH_STATUS=0
-	begin
-		set @Inner=N''
-		if @What is  null set @HasEmptyWhat=1
+	BEGIN
+		set @Join_Count='[T'+CAST(@TIndex as nvarchar(10))+'_Count]'
+		set @Join_Index='[T'+CAST(@TIndex as nvarchar(10))+'_Index]'
+		if @What is not null or @Scope is not null set @LimitationWhere=@LimitationWhere +'
+		and (('+@Join_Count+'.Locked<'+CAST(@Concurrency as nvarchar(10))+' and '+@Join_Index+'.RowIndex=1) or '+@Join_Index+'.RowIndex is null)'
+		if @What is null
+		BEGIN
+			IF @Scope is not null
+			begin
+				SELECT 
+					@Groupby=STRING_AGG('['+value+']',','),
+					@On_Count=STRING_AGG(@Join_Count+'.['+value+']=T.['+value+']',' and ')
+				FROM OPENJSON(@Scope)
+				set @SQLText=@SQLText+'
+	left join(
+		select COUNT(0) as Locked,'+@GroupBy+'
+		from [{0}].[{1}_Communication] with(NOLOCK)
+		where [status]='+@LockedStatusCode+' and [LockedUntilUtc]>@Now
+		group by '+@Groupby+'
+	) as '+@Join_Count+' on '+@On_Count+'
+	left join(
+		select InstanceId,ExecutionId,EventName,ROW_NUMBER() over(partition by '+@Groupby+' order by createtime) as RowIndex
+		from [{0}].[{1}_Communication] with(NOLOCK)
+		where [status]='+@LockedStatusCode+' and [LockedUntilUtc]>@Now and'+@Where+'
+	) as '+@Join_Index+' on T.InstanceId='+@Join_Index+'.InstanceId and T.EventName='+@Join_Index+'.EventName and T.ExecutionId='+@Join_Index+'.ExecutionId
+	'
+			end
+		end
 		else
 		begin
 			SELECT 
 				@Names=STRING_AGG('['+[Name]+']',','),
-				@Where=STRING_AGG('T.['+[Name]+']'+[Operator]+[Value],' and ')
+				@Where=STRING_AGG('['+[Name]+']'+[Operator]+[Value],' and '),
+				@On_Count=STRING_AGG(@Join_Count+'.['+[Name]+']=T.['+[Name]+']',' and ')
 			FROM OPENJSON(@What)
 			WITH (   
 				[Name]   nvarchar(200) '$.name' ,  
 				[Operator]  nvarchar(200) '$.operator' ,  
 				[Value]     nvarchar(200) '$.value' 
-			) 
-			if @LimitationWhere is null set @LimitationWhere=  '('+@Where+')'
-			else set @LimitationWhere= @LimitationWhere+ N' or ('+@Where+')'
-		end
-		declare limitation_cursor cursor forward_only for (
-			select
-				ROW_NUMBER() OVER(ORDER BY Concurrency ASC) as rownumber,
-				Concurrency,
-				Scope 
-			from [{0}].[{1}_FetchRuleLimitation] 
-			where FetchRuleId=@FetchRuleId
-		)
-		open limitation_cursor
-		fetch next from limitation_cursor into @TIndex,@Concurrency,@Scope		
-		while @@FETCH_STATUS=0
-		begin
-			set @InnerTable='T'+CAST(@TIndex as nvarchar(10))
-			if @What is not null
-			BEGIN
-				SELECT 
-					@on=STRING_AGG(@InnerTable+'.['+[Name]+']=T.['+[Name]+']',' and ') 
-				FROM OPENJSON(@What)
-				WITH ([Name]   nvarchar(200) '$.name')
-			END
+			)
 			if @Scope is null
 			begin
-				if @What is not null  -- @Scope and @What cannot be null at same time
-				begin
-					set @Inner=@Inner+'
-		inner join (select COUNT(case when T.[status]='+@LockedStatusCode+' and T.[LockedUntilUtc]>getutcdate() then 1 else null end) as Locked,'+@Names+' from '+@CommunicationTableFullName+' as T WITH(NOLOCK) where '+ @Where +' group by '+@Names+') as '+@InnerTable+' on '+@on
-				end
+				set @SQLText=@SQLText+'
+	left join(
+		select COUNT(0) as Locked,'+@Names+'
+		from [{0}].[{1}_Communication] with(NOLOCK)
+		where [status]='+@LockedStatusCode+' and [LockedUntilUtc]>@Now and'+@Where+'
+		group by '+@Names+'
+	) as '+@Join_Count+' on '+@On_Count+'
+	left join(
+		select InstanceId,ExecutionId,EventName,ROW_NUMBER() over( order by createtime) as RowIndex
+		from [{0}].[{1}_Communication] with(NOLOCK)
+		where [status]='+@LockedStatusCode+' and [LockedUntilUtc]>@Now and'+@Where+'
+	) as '+@Join_Index+' on T.InstanceId='+@Join_Index+'.InstanceId and T.EventName='+@Join_Index+'.EventName and T.ExecutionId='+@Join_Index+'.ExecutionId
+	'
 			end
 			else
 			begin
-				if @What is null
-				begin
-					select @groupby=STRING_AGG('['+value+']',','),@on=STRING_AGG(@InnerTable+'.['+value+']=T.['+value+']',' and '),@InnerSelect=STRING_AGG('['+value+']',',') from OPENJSON(@Scope)
-					set @Inner=@Inner+'
-		inner join (select COUNT(case when T.[status]='+@LockedStatusCode+' and T.[LockedUntilUtc]>getutcdate() then 1 else null end) as Locked,'+@InnerSelect+' from '+@CommunicationTableFullName+' as T WITH(NOLOCK) group by '+@groupby+') as '+@InnerTable+' on '+@on
-				end
-				else
-				begin
-					select @groupby=STRING_AGG('['+value+']',','),@on=@on+' and '+STRING_AGG(@InnerTable+'.['+value+']=T.['+value+']',' and ') ,@InnerSelect=STRING_AGG('['+value+']',',') from OPENJSON(@Scope)
-					set @Inner=@Inner+'
-		inner join (select COUNT(case when T.[status]='+@LockedStatusCode+' and T.[LockedUntilUtc]>getutcdate() then 1 else null end) as Locked,'+@Names+','+@InnerSelect+' from '+@CommunicationTableFullName+' as T WITH(NOLOCK) where '+ @Where +'group by '+@Names+','+@groupby+') as '+@InnerTable+' on '+@on
-				end
+				SELECT 
+				@Groupby=STRING_AGG('['+value+']',','),
+				@On_Count=@On_Count+' and '+STRING_AGG(@Join_Count+'.['+value+']=T.['+value+']',' and ') 
+			FROM OPENJSON(@Scope)
+			set @SQLText=@SQLText+'
+	left join(
+		select COUNT(0) as Locked,'+@Names+','+@GroupBy+'
+		from [{0}].[{1}_Communication] with(NOLOCK)
+		where [status]='+@LockedStatusCode+' and T.[LockedUntilUtc]>@Now and'+@Where+'
+		group by '+@Names+','+@Groupby+'
+	) as '+@Join_Count+' on '+@On_Count+'
+	left join(
+		select InstanceId,ExecutionId,EventName,ROW_NUMBER() over(partition by '+@Groupby+' order by createtime) as RowIndex
+		from [{0}].[{1}_Communication] with(NOLOCK)
+		where [status]='+@LockedStatusCode+' and T.[LockedUntilUtc]>@Now and'+@Where+'
+	) as '+@Join_Index+' on T.InstanceId='+@Join_Index+'.InstanceId and T.EventName='+@Join_Index+'.EventName and T.ExecutionId='+@Join_Index+'.ExecutionId
+	'
 			end
-			fetch next from limitation_cursor into @TIndex,@Concurrency,@Scope
-		end
-		close limitation_cursor
-		deallocate limitation_cursor
-		
-		if @What is null
-		set @SQLText=@SQLText+'
-	update top(1) T WITH(READPAST) set T.[Status]='+@LockedStatusCode+',T.[LockedUntilUtc]=DATEADD(second,@MessageLockedSeconds,getutcdate())
-	output INSERTED.*
-	FROM '+@CommunicationTableFullName+' AS T '+@Inner+'
-	where T.[status]<='+@LockedStatusCode+' and T.[LockedUntilUtc]<=getutcdate() 
-	set @Count=@Count+@@ROWCOUNT
-	if @Count>=@MaxCount return
-	'
-		else
-		set @SQLText=@SQLText+'
-	update top(1) T WITH(READPAST) set T.[Status]='+@LockedStatusCode+',T.[LockedUntilUtc]=DATEADD(second,@MessageLockedSeconds,getutcdate())
-	output INSERTED.*
-	FROM '+@CommunicationTableFullName+' AS T '+@Inner+'
-	where T.[status]<='+@LockedStatusCode+' and T.[LockedUntilUtc]<=getutcdate() and '+@Where+'
-	set @Count=@Count+@@ROWCOUNT
-	if @Count>=@MaxCount return
-	'
-		fetch next from rule_cursor into @FetchRuleId,@What
+		END	
+		set @TIndex=@TIndex+1
+		FETCH NEXT FROM rule_cursor INTO @Concurrency,@What,@Scope
 	end
 	close rule_cursor
 	deallocate rule_cursor
 
-	if @HasEmptyWhat=0
-	begin
 		set @SQLText=@SQLText+'
-	update top(@MaxCount-@Count) T WITH(READPAST)
-		set T.[Status]='+@LockedStatusCode+',T.[LockedUntilUtc]=DATEADD(second,@MessageLockedSeconds,getutcdate())
-	output INSERTED.*
-	FROM '+@CommunicationTableFullName+' AS T
-	where T.[status]<='+@LockedStatusCode+' and T.[LockedUntilUtc]<=getutcdate() '
-		if @LimitationWhere is not null	set @SQLText=@SQLText+' and not ('+@LimitationWhere+')'
-	end
+	where T.[status]<='+@LockedStatusCode+' and T.[LockedUntilUtc]<@Now 
+	'+@LimitationWhere
 	set @SQLText=@SQLText+'
 END'
 	exec (@SQLText)
