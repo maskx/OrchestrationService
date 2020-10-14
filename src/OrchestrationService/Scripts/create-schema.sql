@@ -80,13 +80,13 @@ CREATE OR ALTER PROCEDURE [{0}].[{1}_FetchCommunicationJob]
 	@MaxCount int
 AS
 BEGIN
-	declare @Count int=0;
+	declare @Now datetime2=GETUTCDATE()
 	
-	update top(@MaxCount-@Count) T WITH(READPAST)
-		set T.[Status]=4,T.[LockedUntilUtc]=DATEADD(second,@MessageLockedSeconds,getutcdate())
+	update top(@MaxCount) T WITH(READPAST)
+		set T.[Status]=1,T.[LockedUntilUtc]=DATEADD(second,@MessageLockedSeconds,@Now)
 	output INSERTED.*
 	FROM [{0}].[{1}_Communication] AS T
-	where T.[status]<=4 and T.[LockedUntilUtc]<=getutcdate()
+	where T.[status]<=1 and T.[LockedUntilUtc]<=@Now
 END
 GO
 
@@ -114,7 +114,6 @@ BEGIN
 	@MaxCount int
 AS
 BEGIN
-	declare @Count int=0
 	declare @Now datetime2=GETUTCDATE()
 	update top (@MaxCount) T WITH(READPAST)
 		set T.[Status]='+@LockedStatusCode+',T.[LockedUntilUtc]=DATEADD(second,@MessageLockedSeconds,@Now)
