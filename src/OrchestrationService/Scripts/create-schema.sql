@@ -148,7 +148,7 @@ BEGIN
 	left join(
 		select InstanceId,ExecutionId,EventName,ROW_NUMBER() over(partition by '+@Groupby+' order by createtime) as RowIndex
 		from [{0}].[{1}_Communication] with(NOLOCK)
-		where [status]='+@LockedStatusCode+' and [LockedUntilUtc]>@Now and'+@Where+'
+		where [status]<='+@LockedStatusCode+' and [LockedUntilUtc]<@Now and'+@Where+'
 	) as '+@Join_Index+' on T.InstanceId='+@Join_Index+'.InstanceId and T.EventName='+@Join_Index+'.EventName and T.ExecutionId='+@Join_Index+'.ExecutionId
 	'
 			end
@@ -177,7 +177,7 @@ BEGIN
 	left join(
 		select InstanceId,ExecutionId,EventName,ROW_NUMBER() over( order by createtime) as RowIndex
 		from [{0}].[{1}_Communication] with(NOLOCK)
-		where [status]='+@LockedStatusCode+' and [LockedUntilUtc]>@Now and'+@Where+'
+		where [status]<='+@LockedStatusCode+' and [LockedUntilUtc]<@Now and'+@Where+'
 	) as '+@Join_Index+' on T.InstanceId='+@Join_Index+'.InstanceId and T.EventName='+@Join_Index+'.EventName and T.ExecutionId='+@Join_Index+'.ExecutionId
 	'
 			end
@@ -197,7 +197,7 @@ BEGIN
 	left join(
 		select InstanceId,ExecutionId,EventName,ROW_NUMBER() over(partition by '+@Groupby+' order by createtime) as RowIndex
 		from [{0}].[{1}_Communication] with(NOLOCK)
-		where [status]='+@LockedStatusCode+' and T.[LockedUntilUtc]>@Now and'+@Where+'
+		where [status]<='+@LockedStatusCode+' and T.[LockedUntilUtc]<@Now and'+@Where+'
 	) as '+@Join_Index+' on T.InstanceId='+@Join_Index+'.InstanceId and T.EventName='+@Join_Index+'.EventName and T.ExecutionId='+@Join_Index+'.ExecutionId
 	'
 			end
