@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics.Tracing;
-using System.Text;
 
 namespace maskx.OrchestrationService.Worker
 {
@@ -13,8 +11,5 @@ namespace maskx.OrchestrationService.Worker
         public string Message { get; set; }
         public string Info { get; set; }
         public DateTime TimeStamp { get; set; }
-
-
-
     }
 }

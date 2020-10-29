@@ -1,5 +1,4 @@
 ﻿using DurableTask.Core;
-using DurableTask.Core.Serializing;
 using maskx.OrchestrationService;
 using maskx.OrchestrationService.Worker;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,12 +34,6 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
                 orchestrationWorkerOptions: new maskx.OrchestrationService.Extensions.OrchestrationWorkerOptions() { GetBuildInOrchestrators = (sp) => orchestrationTypes }).Build();
             workerHost.RunAsync();
             orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
-        }
-
-        public void Dispose()
-        {
-            if (workerHost != null)
-                workerHost.StopAsync();
         }
 
         [Fact(DisplayName = "JumpStart")]

@@ -1,5 +1,4 @@
-﻿
-using maskx.OrchestrationService.Worker;
+﻿using maskx.OrchestrationService.Worker;
 using Microsoft.SqlServer.Management.Common;
 using System;
 using System.IO;

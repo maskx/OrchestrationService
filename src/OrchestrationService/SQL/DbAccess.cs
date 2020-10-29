@@ -9,7 +9,6 @@ namespace maskx.OrchestrationService.SQL
 {
     public class DbAccess : IDisposable
     {
-
         private DbCommand _Command;
         public DbCommand Command
         {
@@ -25,7 +24,6 @@ namespace maskx.OrchestrationService.SQL
             }
             set { _Command = value; }
         }
-        public DbParameterCollection Parameters { get { return Command.Parameters; } }
         protected DbConnection connection;
         protected const int _MaxRetryCount = 2;
         protected const int _IncreasingDelayRetry = 500;
@@ -79,30 +77,26 @@ namespace maskx.OrchestrationService.SQL
         {
             if (string.IsNullOrEmpty(Command.CommandText))
                 return;
-            using (DbDataReader reader = await ExcuteWithRetry(() => Command.ExecuteReaderAsync(),false))
-            {
-                dataReader?.Invoke(reader);
-            }
+            using DbDataReader reader = await ExcuteWithRetry(() => Command.ExecuteReaderAsync(), false);
+            dataReader?.Invoke(reader);
         }
 
         public async Task ExecuteReaderAsync(Action<DbDataReader, int> dataReaders, bool bulkRead = false)
         {
             if (string.IsNullOrEmpty(Command.CommandText))
                 return;
-            using (DbDataReader reader = await ExcuteWithRetry(() => Command.ExecuteReaderAsync(),false))
+            using DbDataReader reader = await ExcuteWithRetry(() => Command.ExecuteReaderAsync(), false);
+            int resultSet = 0;
+            do
             {
-                int resultSet = 0;
-                do
-                {
-                    if (bulkRead)
+                if (bulkRead)
+                    dataReaders(reader, resultSet);
+                else
+                    while (await reader.ReadAsync())
                         dataReaders(reader, resultSet);
-                    else
-                        while (await reader.ReadAsync())
-                            dataReaders(reader, resultSet);
 
-                    resultSet++;
-                } while (await reader.NextResultAsync());
-            }
+                resultSet++;
+            } while (await reader.NextResultAsync());
         }
 
         #endregion
@@ -153,59 +147,51 @@ namespace maskx.OrchestrationService.SQL
 
         public async Task ExecuteStoredProcedureASync(string spname, Action<DbDataReader, int> dataReader, int commandTimeout = 0)
         {
-            using (DbDataReader reader = await CreateStoredProcedureReaderASync(spname, commandTimeout))
+            using DbDataReader reader = await CreateStoredProcedureReaderASync(spname, commandTimeout);
+            int resultSet = 0;
+            do
             {
-                int resultSet = 0;
-                do
-                {
-                    while (reader.Read())
-                        dataReader(reader, resultSet);
-                    resultSet++;
-                } while (reader.NextResult());
-                reader.Close();
-            }
+                while (reader.Read())
+                    dataReader(reader, resultSet);
+                resultSet++;
+            } while (reader.NextResult());
+            reader.Close();
         }
         public async Task ExecuteStoredProcedureASync(string spname, Action<DbDataReader, int> dataReader, Dictionary<string, object> parameters, int commandTimeout = 0)
         {
-            using (DbDataReader reader = await CreateStoredProcedureReaderASync(spname, commandTimeout, parameters))
+            using DbDataReader reader = await CreateStoredProcedureReaderASync(spname, commandTimeout, parameters);
+            int resultSet = 0;
+            do
             {
-                int resultSet = 0;
-                do
-                {
-                    while (reader.Read())
-                        dataReader(reader, resultSet);
-                    resultSet++;
-                } while (reader.NextResult());
-                reader.Close();
-            }
+                while (reader.Read())
+                    dataReader(reader, resultSet);
+                resultSet++;
+            } while (reader.NextResult());
+            reader.Close();
         }
         public async Task ExecuteStoredProcedureASync(string spname, Action<DbDataReader, int> dataReader, object parameters, int commandTimeout = 0)
         {
-            using (DbDataReader reader = await CreateStoredProcedureReaderASync(spname, commandTimeout, parameters))
+            using DbDataReader reader = await CreateStoredProcedureReaderASync(spname, commandTimeout, parameters);
+            int resultSet = 0;
+            do
             {
-                int resultSet = 0;
-                do
-                {
-                    while (reader.Read())
-                        dataReader(reader, resultSet);
-                    resultSet++;
-                } while (reader.NextResult());
-                reader.Close();
-            }
+                while (reader.Read())
+                    dataReader(reader, resultSet);
+                resultSet++;
+            } while (reader.NextResult());
+            reader.Close();
         }
         public async Task ExecuteStoredProcedureASync(string spname, Action<DbDataReader, int> dataReader, DbParameter[] parameters, int commandTimeout = 0)
         {
-            using (DbDataReader reader = await CreateStoredProcedureCommand(spname, commandTimeout, parameters).ExecuteReaderAsync(CommandBehavior.CloseConnection))
+            using DbDataReader reader = await CreateStoredProcedureReaderASync(spname, commandTimeout, parameters);
+            int resultSet = 0;
+            do
             {
-                int resultSet = 0;
-                do
-                {
-                    while (reader.Read())
-                        dataReader(reader, resultSet);
-                    resultSet++;
-                } while (reader.NextResult());
-                reader.Close();
-            }
+                while (reader.Read())
+                    dataReader(reader, resultSet);
+                resultSet++;
+            } while (reader.NextResult());
+            reader.Close();
         }
         #endregion
 

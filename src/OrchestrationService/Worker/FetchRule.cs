@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Text.Unicode;
 
 namespace maskx.OrchestrationService.Worker
 {
@@ -28,6 +26,12 @@ namespace maskx.OrchestrationService.Worker
         /// 限制并发请求的范围，如Subscription、ManagementUnit
         /// </summary>
         public List<string> Scope { get; set; } = new List<string>();
+
+        /// <summary>
+        /// default is createtime desc
+        /// todo: 支持设置优先级，需提供无并发控制条目优先级设置的机制
+        /// </summary>
+        public List<(string Filed, string Order)> Priority = new List<(string Filed, string Order)>();
         public static List<Where> DeserializeWhat(string str)
         {
             JsonSerializerOptions options = new JsonSerializerOptions()

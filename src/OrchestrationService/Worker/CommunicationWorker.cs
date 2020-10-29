@@ -1,11 +1,9 @@
 ﻿using DurableTask.Core;
-using ImpromptuInterface;
 using maskx.OrchestrationService.Activity;
 using maskx.OrchestrationService.SQL;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using Microsoft.SqlServer.Management.Smo;
 using System;
 using System.Collections.Generic;
 using System.Linq;
