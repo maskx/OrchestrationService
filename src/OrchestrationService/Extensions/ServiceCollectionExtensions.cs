@@ -168,6 +168,7 @@ namespace maskx.OrchestrationService.Extensions
                 return null;
             });
             services.AddSingleton<CommunicationWorker>();
+            services.AddSingleton<CommunicationWorkerClient>();
             services.AddSingleton<IHostedService>(p =>
             {
                 return p.GetService<CommunicationWorker>();
