@@ -18,7 +18,7 @@ namespace maskx.OrchestrationService.Worker
         private readonly TaskHubClient taskHubClient;
         private readonly CommunicationWorkerOptions options;
         private readonly Dictionary<string, ICommunicationProcessor> processors;
-        // 'todo: communication table add agentId column
+        // todo: communication table add agentId column
         string _AgentId;
         private string AgentId
         {
@@ -182,7 +182,7 @@ namespace maskx.OrchestrationService.Worker
                  }, new
                  {
                      LockedBy = AgentId,
-                     MessageLockedSeconds = this.options.MessageLockedSeconds,
+                     this.options.MessageLockedSeconds,
                      MaxCount = options.MaxConcurrencyRequest - RunningTaskCount
                  });
             }
@@ -248,7 +248,7 @@ namespace maskx.OrchestrationService.Worker
         public async Task<List<FetchRule>> GetFetchRuleAsync()
         {
             using var db = new SQLServerAccess(options.ConnectionString);
-            db.AddStatement($"select Id,Name,Description,What,Scope,Concurrency,CreatedTimeUtc,UpdatedTimeUtc from {options.FetchRuleTableName}");
+            db.AddStatement($"select Id,Name,Description,What,Scope,Concurrency,CreatedTimeUtc,UpdatedTimeUtc,FetchOrder from {options.FetchRuleTableName}");
             List<FetchRule> rules = new List<FetchRule>();
             await db.ExecuteReaderAsync((reader, index) =>
             {
@@ -259,9 +259,10 @@ namespace maskx.OrchestrationService.Worker
                     Description = reader["Description"]?.ToString(),
                     What = reader.IsDBNull(3) ? new List<Where>() : FetchRule.DeserializeWhat(reader.GetString(3)),
                     Scope = reader.IsDBNull(4) ? new List<string>() : FetchRule.DeserializeScope(reader.GetString(4)),
-                    Concurrency=reader.GetInt32(5),
+                    Concurrency = reader.GetInt32(5),
                     CreatedTimeUtc = reader.GetDateTime(6),
-                    UpdatedTimeUtc = reader.IsDBNull(7) ? default(DateTime) : reader.GetDateTime(7)
+                    UpdatedTimeUtc = reader.IsDBNull(7) ? default : reader.GetDateTime(7),
+                    FetchOrder = reader.IsDBNull(8) ? new List<FetchOrder>() : reader.GetString(8).DeserializeFetchOrderList()
                 }); ;
             });
             return rules;
@@ -269,21 +270,22 @@ namespace maskx.OrchestrationService.Worker
         public async Task<FetchRule> GetFetchRuleAsync(Guid id)
         {
             using var db = new SQLServerAccess(options.ConnectionString);
-            db.AddStatement($"select Id,Name,Description,What,Scope,Concurrency,CreatedTimeUtc,UpdatedTimeUtc from {options.FetchRuleTableName} where Id=@Id", new { Id = id });
+            db.AddStatement($"select Id,Name,Description,What,Scope,Concurrency,CreatedTimeUtc,UpdatedTimeUtc,FetchOrder from {options.FetchRuleTableName} where Id=@Id", new { Id = id });
             FetchRule rule = null;
             await db.ExecuteReaderAsync((reader, index) =>
             {
-                    rule = new FetchRule()
-                    {
-                        Id = id,
-                        Name = reader[1].ToString(),
-                        Description =reader.IsDBNull(2)?null: reader[2].ToString(),
-                        What = reader.IsDBNull(3) ? new List<Where>() : FetchRule.DeserializeWhat(reader.GetString(3)),
-                        Scope = reader.IsDBNull(4) ? new List<string>() : FetchRule.DeserializeScope(reader.GetString(4)),
-                        Concurrency = reader.GetInt32(5),
-                        CreatedTimeUtc = reader.GetDateTime(6),
-                        UpdatedTimeUtc = reader.IsDBNull(7) ? default(DateTime) : reader.GetDateTime(7)
-                    }; 
+                rule = new FetchRule()
+                {
+                    Id = id,
+                    Name = reader[1].ToString(),
+                    Description = reader.IsDBNull(2) ? null : reader[2].ToString(),
+                    What = reader.IsDBNull(3) ? new List<Where>() : FetchRule.DeserializeWhat(reader.GetString(3)),
+                    Scope = reader.IsDBNull(4) ? new List<string>() : FetchRule.DeserializeScope(reader.GetString(4)),
+                    Concurrency = reader.GetInt32(5),
+                    CreatedTimeUtc = reader.GetDateTime(6),
+                    UpdatedTimeUtc = reader.IsDBNull(7) ? default : reader.GetDateTime(7),
+                    FetchOrder = reader.IsDBNull(8) ? new List<FetchOrder>() : reader.GetString(8).DeserializeFetchOrderList()
+                };
             });
             return rule;
         }
@@ -296,15 +298,16 @@ namespace maskx.OrchestrationService.Worker
         public async Task<FetchRule> CreateFetchRuleAsync(FetchRule fetchRule)
         {
             using var db = new SQLServerAccess(options.ConnectionString);
-            db.AddStatement($"INSERT INTO {options.FetchRuleTableName} ([Name],[Description],[What],[Scope],[Concurrency]) OUTPUT inserted.Id,inserted.CreatedTimeUtc,inserted.UpdatedTimeUtc  VALUES (@Name,@Description,@What,@Scope,@Concurrency)",
+            db.AddStatement($"INSERT INTO {options.FetchRuleTableName} ([Name],[Description],[What],[Scope],[Concurrency],[FetchOrder]) OUTPUT inserted.Id,inserted.CreatedTimeUtc,inserted.UpdatedTimeUtc  VALUES (@Name,@Description,@What,@Scope,@Concurrency,@FetchOrder)",
                 new
                 {
-                    Name = fetchRule.Name,
-                    Description = fetchRule.Description,
+                    fetchRule.Name,
+                    fetchRule.Description,
                     What = FetchRule.SerializeWhat(fetchRule.What),
-                    Scope=FetchRule.SerializeScope(fetchRule.Scope),
-                    Concurrency=fetchRule.Concurrency
-                });   
+                    Scope = FetchRule.SerializeScope(fetchRule.Scope),
+                    fetchRule.Concurrency,
+                    FetchOrder=fetchRule.FetchOrder.Serialize()
+                });
             await db.ExecuteReaderAsync((reader, index) =>
             {
                 fetchRule.Id = reader.GetGuid(0);
@@ -317,15 +320,16 @@ namespace maskx.OrchestrationService.Worker
         public async Task<FetchRule> UpdateFetchRuleAsync(FetchRule fetchRule)
         {
             using var db = new SQLServerAccess(options.ConnectionString);
-            db.AddStatement($"update {options.FetchRuleTableName} set Name=@Name,Description=@Description,What=@What,Scope=@Scope,Concurrency=@Concurrency,UpdatedTimeUtc=getutcdate() where Id=@Id",
+            db.AddStatement($"update {options.FetchRuleTableName} set Name=@Name,Description=@Description,What=@What,Scope=@Scope,Concurrency=@Concurrency,UpdatedTimeUtc=getutcdate(),FetchOrder=@FetchOrder where Id=@Id",
                 new
                 {
-                    Name = fetchRule.Name,
-                    Description = fetchRule.Description,
+                    fetchRule.Name,
+                    fetchRule.Description,
                     What = FetchRule.SerializeWhat(fetchRule.What),
-                    Scope=FetchRule.SerializeScope(fetchRule.Scope),
-                    Concurrency=fetchRule.Concurrency,
-                    Id=fetchRule.Id
+                    Scope = FetchRule.SerializeScope(fetchRule.Scope),
+                    fetchRule.Concurrency,
+                    fetchRule.Id,
+                    FetchOrder=fetchRule.FetchOrder.Serialize()
                 });
             await db.ExecuteNonQueryAsync();
             return fetchRule;
@@ -338,6 +342,27 @@ namespace maskx.OrchestrationService.Worker
         {
             using var db = new SQLServerAccess(options.ConnectionString);
             await db.ExecuteStoredProcedureASync(options.BuildFetchCommunicationJobSPName);
+        }
+        //  default is createtime desc
+        // todo: 设置FetchJob 默认优先级
+        public async Task SetCommonFetchOrderAsyc(List<FetchOrder> fetchOrder)
+        {
+            using var db = new SQLServerAccess(options.ConnectionString);
+            await db.ExecuteStoredProcedureASync(options.ConfigCommunicationSettingSPName,
+                new
+                {
+                    Key = CommunicationWorkerOptions.FetchOrderConfigurationKey,
+                    Value = fetchOrder.Serialize()
+                });
+        }
+        public async Task<List<FetchOrder>> GetCommonFetchOrderAsync()
+        {
+            using var db = new SQLServerAccess(options.ConnectionString);
+            db.AddStatement($"select [Value] from {options.CommunicationSettingTableName} where [Key]=N'{CommunicationWorkerOptions.FetchOrderConfigurationKey}'");
+            var r = await db.ExecuteScalarAsync();
+            if (r == null)
+                return new List<FetchOrder>();
+            return r.ToString().DeserializeFetchOrderList();
         }
     }
 }

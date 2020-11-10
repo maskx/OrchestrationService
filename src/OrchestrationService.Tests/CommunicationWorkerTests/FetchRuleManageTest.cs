@@ -94,7 +94,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
             var r3 = await communicationWorker.GetFetchRuleAsync(r.Id);
             Assert.Equal("UpdateFetchRuleWhat", r3.Description);
             Assert.Equal(2, r3.What.Count);
-            Assert.Equal(FetchRule.SerializeWhat(r.What),FetchRule.SerializeWhat(r3.What));
+            Assert.Equal(FetchRule.SerializeWhat(r.What), FetchRule.SerializeWhat(r3.What));
             Assert.Equal(r.Id, r3.Id);
         }
         [Fact(DisplayName = "UpdateFetchRuleScope")]
@@ -104,10 +104,23 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
             l.Concurrency = 99;
             l.Scope.Add("EventName");
             await communicationWorker.UpdateFetchRuleAsync(l);
-            var r =await communicationWorker.GetFetchRuleAsync(l.Id);
+            var r = await communicationWorker.GetFetchRuleAsync(l.Id);
             Assert.Single(r.Scope);
-            Assert.Equal("EventName",r.Scope[0]);
-            Assert.Equal(99,r.Concurrency);
+            Assert.Equal("EventName", r.Scope[0]);
+            Assert.Equal(99, r.Concurrency);
+        }
+        [Fact(DisplayName = "UpdateFetchRuleFetchOrder")]
+        public async Task UpdateFetchRuleFetchOrder()
+        {
+            var l = await CreateFetchRuleAsync();
+            l.Concurrency = 99;
+            l.FetchOrder = new List<FetchOrder>() { new FetchOrder() {Field="Processor" } };
+            l.Scope.Add("Processor");
+            await communicationWorker.UpdateFetchRuleAsync(l);
+            var r = await communicationWorker.GetFetchRuleAsync(l.Id);
+            Assert.Single(r.FetchOrder);
+            Assert.Equal("Processor", r.FetchOrder[0].Field);
+            Assert.Equal("ASC", r.FetchOrder[0].Order);
         }
         [Fact(DisplayName = "BuildFetchCommunicationJobSPAsync")]
         public async Task BuildFetchCommunicationJobSPAsync()
@@ -123,7 +136,18 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
             await UpdateFetchRuleScope();
             await communicationWorker.BuildFetchCommunicationJobSPAsync();
         }
+        [Fact(DisplayName = "SetCommonFetchOrder")]
+        public async Task SetCommonFetchOrder()
+        {
+            await communicationWorker.SetCommonFetchOrderAsyc(new List<FetchOrder>());
+            var r = await communicationWorker.GetCommonFetchOrderAsync();
+            Assert.Empty(r);
+            await communicationWorker.SetCommonFetchOrderAsyc(new List<FetchOrder>() { 
+                new FetchOrder() { Field="Processor",Order="desc"} });
+            r = await communicationWorker.GetCommonFetchOrderAsync();
+            Assert.Single(r);
 
+        }
         public void Dispose()
         {
             if (communicationWorker != null)

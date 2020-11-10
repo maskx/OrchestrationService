@@ -2,6 +2,8 @@
 using Microsoft.SqlServer.Management.Common;
 using System;
 using System.IO;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace maskx.OrchestrationService.Utilities
@@ -33,5 +35,11 @@ namespace maskx.OrchestrationService.Utilities
             using var reader = new StreamReader(resourceStream);
             return await reader.ReadToEndAsync();
         }
+
+        public static JsonSerializerOptions DefaultJsonSerializerOptions{get;private set;} = new JsonSerializerOptions()
+        {
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
     }
 }

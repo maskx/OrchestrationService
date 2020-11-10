@@ -6,6 +6,5 @@
         /// Auto-creates the necessary resources for the orchestration service and the instance store
         /// </summary>
         public bool AutoCreate { get; set; } = false;
-       
     }
 }
