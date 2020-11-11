@@ -140,7 +140,7 @@ BEGIN
 	FROM (
 		select top (@MaxCount) T.* from [{0}].[{1}_Communication] as T with(NOLOCK)'
 
-	select @CommonFetchOrder=STRING_AGG([Name]+' '+[Order],',') 
+	select @CommonFetchOrder=STRING_AGG(QUOTENAME([Name])+' '+[Order],',') 
 	from [{0}].[{1}_CommunicationSetting]
 	CROSS APPLY OPENJSON([Value]) 
 		WITH (   
@@ -165,7 +165,7 @@ BEGIN
 			if @Join_FetchOrder=N'[]' or @Join_FetchOrder is null 
 				set @Join_FetchOrder=@CommonFetchOrder
 			else 
-				SELECT @Join_FetchOrder=STRING_AGG([Name]+' '+[Order],',') 
+				SELECT @Join_FetchOrder=STRING_AGG(QUOTENAME([Name])+' '+[Order],',') 
 				from openjson(@Join_FetchOrder) 
 					WITH (   
 						[Name]   nvarchar(200) '$.field' ,  
@@ -178,8 +178,8 @@ BEGIN
 			if @What is null
 			BEGIN
 				SELECT 
-					@Groupby=STRING_AGG('['+value+']',','),
-					@On_Count=STRING_AGG(@Join_Count+'.['+value+']=T.['+value+']',' and ')
+					@Groupby=STRING_AGG(QUOTENAME(value),','),
+					@On_Count=STRING_AGG(@Join_Count+'.'+QUOTENAME(value)+'=T.'+QUOTENAME(value),' and ')
 				FROM OPENJSON(@Scope)
 				set @SQLText=@SQLText+'
 		left join(
@@ -198,9 +198,9 @@ BEGIN
 			ELSE
 			BEGIN
 				SELECT 
-					@Names=STRING_AGG('['+[Name]+']',','),
-					@Where=STRING_AGG('['+[Name]+']'+[Operator]+[Value],' and '),
-					@On_Count=STRING_AGG(@Join_Count+'.['+[Name]+']=T.['+[Name]+']',' and ')
+					@Names=STRING_AGG(QUOTENAME([Name]),','),
+					@Where=STRING_AGG(QUOTENAME([Name])+[Operator]+[Value],' and '),
+					@On_Count=STRING_AGG(@Join_Count+'.'+QUOTENAME([Name])+'=T.'+QUOTENAME([Name]),' and ')
 				FROM OPENJSON(@What)
 				WITH (   
 					[Name]   nvarchar(200) '$.name' ,  
@@ -225,8 +225,8 @@ BEGIN
 				ELSE
 				BEGIN
 					SELECT 
-					@Groupby=STRING_AGG('['+value+']',','),
-					@On_Count=@On_Count+' and '+STRING_AGG(@Join_Count+'.['+value+']=T.['+value+']',' and ') 
+					@Groupby=STRING_AGG(QUOTENAME(value),','),
+					@On_Count=@On_Count+' and '+STRING_AGG(@Join_Count+'.'+QUOTENAME(value)+'=T.'+QUOTENAME(value),' and ') 
 				FROM OPENJSON(@Scope)
 				set @SQLText=@SQLText+'
 		left join(

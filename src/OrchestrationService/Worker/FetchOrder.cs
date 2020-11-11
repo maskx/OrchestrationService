@@ -8,7 +8,6 @@ namespace maskx.OrchestrationService.Worker
     {
         public string Field { get; set; }
         public string Order { get; set; } = "ASC";
-       
     }
     public static class FetchOrderListExtension
     {
