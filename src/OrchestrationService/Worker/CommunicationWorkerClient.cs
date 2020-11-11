@@ -25,8 +25,8 @@ namespace maskx.OrchestrationService.Worker
                     Id = reader.GetGuid(0),
                     Name = reader["Name"].ToString(),
                     Description = reader["Description"]?.ToString(),
-                    What = reader.IsDBNull(3) ? new List<Where>() : FetchRule.DeserializeWhat(reader.GetString(3)),
-                    Scope = reader.IsDBNull(4) ? new List<string>() : FetchRule.DeserializeScope(reader.GetString(4)),
+                    What = reader.IsDBNull(3) ? new List<Where>() :reader.GetString(3).DeserializeWhat(),
+                    Scope = reader.IsDBNull(4) ? new List<string>() : reader.GetString(4).DeserializeScope(),
                     Concurrency = reader.GetInt32(5),
                     CreatedTimeUtc = reader.GetDateTime(6),
                     UpdatedTimeUtc = reader.IsDBNull(7) ? default : reader.GetDateTime(7),
@@ -47,8 +47,8 @@ namespace maskx.OrchestrationService.Worker
                     Id = id,
                     Name = reader[1].ToString(),
                     Description = reader.IsDBNull(2) ? null : reader[2].ToString(),
-                    What = reader.IsDBNull(3) ? new List<Where>() : FetchRule.DeserializeWhat(reader.GetString(3)),
-                    Scope = reader.IsDBNull(4) ? new List<string>() : FetchRule.DeserializeScope(reader.GetString(4)),
+                    What = reader.IsDBNull(3) ? new List<Where>() : reader.GetString(3).DeserializeWhat(),
+                    Scope = reader.IsDBNull(4) ? new List<string>() : reader.GetString(4).DeserializeScope(),
                     Concurrency = reader.GetInt32(5),
                     CreatedTimeUtc = reader.GetDateTime(6),
                     UpdatedTimeUtc = reader.IsDBNull(7) ? default : reader.GetDateTime(7),
@@ -71,8 +71,8 @@ namespace maskx.OrchestrationService.Worker
                 {
                     fetchRule.Name,
                     fetchRule.Description,
-                    What = FetchRule.SerializeWhat(fetchRule.What),
-                    Scope = FetchRule.SerializeScope(fetchRule.Scope),
+                    What =fetchRule.What.SerializeWhat(),
+                    Scope = fetchRule.Scope.SerializeScope(),
                     fetchRule.Concurrency,
                     FetchOrder = fetchRule.FetchOrder.Serialize()
                 });
@@ -93,8 +93,8 @@ namespace maskx.OrchestrationService.Worker
                 {
                     fetchRule.Name,
                     fetchRule.Description,
-                    What = FetchRule.SerializeWhat(fetchRule.What),
-                    Scope = FetchRule.SerializeScope(fetchRule.Scope),
+                    What = fetchRule.What.SerializeWhat(),
+                    Scope = fetchRule.Scope.SerializeScope(),
                     fetchRule.Concurrency,
                     fetchRule.Id,
                     FetchOrder = fetchRule.FetchOrder.Serialize()

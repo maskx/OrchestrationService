@@ -1,5 +1,4 @@
-﻿using System.Text.Encodings.Web;
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace maskx.OrchestrationService.Worker
 {
@@ -7,15 +6,26 @@ namespace maskx.OrchestrationService.Worker
     {
         public string Name { get; set; }
         public string Operator { get; set; }
-        public string Value { get; set; }
+        private string v;
+        public string Value
+        {
+            get { return WhereExtension.SaveSQLValue(v); }
+            set { v = value; }
+        }
         public override string ToString()
         {
-            JsonSerializerOptions options = new JsonSerializerOptions()
-            {
-                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            };
-            return JsonSerializer.Serialize(this, options);
+            return JsonSerializer.Serialize(this, Utilities.Utility.DefaultJsonSerializerOptions);
+        }
+    }
+    public static class WhereExtension
+    {
+        public static (bool Result, string Message) IsValid(this Where where)
+        {
+            return (true, string.Empty);
+        }
+        public static string SaveSQLValue(string s)
+        {
+            return s.Replace(" ","").Replace("\n","").Replace("\r","");
         }
     }
 }

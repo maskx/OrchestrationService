@@ -13,10 +13,10 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
     [Trait("C", "CommunicationWorkerClient")]
     public class CommunicationWorkerClientTest : IDisposable
     {
-        IHost workerHost;
-        CommunicationWorkerClient _CommunicationWorkerClient = null;
-        IOrchestrationService _SQLServerOrchestrationService = null;
-        CommunicationWorker _CommunicationWorker = null;
+        readonly IHost workerHost;
+        readonly CommunicationWorkerClient _CommunicationWorkerClient = null;
+        readonly IOrchestrationService _SQLServerOrchestrationService = null;
+        readonly CommunicationWorker _CommunicationWorker = null;
         public CommunicationWorkerClientTest()
         {
             workerHost = TestHelpers.CreateHostBuilder(
@@ -96,7 +96,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
             var r3 = await _CommunicationWorkerClient.GetFetchRuleAsync(r.Id);
             Assert.Equal("UpdateFetchRuleWhat", r3.Description);
             Assert.Equal(2, r3.What.Count);
-            Assert.Equal(FetchRule.SerializeWhat(r.What), FetchRule.SerializeWhat(r3.What));
+            Assert.Equal(r.What.SerializeWhat(), r3.What.SerializeWhat());
             Assert.Equal(r.Id, r3.Id);
         }
         [Fact(DisplayName = "UpdateFetchRuleScope")]
@@ -156,6 +156,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                 _CommunicationWorker.DeleteCommunicationAsync().Wait();
             if (_SQLServerOrchestrationService != null)
                 _SQLServerOrchestrationService.DeleteAsync(true).Wait();
+            GC.SuppressFinalize(this);
         }
     }
 }

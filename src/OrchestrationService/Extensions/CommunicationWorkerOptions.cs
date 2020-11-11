@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace maskx.OrchestrationService.Extensions
 {
@@ -23,6 +24,6 @@ namespace maskx.OrchestrationService.Extensions
         /// <summary>
         /// 扩展的规则筛选字段
         /// </summary>
-        public List<string> RuleFields { get; set; } = new List<string>();
+        public Dictionary<string, Type> RuleFields { get; set; } = new Dictionary<string, Type>();
     }
 }

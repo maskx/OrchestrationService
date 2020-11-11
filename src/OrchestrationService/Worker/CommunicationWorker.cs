@@ -174,7 +174,7 @@ namespace maskx.OrchestrationService.Worker
                      if (reader["ResponseCode"] != DBNull.Value)
                          job.ResponseCode = (int)reader["ResponseCode"];
                      job.RuleField = new Dictionary<string, object>();
-                     foreach (var item in options.RuleFields)
+                     foreach (var item in options.RuleFields.Keys)
                      {
                          job.RuleField.Add(item, reader[item]);
                      }

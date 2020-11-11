@@ -16,15 +16,17 @@ namespace OrchestrationService.Tests
     [Trait("C", "HttpRequestActivity")]
     public class HttpRequestActivityTest :IDisposable
     {
-        private DataConverter dataConverter = new JsonDataConverter();
-        private IHost workerHost = null;
-        private OrchestrationWorker orchestrationWorker;
-        CommunicationWorker communicationWorker = null;
-        IOrchestrationService SQLServerOrchestrationService = null;
+        private readonly DataConverter dataConverter = new JsonDataConverter();
+        private readonly IHost workerHost = null;
+        private readonly OrchestrationWorker orchestrationWorker;
+        readonly CommunicationWorker communicationWorker = null;
+        readonly IOrchestrationService SQLServerOrchestrationService = null;
         public HttpRequestActivityTest()
         {
-            List<(string Name, string Version, Type Type)> orchestrationTypes = new List<(string Name, string Version, Type Type)>();
-            orchestrationTypes.Add(("HttpOrchestration", "", typeof(HttpOrchestration)));
+            List<(string Name, string Version, Type Type)> orchestrationTypes = new()
+            {
+                ("HttpOrchestration", "", typeof(HttpOrchestration))
+            };
             workerHost = TestHelpers.CreateHostBuilder(
                 hubName: "HttpRequestActivityTest",
                 orchestrationWorkerOptions: new maskx.OrchestrationService.Extensions.OrchestrationWorkerOptions() { 
@@ -39,7 +41,7 @@ namespace OrchestrationService.Tests
         [Fact(DisplayName = "Get")]
         public void Get()
         {
-            HttpRequestInput request = new HttpRequestInput()
+            HttpRequestInput request = new()
             {
                 Method = HttpMethod.Get,
                 Uri = "https://services.odata.org/TripPinRESTierService/People('russellwhyte')"
@@ -90,7 +92,7 @@ namespace OrchestrationService.Tests
 }
     ]
 }";
-            HttpRequestInput request = new HttpRequestInput()
+            HttpRequestInput request = new()
             {
                 Method = HttpMethod.Post,
                 Uri = "https://services.odata.org/TripPinRESTierService/People('russellwhyte')",
@@ -124,7 +126,7 @@ namespace OrchestrationService.Tests
         [Fact(DisplayName = "Delete")]
         public void Delete()
         {
-            HttpRequestInput request = new HttpRequestInput()
+            HttpRequestInput request = new()
             {
                 Method = HttpMethod.Delete,
                 Uri = "https://services.odata.org/TripPinRESTierService/People('russellwhyte')"
@@ -161,7 +163,7 @@ namespace OrchestrationService.Tests
     ""FirstName"": ""Mirs"",
     ""LastName"": ""King""
 }";
-            HttpRequestInput request = new HttpRequestInput()
+            HttpRequestInput request = new()
             {
                 Method = HttpMethod.Patch,
                 Uri = "https://services.odata.org/TripPinRESTierService/People('russellwhyte')",
@@ -198,6 +200,7 @@ namespace OrchestrationService.Tests
                 communicationWorker.DeleteCommunicationAsync().Wait();
             if (SQLServerOrchestrationService != null)
                 SQLServerOrchestrationService.DeleteAsync(true).Wait();
+            GC.SuppressFinalize(this);
         }
 
         public class HttpOrchestration : TaskOrchestration<TaskResult, string>

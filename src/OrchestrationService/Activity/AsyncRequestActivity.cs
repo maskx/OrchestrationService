@@ -22,8 +22,8 @@ namespace maskx.OrchestrationService.Activity
             else
             {
                 this.commandText = string.Format(commandTemplate,
-                $",[{string.Join("],[", this.options.RuleFields)}]",
-                ",@" + string.Join(",@", this.options.RuleFields),
+                $",[{string.Join("],[", this.options.RuleFields.Keys)}]",
+                ",@" + string.Join(",@", this.options.RuleFields.Keys),
                 this.options.CommunicationTableName);
             }
         }
@@ -36,16 +36,18 @@ namespace maskx.OrchestrationService.Activity
 
         public async Task SaveRequest(AsyncRequestInput input, OrchestrationInstance instance)
         {
-            Dictionary<string, object> pars = new Dictionary<string, object>();
-            pars.Add("InstanceId", instance.InstanceId);
-            pars.Add("ExecutionId", instance.ExecutionId);
-            pars.Add("EventName", input.EventName);
-            pars.Add("Status", (int)CommunicationJob.JobStatus.Pending);
-            pars.Add("RequestTo", input.RequestTo);
-            pars.Add("RequestOperation", input.RequestOperation);
-            pars.Add("RequestContent", input.RequestContent);
-            pars.Add("RequestProperty", input.RequestProperty);
-            pars.Add("Processor", input.Processor);
+            Dictionary<string, object> pars = new Dictionary<string, object>
+            {
+                { "InstanceId", instance.InstanceId },
+                { "ExecutionId", instance.ExecutionId },
+                { "EventName", input.EventName },
+                { "Status", (int)CommunicationJob.JobStatus.Pending },
+                { "RequestTo", input.RequestTo },
+                { "RequestOperation", input.RequestOperation },
+                { "RequestContent", input.RequestContent },
+                { "RequestProperty", input.RequestProperty },
+                { "Processor", input.Processor }
+            };
             if (input.RuleField != null)
             {
                 foreach (var item in input.RuleField)
@@ -54,11 +56,9 @@ namespace maskx.OrchestrationService.Activity
                 }
             }
 
-            using (var db = new SQLServerAccess(this.options.ConnectionString))
-            {
-                db.AddStatement(this.commandText, pars);
-                await db.ExecuteNonQueryAsync();
-            }
+            using var db = new SQLServerAccess(this.options.ConnectionString);
+            db.AddStatement(this.commandText, pars);
+            await db.ExecuteNonQueryAsync();
         }
 
         //{0} rule columns

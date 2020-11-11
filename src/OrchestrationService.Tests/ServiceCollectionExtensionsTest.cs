@@ -14,7 +14,7 @@ namespace OrchestrationService.Tests
     [Trait("c", "ServiceCollectionExtensionsTest")]
     public class ServiceCollectionExtensionsTest
     {
-        private void RunHost<T>(Action<IServiceCollection> config)
+        private static void RunHost<T>(Action<IServiceCollection> config)
         {
             var webHost = Host.CreateDefaultBuilder()
                 .ConfigureAppConfiguration((hostingContext, config) =>
@@ -61,8 +61,10 @@ namespace OrchestrationService.Tests
         [Fact(DisplayName = "UsingSqlServer")]
         public void UsingSqlServer()
         {
-            var orchestrationTypes = new List<(string Name, string Version, Type Type)>();
-            orchestrationTypes.Add(("TestOrchestration", "", typeof(OrchestrationWorkerTests.TestOrchestration)));
+            var orchestrationTypes = new List<(string Name, string Version, Type Type)>
+            {
+                ("TestOrchestration", "", typeof(OrchestrationWorkerTests.TestOrchestration))
+            };
             var activityTypes = new List<(string Name, string Version, Type Type)>();
             var sqlConfig = new SqlServerConfiguration()
             {
@@ -81,8 +83,10 @@ namespace OrchestrationService.Tests
         [Fact(DisplayName = "UsingSqlServerFunc")]
         public void UsingSqlServerFunc()
         {
-            var orchestrationTypes = new List<(string Name, string Version, Type Type)>();
-            orchestrationTypes.Add(("TestOrchestration", "", typeof(OrchestrationWorkerTests.TestOrchestration)));
+            var orchestrationTypes = new List<(string Name, string Version, Type Type)>
+            {
+                ("TestOrchestration", "", typeof(OrchestrationWorkerTests.TestOrchestration))
+            };
             var activityTypes = new List<(string Name, string Version, Type Type)>();
             var sqlConfig = new SqlServerConfiguration()
             {

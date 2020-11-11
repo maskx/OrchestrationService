@@ -31,7 +31,7 @@
             get
             {
                 if (IsSubOrchestration)
-                    return InstanceId.Substring(33);
+                    return InstanceId[33..];
                 else
                     return string.Empty;
             }
