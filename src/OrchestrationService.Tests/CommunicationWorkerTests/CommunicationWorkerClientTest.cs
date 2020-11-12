@@ -16,7 +16,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
         readonly IHost workerHost;
         readonly CommunicationWorkerClient _CommunicationWorkerClient = null;
         readonly IOrchestrationService _SQLServerOrchestrationService = null;
-        readonly CommunicationWorker _CommunicationWorker = null;
+        readonly CommunicationWorker<CommunicationJob> _CommunicationWorker = null;
         public CommunicationWorkerClientTest()
         {
             workerHost = TestHelpers.CreateHostBuilder(
@@ -25,7 +25,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
             workerHost.RunAsync();
             _CommunicationWorkerClient = workerHost.Services.GetService<CommunicationWorkerClient>();
             _SQLServerOrchestrationService = workerHost.Services.GetService<IOrchestrationService>();
-            _CommunicationWorker = workerHost.Services.GetService<CommunicationWorker>();
+            _CommunicationWorker = workerHost.Services.GetService<CommunicationWorker<CommunicationJob>>();
         }
         [Fact(DisplayName = "GetFetchRuleAsync")]
         public async Task GetFetchRuleAsync()

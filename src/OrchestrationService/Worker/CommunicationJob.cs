@@ -13,7 +13,6 @@ namespace maskx.OrchestrationService.Worker
         public string RequestOperation { get; set; }
         public string RequestContent { get; set; }
         public string RequestProperty { get; set; }
-        public Dictionary<string, object> RuleField { get; set; }
         public int ResponseCode { get; set; }
         public string ResponseContent { get; set; }
         public string RequestId { get; set; }

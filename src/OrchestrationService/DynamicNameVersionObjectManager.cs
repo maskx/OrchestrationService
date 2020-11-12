@@ -62,8 +62,8 @@ namespace maskx.OrchestrationService
                 {
                     return creator.Create();
                 }
-
-                return default(T);
+                // todo: throw exception
+                return default;
             }
         }
 
@@ -71,6 +71,7 @@ namespace maskx.OrchestrationService
         {
             if (this.creators.ContainsKey(key))
                 return this.creators[key];
+            // todo: throw exception
             return null;
         }
 

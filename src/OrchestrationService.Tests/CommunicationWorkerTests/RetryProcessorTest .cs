@@ -14,14 +14,14 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
     [Trait("C", "CommunicationWorker")]
     public class RetryProcessorTest : IDisposable
     {
-        private DataConverter dataConverter = new JsonDataConverter();
-        private IHost workerHost = null;
-        private OrchestrationWorker orchestrationWorker;
-        CommunicationWorker communicationWorker = null;
-        IOrchestrationService SQLServerOrchestrationService = null;
+        private readonly DataConverter dataConverter = new JsonDataConverter();
+        private readonly IHost workerHost = null;
+        private readonly OrchestrationWorker orchestrationWorker;
+        readonly CommunicationWorker<CommunicationJob> communicationWorker = null;
+        readonly IOrchestrationService SQLServerOrchestrationService = null;
         public RetryProcessorTest()
         {
-            List<(string Name, string Version, Type Type)> orchestrationTypes = new List<(string Name, string Version, Type Type)>();
+            List<(string Name, string Version, Type Type)> orchestrationTypes = new();
             orchestrationTypes.Add((typeof(TestOrchestration).FullName, "", typeof(TestOrchestration)));
             workerHost = TestHelpers.CreateHostBuilder(
                 hubName: "RetryProcessorTest",
@@ -29,7 +29,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                 ).Build();
             workerHost.RunAsync();
             orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
-            communicationWorker = workerHost.Services.GetService<CommunicationWorker>();
+            communicationWorker = workerHost.Services.GetService<CommunicationWorker<CommunicationJob>>();
             SQLServerOrchestrationService = workerHost.Services.GetService<IOrchestrationService>();
         }
 
@@ -39,6 +39,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                 communicationWorker.DeleteCommunicationAsync().Wait();
             if (SQLServerOrchestrationService != null)
                 SQLServerOrchestrationService.DeleteAsync(true).Wait();
+            GC.SuppressFinalize(this);
         }
 
         [Fact(DisplayName = "RetryProcessorTest")]

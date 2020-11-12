@@ -1,7 +1,10 @@
 ﻿using maskx.OrchestrationService.Worker;
 using Microsoft.SqlServer.Management.Common;
 using System;
+using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.IO;
+using System.Reflection;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -36,10 +39,11 @@ namespace maskx.OrchestrationService.Utilities
             return await reader.ReadToEndAsync();
         }
 
-        public static JsonSerializerOptions DefaultJsonSerializerOptions{get;private set;} = new JsonSerializerOptions()
+        public static JsonSerializerOptions DefaultJsonSerializerOptions { get; private set; } = new JsonSerializerOptions()
         {
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
+       
     }
 }

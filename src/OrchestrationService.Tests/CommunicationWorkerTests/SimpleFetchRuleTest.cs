@@ -12,58 +12,29 @@ using Xunit;
 namespace OrchestrationService.Tests.CommunicationWorkerTests
 {
     [Trait("C", "CommunicationWorker")]
-    public class SimpleFetchRuleTest:IDisposable
+    public class SimpleFetchRuleTest : IDisposable
     {
         private readonly DataConverter dataConverter = new JsonDataConverter();
         private readonly IHost workerHost = null;
         private readonly OrchestrationWorker orchestrationWorker;
-        CommunicationWorker communicationWorker = null;
-        IOrchestrationService SQLServerOrchestrationService = null;
+        readonly CommunicationWorker<CommunicationJob> communicationWorker = null;
+        readonly IOrchestrationService SQLServerOrchestrationService = null;
         public SimpleFetchRuleTest()
         {
-            CommunicationWorkerOptions options = new CommunicationWorkerOptions
+            CommunicationWorkerOptions options = new()
             {
-                
-                //GetFetchRules = (sp) =>
-                //{
-                //    var r1 = new FetchRule()
-                //    {
-                //        What = new Dictionary<string, string>() { { "Processor", "MockCommunicationProcessor" } },
-                //    };
-                //    r1.Limitions.Add(new Limitation()
-                //    {
-                //        Concurrency = 1,
-                //        Scope = new List<string>()
-                //        {
-                //        "RequestOperation"
-                //        }
-                //    });
-                //    r1.Limitions.Add(new Limitation
-                //    {
-                //        Concurrency = 5,
-                //        Scope = new List<string>()
-                //        {
-                //        "RequestTo"
-                //        }
-                //    });
-                //    List<FetchRule> fetchRules = new List<FetchRule>
-                //    {
-                //        r1
-                //    };
-                //    return fetchRules;
-                //}
             };
-            List<(string Name, string Version, Type Type)> orchestrationTypes = new List<(string Name, string Version, Type Type)>
+            List<(string Name, string Version, Type Type)> orchestrationTypes = new()
             {
                 (typeof(TestOrchestration).FullName, "", typeof(TestOrchestration))
             };
             workerHost = TestHelpers.CreateHostBuilder(
-                hubName : "NoRule",
+                hubName: "NoRule",
                 orchestrationWorkerOptions: new maskx.OrchestrationService.Extensions.OrchestrationWorkerOptions() { GetBuildInOrchestrators = (sp) => orchestrationTypes }
                ).Build();
             workerHost.RunAsync();
             orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
-            communicationWorker = workerHost.Services.GetService<CommunicationWorker>();
+            communicationWorker = workerHost.Services.GetService<CommunicationWorker<CommunicationJob>>();
             SQLServerOrchestrationService = workerHost.Services.GetService<IOrchestrationService>();
         }
 
@@ -73,6 +44,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                 communicationWorker.DeleteCommunicationAsync().Wait();
             if (SQLServerOrchestrationService != null)
                 SQLServerOrchestrationService.DeleteAsync(true).Wait();
+            GC.SuppressFinalize(this);
         }
 
         [Fact(DisplayName = "SimpleFetchRuleTest")]
@@ -87,7 +59,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                 {
                     Name = typeof(TestOrchestration).FullName
                 },
-                Input = dataConverter.Serialize(new AsyncRequestInput()
+                Input = dataConverter.Serialize(new CommunicationJob()
                 {
                     Processor = "MockCommunicationProcessor",
                     RequestOperation = "Create",

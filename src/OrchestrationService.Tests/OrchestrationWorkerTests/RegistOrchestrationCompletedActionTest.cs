@@ -10,7 +10,7 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
     [Trait("c", "RegistOrchestrationCompletedActionTest")]
     public class RegistOrchestrationCompletedActionTest
     {
-        private WorkerHostFixture fixture;
+        private readonly WorkerHostFixture fixture;
 
         public RegistOrchestrationCompletedActionTest(WorkerHostFixture fixture)
         {

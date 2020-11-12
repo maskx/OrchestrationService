@@ -2,12 +2,11 @@
 using maskx.OrchestrationService.SQL;
 using maskx.OrchestrationService.Worker;
 using Microsoft.Extensions.Options;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace maskx.OrchestrationService.Activity
 {
-    public class AsyncRequestActivity : AsyncTaskActivity<AsyncRequestInput, TaskResult>
+    public class AsyncRequestActivity<T> : AsyncTaskActivity<T, TaskResult> where T : CommunicationJob, new()
     {
         private readonly CommunicationWorkerOptions options;
         private readonly string commandText;
@@ -28,39 +27,18 @@ namespace maskx.OrchestrationService.Activity
             }
         }
 
-        protected override async Task<TaskResult> ExecuteAsync(TaskContext context, AsyncRequestInput input)
+        protected override async Task<TaskResult> ExecuteAsync(TaskContext context, T input)
         {
-            await SaveRequest(input, context.OrchestrationInstance);
+            await SaveRequest(input);
             return new TaskResult() { Code = 200 };
         }
 
-        public async Task SaveRequest(AsyncRequestInput input, OrchestrationInstance instance)
+        public async Task SaveRequest(T input)
         {
-            Dictionary<string, object> pars = new Dictionary<string, object>
-            {
-                { "InstanceId", instance.InstanceId },
-                { "ExecutionId", instance.ExecutionId },
-                { "EventName", input.EventName },
-                { "Status", (int)CommunicationJob.JobStatus.Pending },
-                { "RequestTo", input.RequestTo },
-                { "RequestOperation", input.RequestOperation },
-                { "RequestContent", input.RequestContent },
-                { "RequestProperty", input.RequestProperty },
-                { "Processor", input.Processor }
-            };
-            if (input.RuleField != null)
-            {
-                foreach (var item in input.RuleField)
-                {
-                    pars.Add(item.Key, item.Value);
-                }
-            }
-
             using var db = new SQLServerAccess(this.options.ConnectionString);
-            db.AddStatement(this.commandText, pars);
+            db.AddStatement(this.commandText, input);
             await db.ExecuteNonQueryAsync();
         }
-
         //{0} rule columns
         //{1} rule value
         //{2} Communication table name

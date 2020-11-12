@@ -50,7 +50,7 @@ namespace OrchestrationService.Tests
                     break;
                 }
             }
-           var communicationWorker = webHost.Services.GetService<CommunicationWorker>();
+           var communicationWorker = webHost.Services.GetService<CommunicationWorker<CommunicationJob>>();
            var SQLServerOrchestrationService = webHost.Services.GetService<IOrchestrationService>();
             if (communicationWorker != null)
                 communicationWorker.DeleteCommunicationAsync().Wait();

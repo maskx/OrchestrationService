@@ -55,14 +55,14 @@ namespace maskx.OrchestrationService.Worker
 
         public override Task StartAsync(CancellationToken cancellationToken)
         {
-            if (this.options.GetBuildInOrchestrators != null)
+            if (this.options.GetBuildInTaskActivities != null)
             {
                 foreach (var activity in this.options.GetBuildInTaskActivities(serviceProvider))
                 {
                     this.activityManager.TryAdd(new NameVersionDICreator<TaskActivity>(serviceProvider, activity.Name, activity.Version, activity.Type));
                 }
             }
-            if (this.options.GetBuildInTaskActivities != null)
+            if (this.options.GetBuildInOrchestrators != null)
             {
                 foreach (var orchestrator in this.options.GetBuildInOrchestrators(serviceProvider))
                 {

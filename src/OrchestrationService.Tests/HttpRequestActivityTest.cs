@@ -19,7 +19,7 @@ namespace OrchestrationService.Tests
         private readonly DataConverter dataConverter = new JsonDataConverter();
         private readonly IHost workerHost = null;
         private readonly OrchestrationWorker orchestrationWorker;
-        readonly CommunicationWorker communicationWorker = null;
+        readonly CommunicationWorker<CommunicationJob> communicationWorker = null;
         readonly IOrchestrationService SQLServerOrchestrationService = null;
         public HttpRequestActivityTest()
         {
@@ -34,7 +34,7 @@ namespace OrchestrationService.Tests
                ).Build();
             workerHost.RunAsync();
             orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
-            communicationWorker = workerHost.Services.GetService<CommunicationWorker>();
+            communicationWorker = workerHost.Services.GetService<CommunicationWorker<CommunicationJob>>();
             SQLServerOrchestrationService = workerHost.Services.GetService<IOrchestrationService>();
         }
 

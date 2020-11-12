@@ -14,7 +14,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
         [Fact(DisplayName = "CreateNewCommunicationTable")]
         public async Task CreateNewCommunicationTable()
         {
-            CommunicationWorkerOptions options = new CommunicationWorkerOptions();
+            CommunicationWorkerOptions options = new();
             options.ConnectionString = TestHelpers.ConnectionString;
             options.HubName = DateTime.Now.Millisecond.ToString();
             var client = TestHelpers.CreateOrchestrationClient();
@@ -22,7 +22,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                  .ConfigureServices((hostContext, services) =>
                  {
                  }).Build();
-            CommunicationWorker worker = new CommunicationWorker(host.Services, client, Options.Create(options));
+            CommunicationWorker<CommunicationJob> worker = new(host.Services, client, Options.Create(options));
             await worker.StartAsync(new System.Threading.CancellationToken());
             object r = null;
             using (var db = new DbAccess(options.ConnectionString))

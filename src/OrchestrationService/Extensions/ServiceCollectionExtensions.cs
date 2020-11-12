@@ -16,7 +16,12 @@ namespace maskx.OrchestrationService.Extensions
     {
         public static IServiceCollection UsingOrchestration(this IServiceCollection services, Func<IServiceProvider, SqlServerConfiguration> configOptions)
         {
-            return UsingOrchestration(services, (sp) =>
+            return UsingOrchestration<CommunicationJob>(services,configOptions);
+        }
+        public static IServiceCollection UsingOrchestration<T>(this IServiceCollection services, Func<IServiceProvider, SqlServerConfiguration> configOptions)
+            where T:CommunicationJob,new()
+        {
+            return UsingOrchestration<T>(services, (sp) =>
             {
                 var options = configOptions(sp);
                 OrchestrationServiceConfiguration configuration = new OrchestrationServiceConfiguration();
@@ -62,7 +67,7 @@ namespace maskx.OrchestrationService.Extensions
                 return configuration;
             });
         }
-        public static IServiceCollection UsingOrchestration(this IServiceCollection services, Func<IServiceProvider, OrchestrationServiceConfiguration> configureOptions)
+        public static IServiceCollection UsingOrchestration<T>(this IServiceCollection services, Func<IServiceProvider, OrchestrationServiceConfiguration> configureOptions) where T : CommunicationJob, new()
         {
             services.AddHttpClient();
             services.AddSingleton((sp) =>
@@ -122,7 +127,7 @@ namespace maskx.OrchestrationService.Extensions
                             orc = new List<(string Name, string Version, Type Type)>();
                         else
                             orc = option.OrchestrationWorkerOptions.GetBuildInOrchestrators(sp);
-                        orc.Add((typeof(AsyncRequestOrchestration).FullName, "", typeof(AsyncRequestOrchestration)));
+                        orc.Add((typeof(AsyncRequestOrchestration<T>).ToString(), "", typeof(AsyncRequestOrchestration<T>)));
                         return orc;
                     };
                     opt.GetBuildInTaskActivities = (sp) =>
@@ -132,8 +137,8 @@ namespace maskx.OrchestrationService.Extensions
                             act = new List<(string Name, string Version, Type Type)>();
                         else
                             act = option.OrchestrationWorkerOptions.GetBuildInTaskActivities(sp);
-                        act.Add((typeof(AsyncRequestActivity).FullName, "", typeof(AsyncRequestActivity)));
-                        act.Add((typeof(HttpRequestActivity).FullName, "", typeof(HttpRequestActivity)));
+                        act.Add((typeof(AsyncRequestActivity<T>).ToString(), "", typeof(AsyncRequestActivity<T>)));
+                        act.Add((typeof(HttpRequestActivity).ToString(), "", typeof(HttpRequestActivity)));
                         return act;
                     };
                     opt.GetBuildInTaskActivitiesFromInterface = option.OrchestrationWorkerOptions.GetBuildInTaskActivitiesFromInterface;
@@ -163,15 +168,15 @@ namespace maskx.OrchestrationService.Extensions
                         MaxConcurrencyRequest = option.CommunicationWorkerOptions.MaxConcurrencyRequest,
                         SchemaName = option.CommunicationWorkerOptions.SchemaName
                     };
-                    return Options.Create<Worker.CommunicationWorkerOptions>(opt);
+                    return Options.Create(opt);
                 }
                 return null;
             });
-            services.AddSingleton<CommunicationWorker>();
+            services.AddSingleton<CommunicationWorker<T>>();
             services.AddSingleton<CommunicationWorkerClient>();
             services.AddSingleton<IHostedService>(p =>
             {
-                return p.GetService<CommunicationWorker>();
+                return p.GetService<CommunicationWorker<T>>();
             });
 
             services.AddSingleton<OrchestrationWorkerClient>();

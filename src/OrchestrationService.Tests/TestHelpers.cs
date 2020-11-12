@@ -1,5 +1,4 @@
 ﻿using DurableTask.Core;
-using DurableTask.Core.Common;
 using DurableTask.Core.Serializing;
 using maskx.DurableTask.SQLServer;
 using maskx.DurableTask.SQLServer.Settings;
@@ -52,7 +51,7 @@ namespace OrchestrationService.Tests
             });
         }
 
-        public static SQLServerOrchestrationServiceSettings CreateOrchestrationServiceSettings(CompressionStyle style = CompressionStyle.Threshold)
+        public static SQLServerOrchestrationServiceSettings CreateOrchestrationServiceSettings()
         {
             var settings = new SQLServerOrchestrationServiceSettings
             {
@@ -70,11 +69,18 @@ namespace OrchestrationService.Tests
                          CreateSQLServerInstanceStore(),
                          CreateOrchestrationServiceSettings());
         }
-        public static IHostBuilder CreateHostBuilder(
-           Action<HostBuilderContext, IServiceCollection> config = null,
+        public static IHostBuilder CreateHostBuilder(Action<HostBuilderContext, IServiceCollection> config = null,
             maskx.OrchestrationService.Extensions.OrchestrationWorkerOptions orchestrationWorkerOptions = null,
             maskx.OrchestrationService.Extensions.CommunicationWorkerOptions communicationWorkerOptions = null,
-            string hubName=null)
+            string hubName = null)
+        {
+            return CreateHostBuilder<CommunicationJob>(config, orchestrationWorkerOptions, communicationWorkerOptions, hubName);
+        }
+        public static IHostBuilder CreateHostBuilder<T>(
+       Action<HostBuilderContext, IServiceCollection> config = null,
+        maskx.OrchestrationService.Extensions.OrchestrationWorkerOptions orchestrationWorkerOptions = null,
+        maskx.OrchestrationService.Extensions.CommunicationWorkerOptions communicationWorkerOptions = null,
+        string hubName = null) where T : CommunicationJob, new()
         {
             return Host.CreateDefaultBuilder()
              .ConfigureAppConfiguration((hostingContext, config) =>
@@ -85,9 +91,8 @@ namespace OrchestrationService.Tests
              })
              .ConfigureServices((hostContext, services) =>
              {
-                 if (config != null)
-                     config(hostContext, services);
-                 services.UsingOrchestration((sp) =>
+                 config?.Invoke(hostContext, services);
+                 services.UsingOrchestration<T>((sp) =>
                  {
                      var conf = new SqlServerConfiguration()
                      {
@@ -95,7 +100,7 @@ namespace OrchestrationService.Tests
                          ConnectionString = TestHelpers.ConnectionString,
                          HubName = TestHelpers.HubName,
                          SchemaName = TestHelpers.SchemaName,
-                         OrchestrationServiceSettings=new maskx.DurableTask.SQLServer.Settings.SQLServerOrchestrationServiceSettings() { SchemaName=TestHelpers.SchemaName}
+                         OrchestrationServiceSettings = new SQLServerOrchestrationServiceSettings() { SchemaName = TestHelpers.SchemaName }
                      };
                      if (hubName != null)
                          conf.HubName = hubName;
@@ -106,9 +111,8 @@ namespace OrchestrationService.Tests
 
                      return conf;
                  });
-
-                 services.AddSingleton<ICommunicationProcessor>(new MockCommunicationProcessor());
-                 services.AddSingleton<ICommunicationProcessor>(new MockRetryCommunicationProcessor());
+                 services.AddSingleton<ICommunicationProcessor<T>>(new MockCommunicationProcessor<T>());
+                 services.AddSingleton<ICommunicationProcessor<T>>(new MockRetryCommunicationProcessor<T>());
 
              });
         }

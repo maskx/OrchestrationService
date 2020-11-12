@@ -10,14 +10,15 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using maskx.OrchestrationService.Extensions;
 
 namespace maskx.OrchestrationService.Worker
 {
-    public class CommunicationWorker : BackgroundService
+    public class CommunicationWorker<T> : BackgroundService where T : CommunicationJob, new()
     {
         private readonly TaskHubClient taskHubClient;
         private readonly CommunicationWorkerOptions options;
-        private readonly Dictionary<string, ICommunicationProcessor> processors;
+        private readonly Dictionary<string, ICommunicationProcessor<T>> processors;
         // todo: communication table add agentId column
         string _AgentId;
         private string AgentId
@@ -46,18 +47,18 @@ namespace maskx.OrchestrationService.Worker
             this.serviceProvider = serviceProvider;
             this.options = options?.Value;
             this.taskHubClient = new TaskHubClient(orchestrationServiceClient);
-            this.processors = new Dictionary<string, ICommunicationProcessor>();
+            this.processors = new Dictionary<string, ICommunicationProcessor<T>>();
         }
 
         public override async Task StartAsync(CancellationToken cancellationToken)
         {
             if (this.options == null)
             {
-                TraceActivityEventSource.Log.Critical(nameof(CommunicationWorker), string.Empty, string.Empty, "CommunicationWorker can not start", "options is null", "Failed");
+                TraceActivityEventSource.Log.Critical(nameof(CommunicationWorker<T>), string.Empty, string.Empty, "CommunicationWorker can not start", "options is null", "Failed");
                 return;
             }
 
-            var p = this.serviceProvider.GetServices<ICommunicationProcessor>();
+            var p = this.serviceProvider.GetServices<ICommunicationProcessor<T>>();
             foreach (var item in p)
             {
                 // todo: CommunicationWorker can be set by DI ?
@@ -70,7 +71,7 @@ namespace maskx.OrchestrationService.Worker
         }
         public override Task StopAsync(CancellationToken cancellationToken)
         {
-            TraceActivityEventSource.Log.Critical(nameof(CommunicationWorker), string.Empty, string.Empty, "CommunicationWorker is stoped", "CommunicationWorker is stoped", "Failed");
+            TraceActivityEventSource.Log.Critical(nameof(CommunicationWorker<T>), string.Empty, string.Empty, "CommunicationWorker is stoped", "CommunicationWorker is stoped", "Failed");
 
             return base.StopAsync(cancellationToken);
         }
@@ -81,7 +82,7 @@ namespace maskx.OrchestrationService.Worker
                 try
                 {
                     var jobs = await FetchJob();
-                    Dictionary<string, List<List<CommunicationJob>>> batchJobs = new Dictionary<string, List<List<CommunicationJob>>>();
+                    Dictionary<string, List<List<T>>> batchJobs = new Dictionary<string, List<List<T>>>();
                     foreach (var job in jobs)
                     {
                         var processor = this.processors[job.Processor];
@@ -96,12 +97,12 @@ namespace maskx.OrchestrationService.Worker
                         }
                         else
                         {
-                            if (!batchJobs.TryGetValue(processor.Name, out List<List<CommunicationJob>> procJobs))
+                            if (!batchJobs.TryGetValue(processor.Name, out List<List<T>> procJobs))
                             {
-                                procJobs = new List<List<CommunicationJob>>();
+                                procJobs = new List<List<T>>();
                                 batchJobs[processor.Name] = procJobs;
                             }
-                            List<CommunicationJob> jobList = null;
+                            List<T> jobList = null;
                             foreach (var communicationJobs in procJobs)
                             {
                                 if (communicationJobs.Count < processor.MaxBatchCount)
@@ -111,7 +112,7 @@ namespace maskx.OrchestrationService.Worker
                             }
                             if (jobList == null)
                             {
-                                jobList = new List<CommunicationJob>();
+                                jobList = new List<T>();
                                 procJobs.Add(jobList);
                             }
                             jobList.Add(job);
@@ -140,9 +141,9 @@ namespace maskx.OrchestrationService.Worker
             }
         }
 
-        private async Task<List<CommunicationJob>> FetchJob()
+        private async Task<List<T>> FetchJob()
         {
-            List<CommunicationJob> jobs = new List<CommunicationJob>();
+            List<T> jobs = new List<T>();
             if (options.MaxConcurrencyRequest - RunningTaskCount < 1)
             {
                 return jobs;
@@ -151,33 +152,32 @@ namespace maskx.OrchestrationService.Worker
             {
                 await db.ExecuteStoredProcedureASync(this.options.FetchCommunicationJobSPName, (reader, index) =>
                  {
-                     var job = new CommunicationJob()
-                     {
-                         InstanceId = reader["InstanceId"].ToString(),
-                         ExecutionId = reader["ExecutionId"].ToString(),
-                         EventName = reader["EventName"].ToString(),
-                         RequestId = reader["RequestId"].ToString(),
-                         Processor = reader["Processor"].ToString(),
-                         RequestTo = reader["RequestTo"]?.ToString(),
-                         CreateTime = DateTime.Parse(reader["CreateTime"].ToString()),
-                         LockedUntilUtc = DateTime.Parse(reader["LockedUntilUtc"].ToString()),
-                         RequestOperation = reader["RequestOperation"]?.ToString(),
-                         RequestContent = reader["RequestContent"]?.ToString(),
-                         RequestProperty = reader["RequestProperty"]?.ToString(),
-                         Status = (CommunicationJob.JobStatus)(int)reader["Status"],
-                         ResponseContent = reader["ResponseContent"]?.ToString(),
-                     };
-                     if (reader["Context"] != DBNull.Value)
-                     {
-                         job.Context = reader["Context"].ToString();
-                     }
-                     if (reader["ResponseCode"] != DBNull.Value)
-                         job.ResponseCode = (int)reader["ResponseCode"];
-                     job.RuleField = new Dictionary<string, object>();
-                     foreach (var item in options.RuleFields.Keys)
-                     {
-                         job.RuleField.Add(item, reader[item]);
-                     }
+                     //var job = new T()
+                     //{
+                     //    InstanceId = reader["InstanceId"].ToString(),
+                     //    ExecutionId = reader["ExecutionId"].ToString(),
+                     //    EventName = reader["EventName"].ToString(),
+                     //    RequestId = reader["RequestId"].ToString(),
+                     //    Processor = reader["Processor"].ToString(),
+                     //    RequestTo = reader["RequestTo"]?.ToString(),
+                     //    CreateTime = DateTime.Parse(reader["CreateTime"].ToString()),
+                     //    LockedUntilUtc = DateTime.Parse(reader["LockedUntilUtc"].ToString()),
+                     //    RequestOperation = reader["RequestOperation"]?.ToString(),
+                     //    RequestContent = reader["RequestContent"]?.ToString(),
+                     //    RequestProperty = reader["RequestProperty"]?.ToString(),
+                     //    Status = (CommunicationJob.JobStatus)(int)reader["Status"],
+                     //    ResponseContent = reader["ResponseContent"]?.ToString(),
+                     //};
+                     //if (reader["Context"] != DBNull.Value)
+                     //    job.Context = reader["Context"].ToString();
+                     //if (reader["ResponseCode"] != DBNull.Value)
+                     //    job.ResponseCode = (int)reader["ResponseCode"];
+                     //job.RuleField = new Dictionary<string, object>();
+                     //foreach (var item in options.RuleFields.Keys)
+                     //{
+                     //    job.RuleField.Add(item, reader[item]);
+                     //}
+                     var job = reader.CreateObject<T>();
                      jobs.Add(job);
                  }, new
                  {
@@ -189,7 +189,7 @@ namespace maskx.OrchestrationService.Worker
             return jobs;
         }
 
-        private async Task ProcessJobs(ICommunicationProcessor processor, params CommunicationJob[] jobs)
+        private async Task ProcessJobs(ICommunicationProcessor<T> processor, params T[] jobs)
         {
             //使用Task.Run包装CommunicationProcessor里的代码执行，避免CommunicationProcessor里有类似于Thread.Sleep这样阻塞线程的情况
             //CommunicationProcessor里不要使用Task.WaitAll,建议使用Task.WhenAll
@@ -238,7 +238,7 @@ namespace maskx.OrchestrationService.Worker
         {
             await Utilities.Utility.ExecuteSqlScriptAsync("drop-schema.sql", this.options);
         }
-
+        // todo: support create custom communicationjob table
         public async Task CreateIfNotExistsAsync(bool recreate)
         {
             if (recreate) await DeleteCommunicationAsync();

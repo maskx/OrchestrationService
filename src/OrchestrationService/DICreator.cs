@@ -6,7 +6,7 @@ namespace maskx.OrchestrationService
 {
     public class DICreator<T> : ObjectCreator<T>
     {
-        private IServiceProvider serviceProvider;
+        private readonly IServiceProvider serviceProvider;
         private readonly Type prototype;
 
         public DICreator(IServiceProvider serviceProvider, Type type)

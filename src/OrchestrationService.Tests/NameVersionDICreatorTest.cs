@@ -13,18 +13,18 @@ namespace OrchestrationService.Tests
     [Trait("c", "NameVersionDICreatorTest")]
     public class NameVersionDICreatorTest :IDisposable
     {
-        private DataConverter dataConverter = new JsonDataConverter();
-        private IHost workerHost = null;
-        private OrchestrationWorkerClient orchestrationWorkerClient;
-        CommunicationWorker communicationWorker = null;
-        IOrchestrationService SQLServerOrchestrationService = null;
+        private readonly DataConverter dataConverter = new JsonDataConverter();
+        private readonly IHost workerHost = null;
+        private readonly OrchestrationWorkerClient orchestrationWorkerClient;
+        readonly CommunicationWorker<CommunicationJob> communicationWorker = null;
+        readonly IOrchestrationService SQLServerOrchestrationService = null;
         public NameVersionDICreatorTest()
         {
-            List<(string Name, string Version, Type Type)> orchestrationTypes = new List<(string Name, string Version, Type Type)>();
+            List<(string Name, string Version, Type Type)> orchestrationTypes = new();
             orchestrationTypes.Add(("TestOrchestration", "1", typeof(TestOrchestrationV1)));
             orchestrationTypes.Add(("TestOrchestration", "2", typeof(TestOrchestrationV2)));
             orchestrationTypes.Add((typeof(TestOrchestration).FullName, "", typeof(TestOrchestration)));
-            List<(string Name, string Version, Type Type)> activityTypes = new List<(string Name, string Version, Type Type)>();
+            List<(string Name, string Version, Type Type)> activityTypes = new();
             activityTypes.Add(("TestActivity", "1", typeof(TestActivityV1)));
             activityTypes.Add(("TestActivity", "2", typeof(TestActivityV2)));
             workerHost = TestHelpers.CreateHostBuilder(
@@ -37,7 +37,7 @@ namespace OrchestrationService.Tests
                ).Build();
             workerHost.RunAsync();
             orchestrationWorkerClient = workerHost.Services.GetService<OrchestrationWorkerClient>();
-            communicationWorker = workerHost.Services.GetService<CommunicationWorker>();
+            communicationWorker = workerHost.Services.GetService<CommunicationWorker<CommunicationJob>>();
             SQLServerOrchestrationService = workerHost.Services.GetService<IOrchestrationService>();
         }
 
@@ -135,6 +135,7 @@ namespace OrchestrationService.Tests
                 communicationWorker.DeleteCommunicationAsync().Wait();
             if (SQLServerOrchestrationService != null)
                 SQLServerOrchestrationService.DeleteAsync(true).Wait();
+            GC.SuppressFinalize(this);
         }
 
         public class TestActivityV1 : TaskActivity<int, int>
