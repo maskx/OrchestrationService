@@ -14,47 +14,18 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
     [Trait("C", "CommunicationWorker")]
     public class CustomFetchRuleTest :IDisposable
     {
-        private DataConverter dataConverter = new JsonDataConverter();
-        private IHost workerHost = null;
-        private OrchestrationWorker orchestrationWorker;
-        CommunicationWorker communicationWorker = null;
-        IOrchestrationService SQLServerOrchestrationService = null;
+        private readonly DataConverter dataConverter = new JsonDataConverter();
+        private readonly IHost workerHost = null;
+        private readonly OrchestrationWorker orchestrationWorker;
+        readonly CommunicationWorker communicationWorker = null;
+        readonly IOrchestrationService SQLServerOrchestrationService = null;
         public CustomFetchRuleTest()
-        {
-            //options.GetFetchRules = (sp) =>
-            //{
-            //    var r1 = new FetchRule()
-            //    {
-            //        What = new Dictionary<string, string>() { { "Processor", "MockCommunicationProcessor" } },
-            //    };
-            //    r1.Limitions.Add(new Limitation()
-            //    {
-            //        Concurrency = 1,
-            //        Scope = new List<string>()
-            //        {
-            //            "SubscriptionId"
-            //        }
-            //    });
-            //    r1.Limitions.Add(new Limitation
-            //    {
-            //        Concurrency = 5,
-            //        Scope = new List<string>()
-            //        {
-            //            "ManagementUnit"
-            //        }
-            //    });
-            //    List<FetchRule> fetchRules = new List<FetchRule>();
-            //    fetchRules.Add(r1);
-            //    return fetchRules;
-            //};
-            //options.RuleFields.Add("SubscriptionId");
-            //options.RuleFields.Add("ManagementUnit");
-    
-            List<(string Name, string Version, Type Type)> orchestrationTypes = new List<(string Name, string Version, Type Type)>();
+        {    
+            List<(string Name, string Version, Type Type)> orchestrationTypes = new();
             orchestrationTypes.Add((typeof(TestOrchestration).FullName, "", typeof(TestOrchestration)));
             workerHost = TestHelpers.CreateHostBuilder(
                 hubName : "CustomRule",
-                orchestrationWorkerOptions: new maskx.OrchestrationService.Extensions.OrchestrationWorkerOptions() {
+                orchestrationWorkerOptions: new maskx.OrchestrationService.Worker.OrchestrationWorkerOptions() {
                     GetBuildInOrchestrators = (sp) => orchestrationTypes 
                 }
                ).Build();
@@ -70,6 +41,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                 communicationWorker.DeleteCommunicationAsync().Wait();
             if (SQLServerOrchestrationService != null)
                 SQLServerOrchestrationService.DeleteAsync(true).Wait();
+            GC.SuppressFinalize(this);
 
         }
 

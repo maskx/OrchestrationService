@@ -46,7 +46,7 @@ namespace maskx.OrchestrationService.Extensions
                     configuration.OrchestrationWorkerOptions.GetBuildInTaskActivities = options.OrchestrationWorkerOptions.GetBuildInTaskActivities;
                     configuration.OrchestrationWorkerOptions.GetBuildInTaskActivitiesFromInterface = options.OrchestrationWorkerOptions.GetBuildInTaskActivitiesFromInterface;
                 }
-                configuration.CommunicationWorkerOptions = new Worker.CommunicationWorkerOptions()
+                configuration.CommunicationWorkerOptions = new CommunicationWorkerOptions()
                 {
                     ConnectionString = options.ConnectionString,
                     HubName = options.HubName,
@@ -150,22 +150,7 @@ namespace maskx.OrchestrationService.Extensions
             services.AddSingleton((sp) =>
             {
                 var option = sp.GetService<OrchestrationServiceConfiguration>();
-
-                if (option.CommunicationWorkerOptions != null)
-                {
-                    var opt = new Worker.CommunicationWorkerOptions
-                    {
-                        AutoCreate = option.CommunicationWorkerOptions.AutoCreate,
-                        ConnectionString = option.CommunicationWorkerOptions.ConnectionString,
-                        RuleFields = option.CommunicationWorkerOptions.RuleFields,
-                        HubName = option.CommunicationWorkerOptions.HubName,
-                        IdelMilliseconds = option.CommunicationWorkerOptions.IdelMilliseconds,
-                        MaxConcurrencyRequest = option.CommunicationWorkerOptions.MaxConcurrencyRequest,
-                        SchemaName = option.CommunicationWorkerOptions.SchemaName
-                    };
-                    return Options.Create<Worker.CommunicationWorkerOptions>(opt);
-                }
-                return null;
+                return Options.Create(option.CommunicationWorkerOptions);
             });
             services.AddSingleton<CommunicationWorker>();
             services.AddSingleton<CommunicationWorkerClient>();

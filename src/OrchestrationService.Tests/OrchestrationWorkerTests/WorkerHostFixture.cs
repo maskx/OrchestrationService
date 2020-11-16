@@ -10,20 +10,23 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
 {
     public class WorkerHostFixture : IDisposable
     {
-        private IHost workerHost = null;
+        private readonly IHost workerHost = null;
         public OrchestrationWorker OrchestrationWorker { get; private set; }
         public OrchestrationWorkerClient OrchestrationWorkerClient { get; private set; }
-        CommunicationWorker communicationWorker = null;
-        IOrchestrationService SQLServerOrchestrationService = null;
+
+        readonly CommunicationWorker communicationWorker = null;
+        readonly IOrchestrationService SQLServerOrchestrationService = null;
         public WorkerHostFixture()
         {
-            CommunicationWorkerOptions options = new CommunicationWorkerOptions();
+            CommunicationWorkerOptions options = new();
             options.HubName = "OrchestrationWorkerTests";
-            var orchestrationTypes = new List<(string Name, string Version, Type Type)>();
-            orchestrationTypes.Add(("TestOrchestration", "", typeof(TestOrchestration)));
+            var orchestrationTypes = new List<(string Name, string Version, Type Type)>
+            {
+                ("TestOrchestration", "", typeof(TestOrchestration))
+            };
             workerHost = TestHelpers.CreateHostBuilder(
                 communicationWorkerOptions: options,
-                orchestrationWorkerOptions: new maskx.OrchestrationService.Extensions.OrchestrationWorkerOptions() { GetBuildInOrchestrators = (sp) => orchestrationTypes }
+                orchestrationWorkerOptions: new maskx.OrchestrationService.Worker.OrchestrationWorkerOptions() { GetBuildInOrchestrators = (sp) => orchestrationTypes }
              ).Build();
             workerHost.RunAsync();
             OrchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
@@ -38,6 +41,7 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
                 communicationWorker.DeleteCommunicationAsync().Wait();
             if (SQLServerOrchestrationService != null)
                 SQLServerOrchestrationService.DeleteAsync(true).Wait();
+            GC.SuppressFinalize(this);
         }
     }
 

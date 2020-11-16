@@ -1,5 +1,4 @@
 ﻿using DurableTask.Core;
-using DurableTask.Core.Common;
 using DurableTask.Core.Serializing;
 using maskx.DurableTask.SQLServer;
 using maskx.DurableTask.SQLServer.Settings;
@@ -52,7 +51,7 @@ namespace OrchestrationService.Tests
             });
         }
 
-        public static SQLServerOrchestrationServiceSettings CreateOrchestrationServiceSettings(CompressionStyle style = CompressionStyle.Threshold)
+        public static SQLServerOrchestrationServiceSettings CreateOrchestrationServiceSettings()
         {
             var settings = new SQLServerOrchestrationServiceSettings
             {
@@ -72,8 +71,8 @@ namespace OrchestrationService.Tests
         }
         public static IHostBuilder CreateHostBuilder(
            Action<HostBuilderContext, IServiceCollection> config = null,
-            maskx.OrchestrationService.Extensions.OrchestrationWorkerOptions orchestrationWorkerOptions = null,
-            maskx.OrchestrationService.Extensions.CommunicationWorkerOptions communicationWorkerOptions = null,
+            maskx.OrchestrationService.Worker.OrchestrationWorkerOptions orchestrationWorkerOptions = null,
+            maskx.OrchestrationService.Worker.CommunicationWorkerOptions communicationWorkerOptions = null,
             string hubName=null)
         {
             return Host.CreateDefaultBuilder()
@@ -85,8 +84,7 @@ namespace OrchestrationService.Tests
              })
              .ConfigureServices((hostContext, services) =>
              {
-                 if (config != null)
-                     config(hostContext, services);
+                 config?.Invoke(hostContext, services);
                  services.UsingOrchestration((sp) =>
                  {
                      var conf = new SqlServerConfiguration()

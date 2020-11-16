@@ -19,6 +19,6 @@ namespace maskx.OrchestrationService.Extensions
 
         public SQLServerOrchestrationServiceSettings OrchestrationServiceSettings { get; set; } = new SQLServerOrchestrationServiceSettings();
         public OrchestrationWorkerOptions OrchestrationWorkerOptions { get; set; } = new OrchestrationWorkerOptions();
-        public CommunicationWorkerOptions CommunicationWorkerOptions { get; set; } = new CommunicationWorkerOptions();
+        public Worker.CommunicationWorkerOptions CommunicationWorkerOptions { get; set; } = new Worker.CommunicationWorkerOptions();
     }
 }

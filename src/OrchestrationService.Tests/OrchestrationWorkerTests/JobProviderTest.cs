@@ -17,11 +17,11 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
 
         public JobProviderTest()
         {
-            CommunicationWorkerOptions options = new CommunicationWorkerOptions
+            CommunicationWorkerOptions options = new()
             {
                 HubName = "NoRule"
             };
-            List<(string Name, string Version, Type Type)> orchestrationTypes = new List<(string Name, string Version, Type Type)>
+            List<(string Name, string Version, Type Type)> orchestrationTypes = new()
             {
                 ("TestOrchestration", "", typeof(TestOrchestration))
             };
@@ -31,7 +31,7 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
                     services.AddSingleton<IJobProvider>(new JobProvider());
                 },
                 communicationWorkerOptions: options,
-                orchestrationWorkerOptions: new maskx.OrchestrationService.Extensions.OrchestrationWorkerOptions() { GetBuildInOrchestrators = (sp) => orchestrationTypes }).Build();
+                orchestrationWorkerOptions: new maskx.OrchestrationService.Worker.OrchestrationWorkerOptions() { GetBuildInOrchestrators = (sp) => orchestrationTypes }).Build();
             workerHost.RunAsync();
             orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
         }

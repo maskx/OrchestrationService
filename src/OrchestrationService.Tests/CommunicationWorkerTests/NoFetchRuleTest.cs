@@ -14,18 +14,18 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
     [Trait("C", "CommunicationWorker")]
     public class NoFetchRuleTest :IDisposable
     {
-        private DataConverter dataConverter = new JsonDataConverter();
-        private IHost workerHost = null;
-        private OrchestrationWorker orchestrationWorker;
-        CommunicationWorker communicationWorker = null;
-        IOrchestrationService SQLServerOrchestrationService = null;
+        private readonly DataConverter dataConverter = new JsonDataConverter();
+        private readonly IHost workerHost = null;
+        private readonly OrchestrationWorker orchestrationWorker;
+        readonly CommunicationWorker communicationWorker = null;
+        readonly IOrchestrationService SQLServerOrchestrationService = null;
         public NoFetchRuleTest()
         {
-            List<(string Name, string Version, Type Type)> orchestrationTypes = new List<(string Name, string Version, Type Type)>();
+            List<(string Name, string Version, Type Type)> orchestrationTypes = new();
             orchestrationTypes.Add((typeof(TestOrchestration).FullName, "", typeof(TestOrchestration)));
             workerHost = TestHelpers.CreateHostBuilder(
                 hubName : "NoFetchRuleTest",
-                orchestrationWorkerOptions: new maskx.OrchestrationService.Extensions.OrchestrationWorkerOptions() { GetBuildInOrchestrators = (sp) => orchestrationTypes }
+                orchestrationWorkerOptions: new maskx.OrchestrationService.Worker.OrchestrationWorkerOptions() { GetBuildInOrchestrators = (sp) => orchestrationTypes }
                ).Build();
             workerHost.RunAsync();
             orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
@@ -39,6 +39,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                 communicationWorker.DeleteCommunicationAsync().Wait();
             if (SQLServerOrchestrationService != null)
                 SQLServerOrchestrationService.DeleteAsync(true).Wait();
+            GC.SuppressFinalize(this);
         }
 
         [Fact(DisplayName = "NoFetchRuleTest")]

@@ -29,7 +29,7 @@ namespace OrchestrationService.Tests
             };
             workerHost = TestHelpers.CreateHostBuilder(
                 hubName: "HttpRequestActivityTest",
-                orchestrationWorkerOptions: new maskx.OrchestrationService.Extensions.OrchestrationWorkerOptions() { 
+                orchestrationWorkerOptions: new maskx.OrchestrationService.Worker.OrchestrationWorkerOptions() { 
                     GetBuildInOrchestrators = (sp) => orchestrationTypes }
                ).Build();
             workerHost.RunAsync();

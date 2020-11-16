@@ -1,7 +1,7 @@
 ﻿using DurableTask.Core;
 using maskx.OrchestrationService;
-using maskx.OrchestrationService.Extensions;
 using maskx.OrchestrationService.Worker;
+using maskx.OrchestrationService.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -72,7 +72,7 @@ namespace OrchestrationService.Tests
                 HubName = "sql",
                 SchemaName = "sql",
                 AutoCreate = true,
-                OrchestrationWorkerOptions = new maskx.OrchestrationService.Extensions.OrchestrationWorkerOptions()
+                OrchestrationWorkerOptions = new maskx.OrchestrationService.Worker.OrchestrationWorkerOptions()
                 {
                     GetBuildInOrchestrators = (sp) => { return orchestrationTypes; },
                     GetBuildInTaskActivities = (sp) => { return activityTypes; }
@@ -87,14 +87,14 @@ namespace OrchestrationService.Tests
             {
                 ("TestOrchestration", "", typeof(OrchestrationWorkerTests.TestOrchestration))
             };
-            var activityTypes = new List<(string Name, string Version, Type Type)>();
+            List<(string Name, string Version, Type Type)> activityTypes = new();
             var sqlConfig = new SqlServerConfiguration()
             {
                 ConnectionString = TestHelpers.ConnectionString,
                 HubName = "sql",
                 SchemaName = "sql",
                 AutoCreate = true,
-                OrchestrationWorkerOptions = new maskx.OrchestrationService.Extensions.OrchestrationWorkerOptions()
+                OrchestrationWorkerOptions = new maskx.OrchestrationService.Worker.OrchestrationWorkerOptions()
                 {
                     GetBuildInOrchestrators = (sp) => { return orchestrationTypes; },
                     GetBuildInTaskActivities = (sp) => { return activityTypes; }
