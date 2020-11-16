@@ -1,4 +1,5 @@
 ﻿using maskx.DurableTask.SQLServer.Settings;
+using maskx.OrchestrationService.Worker;
 
 namespace maskx.OrchestrationService.Extensions
 {
@@ -19,6 +20,6 @@ namespace maskx.OrchestrationService.Extensions
 
         public SQLServerOrchestrationServiceSettings OrchestrationServiceSettings { get; set; } = new SQLServerOrchestrationServiceSettings();
         public OrchestrationWorkerOptions OrchestrationWorkerOptions { get; set; } = new OrchestrationWorkerOptions();
-        public Worker.CommunicationWorkerOptions CommunicationWorkerOptions { get; set; } = new Worker.CommunicationWorkerOptions();
+        public CommunicationWorkerOptions CommunicationWorkerOptions { get; set; } = new CommunicationWorkerOptions();
     }
 }
