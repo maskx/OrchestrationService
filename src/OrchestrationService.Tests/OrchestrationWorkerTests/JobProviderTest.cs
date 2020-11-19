@@ -10,30 +10,31 @@ using Xunit;
 namespace OrchestrationService.Tests.OrchestrationWorkerTests
 {
     [Trait("C", "JobProvider")]
-    public class JobProviderTest
+    public class JobProviderTest : IDisposable
     {
         private readonly IHost workerHost = null;
         private readonly OrchestrationWorker orchestrationWorker;
-
+        private readonly IOrchestrationService orchestrationService;
+        private readonly CommunicationWorker communicationWorker;
         public JobProviderTest()
         {
-            CommunicationWorkerOptions options = new()
-            {
-                HubName = "NoRule"
-            };
-            List<(string Name, string Version, Type Type)> orchestrationTypes = new()
-            {
-                ("TestOrchestration", "", typeof(TestOrchestration))
-            };
             workerHost = TestHelpers.CreateHostBuilder(
                 (cxt, services) =>
                 {
                     services.AddSingleton<IJobProvider>(new JobProvider());
                 },
-                communicationWorkerOptions: options,
-                orchestrationWorkerOptions: new maskx.OrchestrationService.Worker.OrchestrationWorkerOptions() { GetBuildInOrchestrators = (sp) => orchestrationTypes }).Build();
+                hubName: "NoRule",
+                orchestrationWorkerOptions: new OrchestrationWorkerOptions()
+                {
+                    GetBuildInOrchestrators = (sp) => new List<(string Name, string Version, Type Type)>()
+                    {
+                        ("TestOrchestration", "", typeof(TestOrchestration))
+                    }
+                }).Build();
             workerHost.RunAsync();
             orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
+            orchestrationService = workerHost.Services.GetService<IOrchestrationService>();
+            communicationWorker = workerHost.Services.GetService<CommunicationWorker>();
         }
 
         [Fact(DisplayName = "JumpStart")]
@@ -87,6 +88,15 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
                     break;
                 }
             }
+        }
+
+        public void Dispose()
+        {
+            if (orchestrationService != null)
+                orchestrationService.DeleteAsync(true).Wait();
+            if (communicationWorker != null)
+                communicationWorker.DeleteCommunicationAsync().Wait();
+            GC.SuppressFinalize(this);
         }
     }
 }

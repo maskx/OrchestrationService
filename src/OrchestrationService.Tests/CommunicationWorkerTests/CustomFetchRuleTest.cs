@@ -12,7 +12,7 @@ using Xunit;
 namespace OrchestrationService.Tests.CommunicationWorkerTests
 {
     [Trait("C", "CommunicationWorker")]
-    public class CustomFetchRuleTest :IDisposable
+    public class CustomFetchRuleTest : IDisposable
     {
         private readonly DataConverter dataConverter = new JsonDataConverter();
         private readonly IHost workerHost = null;
@@ -20,15 +20,17 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
         readonly CommunicationWorker communicationWorker = null;
         readonly IOrchestrationService SQLServerOrchestrationService = null;
         public CustomFetchRuleTest()
-        {    
+        {
             List<(string Name, string Version, Type Type)> orchestrationTypes = new();
             orchestrationTypes.Add((typeof(TestOrchestration).FullName, "", typeof(TestOrchestration)));
             workerHost = TestHelpers.CreateHostBuilder(
-                hubName : "CustomRule",
-                orchestrationWorkerOptions: new maskx.OrchestrationService.Worker.OrchestrationWorkerOptions() {
-                    GetBuildInOrchestrators = (sp) => orchestrationTypes 
-                }
-               ).Build();
+                hubName: "CustomRule",
+                    orchestrationWorkerOptions: new OrchestrationWorkerOptions()
+                    {
+                        AutoCreate=true,
+                        GetBuildInOrchestrators = (sp) => orchestrationTypes
+                    }
+                   ).Build();
             workerHost.RunAsync();
             orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
             communicationWorker = workerHost.Services.GetService<CommunicationWorker>();
@@ -68,7 +70,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                     }
                 })
             }).Wait();
- 
+
             var hubClient = new TaskHubClient(workerHost.Services.GetService<IOrchestrationServiceClient>());
             while (true)
             {

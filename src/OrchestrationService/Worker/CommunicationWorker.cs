@@ -1,5 +1,6 @@
 ﻿using DurableTask.Core;
 using maskx.OrchestrationService.Activity;
+using maskx.OrchestrationService.Orchestration;
 using maskx.OrchestrationService.SQL;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -56,7 +57,9 @@ namespace maskx.OrchestrationService.Worker
                 TraceActivityEventSource.Log.Critical(nameof(CommunicationWorker), string.Empty, string.Empty, "CommunicationWorker can not start", "options is null", "Failed");
                 return;
             }
-
+            var orchestrationWorker = this.serviceProvider.GetService<OrchestrationWorker>();
+            orchestrationWorker.AddActivity(typeof(AsyncRequestActivity));
+            orchestrationWorker.AddOrchestration(typeof(AsyncRequestOrchestration));
             var p = this.serviceProvider.GetServices<ICommunicationProcessor>();
             foreach (var item in p)
             {

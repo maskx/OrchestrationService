@@ -63,7 +63,7 @@ namespace maskx.OrchestrationService
                     return creator.Create();
                 }
 
-                return default(T);
+                return default;
             }
         }
 

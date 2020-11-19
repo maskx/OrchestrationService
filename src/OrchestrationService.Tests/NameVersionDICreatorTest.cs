@@ -29,7 +29,7 @@ namespace OrchestrationService.Tests
             activityTypes.Add(("TestActivity", "2", typeof(TestActivityV2)));
             workerHost = TestHelpers.CreateHostBuilder(
                 hubName : "NameVersionDICreatorTest",
-                orchestrationWorkerOptions: new maskx.OrchestrationService.Worker.OrchestrationWorkerOptions()
+                orchestrationWorkerOptions: new OrchestrationWorkerOptions()
                 {
                     GetBuildInOrchestrators = (sp) => orchestrationTypes,
                     GetBuildInTaskActivities = (sp) => activityTypes

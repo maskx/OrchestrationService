@@ -18,15 +18,16 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
         readonly IOrchestrationService SQLServerOrchestrationService = null;
         public WorkerHostFixture()
         {
-            CommunicationWorkerOptions options = new();
-            options.HubName = "OrchestrationWorkerTests";
-            var orchestrationTypes = new List<(string Name, string Version, Type Type)>
-            {
-                ("TestOrchestration", "", typeof(TestOrchestration))
-            };
             workerHost = TestHelpers.CreateHostBuilder(
-                communicationWorkerOptions: options,
-                orchestrationWorkerOptions: new maskx.OrchestrationService.Worker.OrchestrationWorkerOptions() { GetBuildInOrchestrators = (sp) => orchestrationTypes }
+                (cxt, sp) =>
+                {
+                    sp.AddSingleton<OrchestrationWorkerClient>();
+                },
+                hubName: "OrchestrationWorkerTests",
+                orchestrationWorkerOptions: new OrchestrationWorkerOptions()
+                {
+                    GetBuildInOrchestrators = (sp) => new List<(string Name, string Version, Type Type)> { ("TestOrchestration", "", typeof(TestOrchestration)) }
+                }
              ).Build();
             workerHost.RunAsync();
             OrchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();

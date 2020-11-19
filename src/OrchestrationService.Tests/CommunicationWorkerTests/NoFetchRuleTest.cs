@@ -12,7 +12,7 @@ using Xunit;
 namespace OrchestrationService.Tests.CommunicationWorkerTests
 {
     [Trait("C", "CommunicationWorker")]
-    public class NoFetchRuleTest :IDisposable
+    public class NoFetchRuleTest : IDisposable
     {
         private readonly DataConverter dataConverter = new JsonDataConverter();
         private readonly IHost workerHost = null;
@@ -24,8 +24,12 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
             List<(string Name, string Version, Type Type)> orchestrationTypes = new();
             orchestrationTypes.Add((typeof(TestOrchestration).FullName, "", typeof(TestOrchestration)));
             workerHost = TestHelpers.CreateHostBuilder(
-                hubName : "NoFetchRuleTest",
-                orchestrationWorkerOptions: new maskx.OrchestrationService.Worker.OrchestrationWorkerOptions() { GetBuildInOrchestrators = (sp) => orchestrationTypes }
+                hubName: "NoFetchRuleTest",
+                orchestrationWorkerOptions: new OrchestrationWorkerOptions()
+                {
+                    AutoCreate = true,
+                    GetBuildInOrchestrators = (sp) => orchestrationTypes
+                }
                ).Build();
             workerHost.RunAsync();
             orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
@@ -73,7 +77,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                     Assert.Equal(OrchestrationStatus.Completed, result.OrchestrationStatus);
                     var response = dataConverter.Deserialize<TaskResult>(result.Output);
                     Assert.Equal(200, response.Code);
-                    var r =response.Content as CommunicationResult;
+                    var r = response.Content as CommunicationResult;
                     Assert.Equal("MockCommunicationProcessor", r.ResponseContent);
                     break;
                 }

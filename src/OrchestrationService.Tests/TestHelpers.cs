@@ -71,9 +71,9 @@ namespace OrchestrationService.Tests
         }
         public static IHostBuilder CreateHostBuilder(
            Action<HostBuilderContext, IServiceCollection> config = null,
-            maskx.OrchestrationService.Worker.OrchestrationWorkerOptions orchestrationWorkerOptions = null,
-            maskx.OrchestrationService.Worker.CommunicationWorkerOptions communicationWorkerOptions = null,
-            string hubName=null)
+            OrchestrationWorkerOptions orchestrationWorkerOptions = null,
+            CommunicationWorkerOptions communicationWorkerOptions = null,
+            string hubName = null)
         {
             return Host.CreateDefaultBuilder()
              .ConfigureAppConfiguration((hostingContext, config) =>
@@ -84,27 +84,27 @@ namespace OrchestrationService.Tests
              })
              .ConfigureServices((hostContext, services) =>
              {
+                 if (string.IsNullOrEmpty(hubName)) hubName = TestHelpers.HubName;
                  config?.Invoke(hostContext, services);
-                 services.UsingOrchestration((sp) =>
+                 services.UsingSQLServerOrchestration(new SqlServerOrchestrationConfiguration()
                  {
-                     var conf = new SqlServerConfiguration()
-                     {
-                         AutoCreate = true,
-                         ConnectionString = TestHelpers.ConnectionString,
-                         HubName = TestHelpers.HubName,
-                         SchemaName = TestHelpers.SchemaName,
-                         OrchestrationServiceSettings=new maskx.DurableTask.SQLServer.Settings.SQLServerOrchestrationServiceSettings() { SchemaName=TestHelpers.SchemaName}
-                     };
-                     if (hubName != null)
-                         conf.HubName = hubName;
-                     if (orchestrationWorkerOptions != null)
-                         conf.OrchestrationWorkerOptions = orchestrationWorkerOptions;
-                     if (communicationWorkerOptions != null)
-                         conf.CommunicationWorkerOptions = communicationWorkerOptions;
-
-                     return conf;
+                     ConnectionString = TestHelpers.ConnectionString,
+                     HubName = hubName,
+                     SchemaName = TestHelpers.SchemaName
                  });
-
+                 if (orchestrationWorkerOptions == null)
+                     orchestrationWorkerOptions = new OrchestrationWorkerOptions();
+                 orchestrationWorkerOptions.AutoCreate = true;
+                 services.UsingOrchestrationWorker(sp => orchestrationWorkerOptions);
+                 if (communicationWorkerOptions == null)
+                     communicationWorkerOptions = new CommunicationWorkerOptions();
+                 communicationWorkerOptions.AutoCreate = true;
+                 communicationWorkerOptions.ConnectionString = TestHelpers.ConnectionString;
+                 communicationWorkerOptions.HubName = hubName;
+                 communicationWorkerOptions.SchemaName = TestHelpers.SchemaName;
+                 services.UsingCommunicationWorker(sp => communicationWorkerOptions);
+                 services.UsingCommunicationWorkerClient(sp => communicationWorkerOptions);
+                 services.AddSingleton<OrchestrationWorkerClient>();
                  services.AddSingleton<ICommunicationProcessor>(new MockCommunicationProcessor());
                  services.AddSingleton<ICommunicationProcessor>(new MockRetryCommunicationProcessor());
 

@@ -12,7 +12,7 @@ using Xunit;
 namespace OrchestrationService.Tests.CommunicationWorkerTests
 {
     [Trait("C", "CommunicationWorker")]
-    public class SimpleFetchRuleTest:IDisposable
+    public class SimpleFetchRuleTest : IDisposable
     {
         private readonly DataConverter dataConverter = new JsonDataConverter();
         private readonly IHost workerHost = null;
@@ -27,8 +27,12 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                 (typeof(TestOrchestration).FullName, "", typeof(TestOrchestration))
             };
             workerHost = TestHelpers.CreateHostBuilder(
-                hubName : "NoRule",
-                orchestrationWorkerOptions: new maskx.OrchestrationService.Worker.OrchestrationWorkerOptions() { GetBuildInOrchestrators = (sp) => orchestrationTypes }
+                hubName: "NoRule",
+                orchestrationWorkerOptions: new OrchestrationWorkerOptions()
+                {
+                    AutoCreate = true,
+                    GetBuildInOrchestrators = (sp) => orchestrationTypes
+                }
                ).Build();
             workerHost.RunAsync();
             orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();

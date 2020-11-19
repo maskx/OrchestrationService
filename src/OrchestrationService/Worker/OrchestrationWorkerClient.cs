@@ -1,7 +1,7 @@
 ﻿using DurableTask.Core;
-using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -9,72 +9,30 @@ namespace maskx.OrchestrationService.Worker
 {
     public class OrchestrationWorkerClient
     {
-        private readonly OrchestrationWorkerOptions options;
         private readonly TaskHubClient taskHubClient;
 
-        // hold orchestrationManager and activityManager, so we can remove unused orchestration
-        private readonly DynamicNameVersionObjectManager<TaskOrchestration> orchestrationManager;
-
-        private readonly DynamicNameVersionObjectManager<TaskActivity> activityManager;
-        private readonly IServiceProvider serviceProvider;
-
-        public OrchestrationWorkerClient(
-            IOrchestrationServiceClient orchestrationServiceClient,
-            IOptions<OrchestrationWorkerOptions> options,
-            IServiceProvider serviceProvider)
+        public OrchestrationWorkerClient(IOrchestrationServiceClient orchestrationServiceClient)
         {
-            this.serviceProvider = serviceProvider;
-            this.options = options?.Value;
             this.taskHubClient = new TaskHubClient(orchestrationServiceClient);
-            this.orchestrationManager = new DynamicNameVersionObjectManager<TaskOrchestration>();
-            this.activityManager = new DynamicNameVersionObjectManager<TaskActivity>();
-            Init();
         }
 
-        private void Init()
-        {
-            if (this.options.GetBuildInOrchestrators != null)
-            {
-                foreach (var activity in this.options.GetBuildInTaskActivities(serviceProvider))
-                {
-                    this.activityManager.TryAdd(new NameVersionDICreator<TaskActivity>(serviceProvider, activity.Name, activity.Version, activity.Type));
-                }
-            }
-            if (this.options.GetBuildInTaskActivities != null)
-            {
-                foreach (var orchestrator in this.options.GetBuildInOrchestrators(serviceProvider))
-                {
-                    this.orchestrationManager.TryAdd(new NameVersionDICreator<TaskOrchestration>(serviceProvider, orchestrator.Name, orchestrator.Version, orchestrator.Type));
-                }
-            }
-
-            if (this.options.GetBuildInTaskActivitiesFromInterface != null)
-            {
-                var interfaceActivitys = this.options.GetBuildInTaskActivitiesFromInterface(serviceProvider);
-                foreach (var @interface in interfaceActivitys.Keys)
-                {
-                    var activities = interfaceActivitys[@interface];
-                    foreach (var methodInfo in @interface.GetMethods())
-                    {
-                        TaskActivity taskActivity = new ReflectionBasedTaskActivity(activities.Instance, methodInfo);
-                        ObjectCreator<TaskActivity> creator =
-                            new NameValueObjectCreator<TaskActivity>(
-                                NameVersionHelper.GetDefaultName(methodInfo, true),
-                                activities.Version,
-                                taskActivity);
-                        this.activityManager.Add(creator);
-                    }
-                }
-            }
-        }
+       
 
         public async Task<OrchestrationInstance> JumpStartOrchestrationAsync(Job job)
         {
-            return await this.taskHubClient.CreateOrchestrationInstanceAsync(
-                job.Orchestration.Name,
-                job.Orchestration.Version,
-                job.InstanceId,
-                job.Input);
+            try
+            {
+                return await this.taskHubClient.CreateOrchestrationInstanceAsync(
+                    job.Orchestration.Name,
+                    job.Orchestration.Version,
+                    job.InstanceId,
+                    job.Input);
+            }
+            catch (Exception ex)
+            {
+                OrchestrationEventSource.Log.TraceEvent(TraceEventType.Critical, "OrchestrationWorker", string.Format("Orchestration Start Failed: Id-{0},Message-{1}", job.InstanceId, ex.Message), ex.ToString(), "Error");
+                return null;
+            }
         }
 
         public async Task<OrchestrationState> WaitForOrchestrationAsync(OrchestrationInstance instance, TimeSpan timeout)

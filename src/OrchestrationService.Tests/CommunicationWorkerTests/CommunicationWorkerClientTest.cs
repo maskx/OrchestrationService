@@ -1,5 +1,6 @@
-﻿using DurableTask.Core;
+﻿using maskx.OrchestrationService.Extensions;
 using maskx.OrchestrationService.Worker;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
@@ -15,17 +16,27 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
     {
         readonly IHost workerHost;
         readonly CommunicationWorkerClient _CommunicationWorkerClient = null;
-        readonly IOrchestrationService _SQLServerOrchestrationService = null;
-        readonly CommunicationWorker _CommunicationWorker = null;
         public CommunicationWorkerClientTest()
         {
-            workerHost = TestHelpers.CreateHostBuilder(
-                 hubName: "A" + DateTime.Now.Millisecond.ToString()
-                ).Build();
+            workerHost = Host.CreateDefaultBuilder()
+                  .ConfigureAppConfiguration((hostingContext, config) =>
+                  {
+                      config
+                      .AddJsonFile("appsettings.json", optional: true)
+                      .AddUserSecrets("D2705D0C-A231-4B0D-84B4-FD2BFC6AD8F0");
+                  })
+                  .ConfigureServices((hostContext, services) =>
+                  {
+                      services.UsingCommunicationWorkerClient((sp) => new CommunicationWorkerOptions() {
+                          AutoCreate=true,
+                          SchemaName="comm",
+                          HubName = "client",
+                          ConnectionString=TestHelpers.ConnectionString
+                         });
+                  })
+                  .Build();
             workerHost.RunAsync();
             _CommunicationWorkerClient = workerHost.Services.GetService<CommunicationWorkerClient>();
-            _SQLServerOrchestrationService = workerHost.Services.GetService<IOrchestrationService>();
-            _CommunicationWorker = workerHost.Services.GetService<CommunicationWorker>();
         }
         [Fact(DisplayName = "GetFetchRuleAsync")]
         public async Task GetFetchRuleAsync()
@@ -152,10 +163,9 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
         }
         public void Dispose()
         {
-            if (_CommunicationWorker != null)
-                _CommunicationWorker.DeleteCommunicationAsync().Wait();
-            if (_SQLServerOrchestrationService != null)
-                _SQLServerOrchestrationService.DeleteAsync(true).Wait();
+            if (_CommunicationWorkerClient != null)
+                _CommunicationWorkerClient.DeleteCommunicationAsync().Wait();
+          
             GC.SuppressFinalize(this);
         }
     }

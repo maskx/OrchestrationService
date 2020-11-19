@@ -1,7 +1,6 @@
 using DurableTask.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
@@ -24,8 +23,29 @@ namespace maskx.OrchestrationService.Worker
         private readonly DynamicNameVersionObjectManager<TaskOrchestration> orchestrationManager;
 
         private readonly DynamicNameVersionObjectManager<TaskActivity> activityManager;
-      
 
+        public void AddOrchestration(Type type, string name = "", string version = "")
+        {
+            if (string.IsNullOrEmpty(name))
+                name = type.ToString();
+            this.orchestrationManager.TryAdd(new NameVersionDICreator<TaskOrchestration>(serviceProvider, name, version, type));
+        }
+        public void AddActivity(Type type, string name = "", string version = "")
+        {
+            if (string.IsNullOrEmpty(name))
+                name = type.ToString();
+            this.activityManager.TryAdd(new NameVersionDICreator<TaskActivity>(serviceProvider, name, version, type));
+        }
+        public void AddActivity(object instance, Type type, string version = "")
+        {
+            foreach (var methodInfo in type.GetMethods())
+            {
+                this.activityManager.TryAdd(new NameValueObjectCreator<TaskActivity>(
+                        NameVersionHelper.GetDefaultName(methodInfo, true),
+                        version,
+                        new ReflectionBasedTaskActivity(instance, methodInfo)));
+            }
+        }
         public OrchestrationWorker(
             IOrchestrationService orchestrationService,
             IOrchestrationServiceClient orchestrationServiceClient,
@@ -41,7 +61,6 @@ namespace maskx.OrchestrationService.Worker
                 this.orchestrationManager,
                 this.activityManager);
             this.taskHubClient = new TaskHubClient(orchestrationServiceClient);
-          
             if (this.options.AutoCreate)
                 this.taskHubWorker.orchestrationService.CreateIfNotExistsAsync().Wait();
             // catch Orchestration Completed event
@@ -53,20 +72,21 @@ namespace maskx.OrchestrationService.Worker
             this.OrchestrationCompletedActions.Add(action);
         }
 
-        public override Task StartAsync(CancellationToken cancellationToken)
+        public override async Task StartAsync(CancellationToken cancellationToken)
         {
+           
             if (this.options.GetBuildInOrchestrators != null)
-            {
-                foreach (var activity in this.options.GetBuildInTaskActivities(serviceProvider))
-                {
-                    this.activityManager.TryAdd(new NameVersionDICreator<TaskActivity>(serviceProvider, activity.Name, activity.Version, activity.Type));
-                }
-            }
-            if (this.options.GetBuildInTaskActivities != null)
             {
                 foreach (var orchestrator in this.options.GetBuildInOrchestrators(serviceProvider))
                 {
                     this.orchestrationManager.TryAdd(new NameVersionDICreator<TaskOrchestration>(serviceProvider, orchestrator.Name, orchestrator.Version, orchestrator.Type));
+                }
+            }
+            if (this.options.GetBuildInTaskActivities != null)
+            {
+                foreach (var activity in this.options.GetBuildInTaskActivities(serviceProvider))
+                {
+                    this.activityManager.TryAdd(new NameVersionDICreator<TaskActivity>(serviceProvider, activity.Name, activity.Version, activity.Type));
                 }
             }
 
@@ -84,24 +104,24 @@ namespace maskx.OrchestrationService.Worker
                                 NameVersionHelper.GetDefaultName(methodInfo, true),
                                 activities.Version,
                                 taskActivity);
-                        this.activityManager.Add(creator);
+                        this.activityManager.TryAdd(creator);
                     }
                 }
             }
-
-            this.taskHubWorker.StartAsync().Wait();
             if (this.options.IncludeDetails)
             {
                 this.taskHubWorker.TaskOrchestrationDispatcher.IncludeDetails = true;
                 this.taskHubWorker.TaskActivityDispatcher.IncludeDetails = true;
             }
-            return base.StartAsync(cancellationToken);
+            await this.taskHubWorker.StartAsync();
+            await base.StartAsync(cancellationToken);
         }
 
-        public override Task StopAsync(CancellationToken cancellationToken)
+        public override async Task StopAsync(CancellationToken cancellationToken)
         {
-            this.taskHubWorker.StopAsync();
-            return base.StopAsync(cancellationToken);
+            if (this.taskHubWorker != null)
+                await this.taskHubWorker.StopAsync();
+            await base.StopAsync(cancellationToken);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -130,7 +150,7 @@ namespace maskx.OrchestrationService.Worker
                     await Task.Delay(this.jobProvider.Interval - (int)sw.ElapsedMilliseconds);
             }
         }
-
+        
         public async Task<OrchestrationInstance> JumpStartOrchestrationAsync(Job job)
         {
             try

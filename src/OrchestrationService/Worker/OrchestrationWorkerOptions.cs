@@ -6,7 +6,7 @@ namespace maskx.OrchestrationService.Worker
     public class OrchestrationWorkerOptions
     {
         /// <summary>
-        /// Auto-creates the necessary resources for the orchestration service and the instance store
+        /// Auto-creates the necessary resources for the orchestration service and the communication service
         /// </summary>
         public bool AutoCreate { get; set; } = false;
         public int FetchJobCount { get; set; } = 100;

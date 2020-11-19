@@ -12,6 +12,8 @@ namespace maskx.OrchestrationService.Worker
         public CommunicationWorkerClient(IOptions<CommunicationWorkerOptions> options)
         {
             _Options = options?.Value;
+            if (_Options.AutoCreate)
+                CreateIfNotExistsAsync(false).Wait();
         }
         public async Task<List<FetchRule>> GetFetchRuleAsync()
         {
@@ -25,7 +27,7 @@ namespace maskx.OrchestrationService.Worker
                     Id = reader.GetGuid(0),
                     Name = reader["Name"].ToString(),
                     Description = reader["Description"]?.ToString(),
-                    What = reader.IsDBNull(3) ? new List<Where>() :reader.GetString(3).DeserializeWhat(),
+                    What = reader.IsDBNull(3) ? new List<Where>() : reader.GetString(3).DeserializeWhat(),
                     Scope = reader.IsDBNull(4) ? new List<string>() : reader.GetString(4).DeserializeScope(),
                     Concurrency = reader.GetInt32(5),
                     CreatedTimeUtc = reader.GetDateTime(6),
@@ -71,7 +73,7 @@ namespace maskx.OrchestrationService.Worker
                 {
                     fetchRule.Name,
                     fetchRule.Description,
-                    What =fetchRule.What.SerializeWhat(),
+                    What = fetchRule.What.SerializeWhat(),
                     Scope = fetchRule.Scope.SerializeScope(),
                     fetchRule.Concurrency,
                     FetchOrder = fetchRule.FetchOrder.Serialize()
@@ -129,6 +131,16 @@ namespace maskx.OrchestrationService.Worker
             if (r == null)
                 return new List<FetchOrder>();
             return r.ToString().DeserializeFetchOrderList();
+        }
+        public async Task DeleteCommunicationAsync()
+        {
+            await Utilities.Utility.ExecuteSqlScriptAsync("drop-schema.sql", this._Options);
+        }
+
+        public async Task CreateIfNotExistsAsync(bool recreate)
+        {
+            if (recreate) await DeleteCommunicationAsync();
+            await Utilities.Utility.ExecuteSqlScriptAsync("create-schema.sql", this._Options);
         }
     }
 }

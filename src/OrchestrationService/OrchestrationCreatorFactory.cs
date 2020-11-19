@@ -1,14 +1,12 @@
-﻿using DurableTask.Core;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace maskx.OrchestrationService
 {
     public class OrchestrationCreatorFactory : IOrchestrationCreatorFactory
     {
-        private Dictionary<string, Type> creators = new Dictionary<string, Type>();
+        private readonly Dictionary<string, Type> creators = new Dictionary<string, Type>();
         private readonly IServiceProvider serviceProvider;
 
         public OrchestrationCreatorFactory(IServiceProvider serviceProvider)
