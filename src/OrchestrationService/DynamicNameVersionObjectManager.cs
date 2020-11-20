@@ -59,11 +59,8 @@ namespace maskx.OrchestrationService
             lock (this.thisLock)
             {
                 if (this.creators.TryGetValue(key, out ObjectCreator<T> creator))
-                {
                     return creator.Create();
-                }
-
-                return default;
+                throw new KeyNotFoundException($"cannot find {key} in DynamicNameVersionObjectManager");
             }
         }
 
@@ -71,7 +68,7 @@ namespace maskx.OrchestrationService
         {
             if (this.creators.ContainsKey(key))
                 return this.creators[key];
-            return null;
+            throw new KeyNotFoundException($"cannot find {key} in DynamicNameVersionObjectManager");
         }
 
         private string GetKey(string name, string version)

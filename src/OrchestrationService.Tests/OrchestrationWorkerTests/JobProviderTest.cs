@@ -3,6 +3,7 @@ using maskx.OrchestrationService;
 using maskx.OrchestrationService.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OrchestrationService.Tests.CommunicationWorkerTests;
 using System;
 using System.Collections.Generic;
 using Xunit;
@@ -15,7 +16,7 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
         private readonly IHost workerHost = null;
         private readonly OrchestrationWorker orchestrationWorker;
         private readonly IOrchestrationService orchestrationService;
-        private readonly CommunicationWorker communicationWorker;
+        private readonly CommunicationWorker<CustomCommunicationJob> communicationWorker;
         public JobProviderTest()
         {
             workerHost = TestHelpers.CreateHostBuilder(
@@ -34,7 +35,7 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
             workerHost.RunAsync();
             orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
             orchestrationService = workerHost.Services.GetService<IOrchestrationService>();
-            communicationWorker = workerHost.Services.GetService<CommunicationWorker>();
+            communicationWorker = workerHost.Services.GetService<CommunicationWorker<CustomCommunicationJob>>();
         }
 
         [Fact(DisplayName = "JumpStart")]

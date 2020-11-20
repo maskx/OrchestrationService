@@ -12,23 +12,23 @@ namespace maskx.OrchestrationService.Extensions
 {
     public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection UsingCommunicationWorker(this IServiceCollection services,
-            Func<IServiceProvider, CommunicationWorkerOptions> config = null)
+        public static IServiceCollection UsingCommunicationWorker<T>(this IServiceCollection services,
+        Func<IServiceProvider, CommunicationWorkerOptions> config = null) where T : CommunicationJob, new()
         {
             if (config != null)
                 services.TryAddSingleton(sp => Options.Create(config(sp)));
-            services.TryAddSingleton<CommunicationWorker>();
+            services.TryAddSingleton<CommunicationWorker<T>>();
             services.AddSingleton<IHostedService>(p =>
             {
-                return p.GetService<CommunicationWorker>();
+                return p.GetService<CommunicationWorker<T>>();
             });
             return services;
         }
-        public static IServiceCollection UsingCommunicationWorkerClient(this IServiceCollection services,
-            Func<IServiceProvider, CommunicationWorkerOptions> configOptions)
+        public static IServiceCollection UsingCommunicationWorkerClient<T>(this IServiceCollection services,
+            Func<IServiceProvider, CommunicationWorkerOptions> configOptions) where T : CommunicationJob, new()
         {
             services.TryAddSingleton(sp => Options.Create(configOptions(sp)));
-            services.TryAddSingleton<CommunicationWorkerClient>();
+            services.TryAddSingleton<CommunicationWorkerClient<T>>();
             return services;
         }
         public static IServiceCollection UsingOrchestrationWorker(this IServiceCollection services,

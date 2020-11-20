@@ -4,16 +4,17 @@ using Microsoft.Extensions.DependencyInjection;
 using System;
 using Xunit;
 using DurableTask.Core;
+using OrchestrationService.Tests.CommunicationWorkerTests;
 
 namespace OrchestrationService.Tests
 {
-    public class OrchestartionFServiceFixture:IDisposable
+    public class OrchestartionFServiceFixture : IDisposable
     {
         private readonly IHost workerHost = null;
         public IServiceProvider ServiceProvider { get; private set; }
         public OrchestrationWorker OrchestrationWorker { get; private set; }
         public OrchestrationWorkerClient OrchestrationWorkerClient { get; private set; }
-        public CommunicationWorker CommunicationWorker { get; private set; }
+        public CommunicationWorker<CustomCommunicationJob> CommunicationWorker { get; private set; }
         public IOrchestrationService OrchestrationService { get; private set; }
         public OrchestartionFServiceFixture()
         {
@@ -21,11 +22,11 @@ namespace OrchestrationService.Tests
             workerHost.RunAsync();
             OrchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
             OrchestrationWorkerClient = workerHost.Services.GetService<OrchestrationWorkerClient>();
-            CommunicationWorker = workerHost.Services.GetService<CommunicationWorker>();
+            CommunicationWorker = workerHost.Services.GetService<CommunicationWorker<CustomCommunicationJob>>();
             OrchestrationService = workerHost.Services.GetService<IOrchestrationService>();
             this.ServiceProvider = workerHost.Services;
         }
-       
+
         [CollectionDefinition("WebHost OrchestartionFService")]
         public class WebHostCollection : ICollectionFixture<OrchestartionFServiceFixture>
         {

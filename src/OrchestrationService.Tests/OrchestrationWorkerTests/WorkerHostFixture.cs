@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using Xunit;
 using Microsoft.Extensions.DependencyInjection;
 using DurableTask.Core;
+using OrchestrationService.Tests.CommunicationWorkerTests;
 
 namespace OrchestrationService.Tests.OrchestrationWorkerTests
 {
@@ -14,7 +15,7 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
         public OrchestrationWorker OrchestrationWorker { get; private set; }
         public OrchestrationWorkerClient OrchestrationWorkerClient { get; private set; }
 
-        readonly CommunicationWorker communicationWorker = null;
+        readonly CommunicationWorker<CustomCommunicationJob> communicationWorker = null;
         readonly IOrchestrationService SQLServerOrchestrationService = null;
         public WorkerHostFixture()
         {
@@ -32,7 +33,7 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
             workerHost.RunAsync();
             OrchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
             OrchestrationWorkerClient = workerHost.Services.GetService<OrchestrationWorkerClient>();
-            communicationWorker = workerHost.Services.GetService<CommunicationWorker>();
+            communicationWorker = workerHost.Services.GetService<CommunicationWorker<CustomCommunicationJob>>();
             SQLServerOrchestrationService = workerHost.Services.GetService<IOrchestrationService>();
         }
 

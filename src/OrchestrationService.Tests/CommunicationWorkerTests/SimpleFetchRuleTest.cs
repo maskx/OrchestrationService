@@ -1,7 +1,6 @@
 ﻿using DurableTask.Core;
 using DurableTask.Core.Serializing;
 using maskx.OrchestrationService;
-using maskx.OrchestrationService.Activity;
 using maskx.OrchestrationService.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -17,7 +16,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
         private readonly DataConverter dataConverter = new JsonDataConverter();
         private readonly IHost workerHost = null;
         private readonly OrchestrationWorker orchestrationWorker;
-        readonly CommunicationWorker communicationWorker = null;
+        readonly CommunicationWorker<CustomCommunicationJob> communicationWorker = null;
         readonly IOrchestrationService SQLServerOrchestrationService = null;
         public SimpleFetchRuleTest()
         {
@@ -27,7 +26,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                 (typeof(TestOrchestration).FullName, "", typeof(TestOrchestration))
             };
             workerHost = TestHelpers.CreateHostBuilder(
-                hubName: "NoRule",
+                hubName: "SimpleFetchRule",
                 orchestrationWorkerOptions: new OrchestrationWorkerOptions()
                 {
                     AutoCreate = true,
@@ -36,7 +35,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                ).Build();
             workerHost.RunAsync();
             orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
-            communicationWorker = workerHost.Services.GetService<CommunicationWorker>();
+            communicationWorker = workerHost.Services.GetService<CommunicationWorker<CustomCommunicationJob>>();
             SQLServerOrchestrationService = workerHost.Services.GetService<IOrchestrationService>();
         }
 
@@ -61,7 +60,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                 {
                     Name = typeof(TestOrchestration).FullName
                 },
-                Input = dataConverter.Serialize(new AsyncRequestInput()
+                Input = dataConverter.Serialize(new CustomCommunicationJob()
                 {
                     Processor = "MockCommunicationProcessor",
                     RequestOperation = "Create",

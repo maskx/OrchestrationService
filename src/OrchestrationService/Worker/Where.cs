@@ -19,6 +19,7 @@ namespace maskx.OrchestrationService.Worker
     }
     public static class WhereExtension
     {
+        // todo: validate user input
         public static (bool Result, string Message) IsValid(this Where where)
         {
             return (true, string.Empty);

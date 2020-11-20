@@ -3,6 +3,7 @@ using DurableTask.Core.Serializing;
 using maskx.OrchestrationService.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OrchestrationService.Tests.CommunicationWorkerTests;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -11,12 +12,12 @@ using Xunit;
 namespace OrchestrationService.Tests
 {
     [Trait("c", "NameVersionDICreatorTest")]
-    public class NameVersionDICreatorTest :IDisposable
+    public class NameVersionDICreatorTest : IDisposable
     {
         private readonly DataConverter dataConverter = new JsonDataConverter();
         private readonly IHost workerHost = null;
         private readonly OrchestrationWorkerClient orchestrationWorkerClient;
-        readonly CommunicationWorker communicationWorker = null;
+        readonly CommunicationWorker<CustomCommunicationJob> communicationWorker = null;
         readonly IOrchestrationService SQLServerOrchestrationService = null;
         public NameVersionDICreatorTest()
         {
@@ -28,7 +29,7 @@ namespace OrchestrationService.Tests
             activityTypes.Add(("TestActivity", "1", typeof(TestActivityV1)));
             activityTypes.Add(("TestActivity", "2", typeof(TestActivityV2)));
             workerHost = TestHelpers.CreateHostBuilder(
-                hubName : "NameVersionDICreatorTest",
+                hubName: "NameVersionDICreatorTest",
                 orchestrationWorkerOptions: new OrchestrationWorkerOptions()
                 {
                     GetBuildInOrchestrators = (sp) => orchestrationTypes,
@@ -37,7 +38,7 @@ namespace OrchestrationService.Tests
                ).Build();
             workerHost.RunAsync();
             orchestrationWorkerClient = workerHost.Services.GetService<OrchestrationWorkerClient>();
-            communicationWorker = workerHost.Services.GetService<CommunicationWorker>();
+            communicationWorker = workerHost.Services.GetService<CommunicationWorker<CustomCommunicationJob>>();
             SQLServerOrchestrationService = workerHost.Services.GetService<IOrchestrationService>();
         }
 

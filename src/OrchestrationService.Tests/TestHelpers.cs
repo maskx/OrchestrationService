@@ -102,11 +102,11 @@ namespace OrchestrationService.Tests
                  communicationWorkerOptions.ConnectionString = TestHelpers.ConnectionString;
                  communicationWorkerOptions.HubName = hubName;
                  communicationWorkerOptions.SchemaName = TestHelpers.SchemaName;
-                 services.UsingCommunicationWorker(sp => communicationWorkerOptions);
-                 services.UsingCommunicationWorkerClient(sp => communicationWorkerOptions);
+                 services.UsingCommunicationWorker<CustomCommunicationJob>(sp => communicationWorkerOptions);
+                 services.UsingCommunicationWorkerClient<CustomCommunicationJob>(sp => communicationWorkerOptions);
                  services.AddSingleton<OrchestrationWorkerClient>();
-                 services.AddSingleton<ICommunicationProcessor>(new MockCommunicationProcessor());
-                 services.AddSingleton<ICommunicationProcessor>(new MockRetryCommunicationProcessor());
+                 services.AddSingleton<ICommunicationProcessor<CustomCommunicationJob>, MockRetryCommunicationProcessor>();
+                 services.AddSingleton<ICommunicationProcessor<CustomCommunicationJob>, MockCommunicationProcessor>();
 
              });
         }

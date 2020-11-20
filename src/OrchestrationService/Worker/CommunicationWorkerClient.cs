@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace maskx.OrchestrationService.Worker
 {
-    public class CommunicationWorkerClient
+    public class CommunicationWorkerClient<T> where T : CommunicationJob, new()
     {
         private readonly CommunicationWorkerOptions _Options;
         public CommunicationWorkerClient(IOptions<CommunicationWorkerOptions> options)
@@ -136,11 +136,25 @@ namespace maskx.OrchestrationService.Worker
         {
             await Utilities.Utility.ExecuteSqlScriptAsync("drop-schema.sql", this._Options);
         }
-
         public async Task CreateIfNotExistsAsync(bool recreate)
         {
             if (recreate) await DeleteCommunicationAsync();
-            await Utilities.Utility.ExecuteSqlScriptAsync("create-schema.sql", this._Options);
+            var str = string.Format(@"
+IF(SCHEMA_ID('{0}') IS NULL)
+BEGIN
+    EXEC sp_executesql N'CREATE SCHEMA [{0}]'
+END
+GO
+IF  NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[{0}].[{1}_{2}]') AND type in (N'U'))
+BEGIN
+", _Options.SchemaName,_Options.HubName,CommunicationWorkerOptions.CommunicationTable);
+            str += Utilities.Utility.BuildTableScript(typeof(T), $"{_Options.HubName}_{CommunicationWorkerOptions.CommunicationTable}", _Options.SchemaName);
+            str += @"
+END
+GO
+";
+            str += await Utilities.Utility.GetScriptTextAsync("create-schema.sql", _Options.SchemaName, _Options.HubName);
+            await Utilities.Utility.ExecuteSqlScriptAsync(str, this._Options.ConnectionString);
         }
     }
 }

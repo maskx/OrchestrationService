@@ -21,20 +21,15 @@ namespace maskx.OrchestrationService.Worker
         public int MaxConcurrencyRequest { get; set; } = 100;
 
 
-        /// <summary>
-        /// 扩展的规则筛选字段
-        /// </summary>
-        public Dictionary<string, Type> RuleFields { get; set; } = new Dictionary<string, Type>();
-
-        private const string CommunicationTable = "_Communication";
-        private const string FetchCommunicationJobSP = "_FetchCommunicationJob";
-        private const string UpdateCommunicationSP = "_UpdateCommunication";
-        private const string BuildFetchCommunicationJobSP = "_BuildFetchCommunicationJobSP";
-        private const string FetchRuleTable = "_FetchRule";
-        private const string FetchRuleLimitationTable = "_FetchRuleLimitation";
-        private const string ConfigCommunicationSettingSP = "_ConfigCommunicationSetting";
-        private const string CommunicationSettingTable = "_CommunicationSetting";
-        public const string FetchOrderConfigurationKey = "FetchOrder";
+        internal const string CommunicationTable = "Communication";
+        internal const string FetchCommunicationJobSP = "FetchCommunicationJob";
+        internal const string UpdateCommunicationSP = "UpdateCommunication";
+        internal const string BuildFetchCommunicationJobSP = "BuildFetchCommunicationJobSP";
+        internal const string FetchRuleTable = "FetchRule";
+        internal const string FetchRuleLimitationTable = "FetchRuleLimitation";
+        internal const string ConfigCommunicationSettingSP = "ConfigCommunicationSetting";
+        internal const string CommunicationSettingTable = "CommunicationSetting";
+        internal const string FetchOrderConfigurationKey = "FetchOrder";
 
         /// <summary>
         /// Auto-creates the necessary resources for the CommunicationWorker
@@ -55,13 +50,13 @@ namespace maskx.OrchestrationService.Worker
         /// </summary>
         public string SchemaName { get; set; } = "dbo";
 
-        public string CommunicationTableName => $"[{SchemaName}].[{HubName}{CommunicationTable}]";
-        public string FetchCommunicationJobSPName => $"[{SchemaName}].[{HubName}{FetchCommunicationJobSP}]";
-        public string UpdateCommunicationSPName => $"[{SchemaName}].[{HubName}{UpdateCommunicationSP}]";
-        public string BuildFetchCommunicationJobSPName => $"[{SchemaName}].[{HubName}{BuildFetchCommunicationJobSP}]";
-        public string FetchRuleTableName => $"[{SchemaName}].[{HubName}{FetchRuleTable}]";
-        public string FetchRuleLimitationTableName => $"[{SchemaName}].[{HubName}{FetchRuleLimitationTable}]";
-        public string ConfigCommunicationSettingSPName => $"[{SchemaName}].[{HubName}{ConfigCommunicationSettingSP}]";
-        public string CommunicationSettingTableName => $"[{SchemaName}].[{HubName}{CommunicationSettingTable}]";
+        public string CommunicationTableName => $"[{SchemaName}].[{HubName}_{CommunicationTable}]";
+        public string FetchCommunicationJobSPName => $"[{SchemaName}].[{HubName}_{FetchCommunicationJobSP}]";
+        public string UpdateCommunicationSPName => $"[{SchemaName}].[{HubName}_{UpdateCommunicationSP}]";
+        public string BuildFetchCommunicationJobSPName => $"[{SchemaName}].[{HubName}_{BuildFetchCommunicationJobSP}]";
+        public string FetchRuleTableName => $"[{SchemaName}].[{HubName}_{FetchRuleTable}]";
+        public string FetchRuleLimitationTableName => $"[{SchemaName}].[{HubName}_{FetchRuleLimitationTable}]";
+        public string ConfigCommunicationSettingSPName => $"[{SchemaName}].[{HubName}_{ConfigCommunicationSettingSP}]";
+        public string CommunicationSettingTableName => $"[{SchemaName}].[{HubName}_{CommunicationSettingTable}]";
     }
 }

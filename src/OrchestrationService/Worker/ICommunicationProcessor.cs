@@ -2,12 +2,10 @@
 
 namespace maskx.OrchestrationService.Worker
 {
-    public interface ICommunicationProcessor
+    public interface ICommunicationProcessor<T> where T : CommunicationJob, new()
     {
         string Name { get; set; }
         int MaxBatchCount { get; set; }
-        CommunicationWorker CommunicationWorker { get; set; }
-
-        Task<CommunicationJob[]> ProcessAsync(params CommunicationJob[] jobs);
+        Task<T[]> ProcessAsync(params T[] jobs);
     }
 }

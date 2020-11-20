@@ -15,7 +15,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
     public class CommunicationWorkerClientTest : IDisposable
     {
         readonly IHost workerHost;
-        readonly CommunicationWorkerClient _CommunicationWorkerClient = null;
+        readonly CommunicationWorkerClient<CustomCommunicationJob> _CommunicationWorkerClient = null;
         public CommunicationWorkerClientTest()
         {
             workerHost = Host.CreateDefaultBuilder()
@@ -27,7 +27,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                   })
                   .ConfigureServices((hostContext, services) =>
                   {
-                      services.UsingCommunicationWorkerClient((sp) => new CommunicationWorkerOptions() {
+                      services.UsingCommunicationWorkerClient< CustomCommunicationJob>((sp) => new CommunicationWorkerOptions() {
                           AutoCreate=true,
                           SchemaName="comm",
                           HubName = "client",
@@ -36,7 +36,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                   })
                   .Build();
             workerHost.RunAsync();
-            _CommunicationWorkerClient = workerHost.Services.GetService<CommunicationWorkerClient>();
+            _CommunicationWorkerClient = workerHost.Services.GetService<CommunicationWorkerClient<CustomCommunicationJob>>();
         }
         [Fact(DisplayName = "GetFetchRuleAsync")]
         public async Task GetFetchRuleAsync()

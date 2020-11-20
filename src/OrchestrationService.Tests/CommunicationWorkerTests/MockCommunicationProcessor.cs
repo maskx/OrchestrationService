@@ -4,15 +4,18 @@ using System.Threading.Tasks;
 
 namespace OrchestrationService.Tests.CommunicationWorkerTests
 {
-    public class MockCommunicationProcessor : ICommunicationProcessor
+    public class MockCommunicationProcessor : ICommunicationProcessor<CustomCommunicationJob>
     {
         public string Name { get; set; } = "MockCommunicationProcessor";
         public int MaxBatchCount { get; set; } = 1;
-        public CommunicationWorker CommunicationWorker { get; set; }
-
-        public Task<CommunicationJob[]> ProcessAsync(params CommunicationJob[] jobs)
+        public CommunicationWorker<CustomCommunicationJob> CommunicationWorker { get; set; }
+        public MockCommunicationProcessor(CommunicationWorker<CustomCommunicationJob> communicationWorker)
         {
-            List<CommunicationJob> rtv = new List<CommunicationJob>();
+            CommunicationWorker = communicationWorker;
+        }
+        public Task<CustomCommunicationJob[]> ProcessAsync(params CustomCommunicationJob[] jobs)
+        {
+            List<CustomCommunicationJob> rtv = new();
             foreach (var job in jobs)
             {
                 job.ResponseCode = 200;

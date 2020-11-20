@@ -3,12 +3,6 @@
 -- {1} Hub
 -- ============================================
 
-IF(SCHEMA_ID('{0}') IS NULL)
-BEGIN
-    EXEC sp_executesql N'CREATE SCHEMA [{0}]'
-END
-GO
-
 IF  NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[{0}].[{1}_CommunicationSetting]') AND type in (N'U'))
 BEGIN
 	CREATE TABLE [{0}].[{1}_CommunicationSetting](
@@ -17,35 +11,6 @@ BEGIN
 	 CONSTRAINT [PK_{1}_OrchestrationServiceSetting] PRIMARY KEY CLUSTERED 
 	(
 		[Key] ASC
-	)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
-	) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
-END
-GO
-
-IF  NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[{0}].[{1}_Communication]') AND type in (N'U'))
-BEGIN
-	CREATE TABLE [{0}].[{1}_Communication](
-		[InstanceId] [nvarchar](50) NOT NULL,
-		[ExecutionId] [nvarchar](50) NOT NULL,
-		[EventName] [nvarchar](50) NOT NULL,
-		[Processor] [nvarchar](50) NULL,
-		[RequestTo] [nvarchar](50) NULL,
-		[RequestOperation] [nvarchar](50) NULL,
-		[RequestContent] [nvarchar](max) NULL,
-		[RequestProperty] [nvarchar](max) NULL,
-		[Status] [int] NULL,
-		[LockedUntilUtc] [datetime2](7) NULL,
-		[ResponseContent] [nvarchar](max) NULL,
-		[ResponseCode] [int] NULL,
-		[RequestId] [nvarchar](50) NULL,
-		[CompletedTime] [datetime2](7) NULL,
-		[CreateTime] [datetime2](7) NULL,
-		[Context] [nvarchar](max) NULL,
-	 CONSTRAINT [PK_{1}_Communication] PRIMARY KEY CLUSTERED 
-	(
-		[InstanceId] ASC,
-		[ExecutionId] ASC,
-		[EventName] ASC
 	)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 	) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
 END
@@ -86,7 +51,13 @@ AS
 BEGIN
 	SET NOCOUNT ON;
 	update [{0}].[{1}_Communication] WITH(READPAST)
-	set [Status]=@Status,[LockedUntilUtc]=DATEADD(second,@MessageLockedSeconds,getutcdate()),[Context]=ISNULL(@Context,Context), [ResponseCode]=@ResponseCode,[ResponseContent]=ISNULL(@ResponseContent,ResponseContent),CompletedTime=(case when @Status=4 then getutcdate() else null end)
+	set 
+		[Status]=@Status,
+		[LockedUntilUtc]=DATEADD(second,@MessageLockedSeconds,getutcdate()),
+		[Context]=ISNULL(@Context,Context), 
+		[ResponseCode]=@ResponseCode,
+		[ResponseContent]=ISNULL(@ResponseContent,ResponseContent),
+		CompletedTime=case when @Status=4 then getutcdate() else null end
 	where RequestId=@RequestId;
 END
 GO
@@ -149,7 +120,7 @@ BEGIN
 			)
 	where [key]=N'FetchOrder'
 	
-	if @CommonFetchOrder is null set @CommonFetchOrder=N'CreateTime'
+	if @CommonFetchOrder is null set @CommonFetchOrder=N'CreatedTime'
 
 	declare rule_cursor CURSOR FORWARD_ONLY FOR SELECT [Concurrency],[What],[Scope],[FetchOrder] FROM [{0}].[{1}_FetchRule]
 	open rule_cursor
@@ -173,7 +144,7 @@ BEGIN
 					)
 
 			set @LimitationWhere=@LimitationWhere +'
-			and (('+@Join_Count+'.Locked<'+CAST(@Concurrency as nvarchar(10))+' and '+@Join_Index+'.RowIndex=1) or '+@Join_Index+'.RowIndex is null)'
+			and ((ISNULL('+@Join_Count+'.Locked,0)<'+CAST(@Concurrency as nvarchar(10))+' and '+@Join_Index+'.RowIndex=1) or '+@Join_Index+'.RowIndex is null)'
 		
 			if @What is null
 			BEGIN
@@ -232,13 +203,13 @@ BEGIN
 		left join(
 			select COUNT(0) as Locked,'+@Names+','+@GroupBy+'
 			from [{0}].[{1}_Communication] with(NOLOCK)
-			where [status]='+@LockedStatusCode+' and T.[LockedUntilUtc]>@Now and '+@Where+'
+			where [status]='+@LockedStatusCode+' and [LockedUntilUtc]>@Now and '+@Where+'
 			group by '+@Names+','+@Groupby+'
 		) as '+@Join_Count+' on '+@On_Count+'
 		left join(
 			select InstanceId,ExecutionId,EventName,ROW_NUMBER() over(partition by '+@Groupby+' order by '+@Join_FetchOrder+') as RowIndex
 			from [{0}].[{1}_Communication] with(NOLOCK)
-			where [status]<='+@LockedStatusCode+' and T.[LockedUntilUtc]<@Now and '+@Where+'
+			where [status]<='+@LockedStatusCode+' and [LockedUntilUtc]<@Now and '+@Where+'
 		) as '+@Join_Index+' on T.InstanceId='+@Join_Index+'.InstanceId and T.EventName='+@Join_Index+'.EventName and T.ExecutionId='+@Join_Index+'.ExecutionId'
 				END
 			END	

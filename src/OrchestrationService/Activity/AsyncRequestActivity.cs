@@ -1,13 +1,16 @@
 ﻿using DurableTask.Core;
+using maskx.OrchestrationService.Extensions;
 using maskx.OrchestrationService.SQL;
 using maskx.OrchestrationService.Worker;
 using Microsoft.Extensions.Options;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace maskx.OrchestrationService.Activity
 {
-    public class AsyncRequestActivity : AsyncTaskActivity<AsyncRequestInput, TaskResult>
+    public class AsyncRequestActivity<T> : AsyncTaskActivity<T, TaskResult> where T : CommunicationJob, new()
     {
         private readonly CommunicationWorkerOptions options;
         private readonly string commandText;
@@ -15,52 +18,44 @@ namespace maskx.OrchestrationService.Activity
         public AsyncRequestActivity(IOptions<CommunicationWorkerOptions> options)
         {
             this.options = options.Value;
-            if (this.options.RuleFields.Count == 0)
+            var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            List<string> cols = new List<string>();
+            List<string> pars = new List<string>();
+            foreach (var p in properties)
             {
-                this.commandText = string.Format(commandTemplate, "", "", this.options.CommunicationTableName);
+                if (p.GetCustomAttribute<NotMappedAttribute>() != null)
+                    continue;
+                string n = p.GetColumnName();
+                cols.Add(n);
+                switch (n.ToLowerInvariant())
+                {
+                    case "createdtime":
+                    case "LockedUntilUtc":
+                        pars.Add("getutcdate()");
+                        break;
+                    case "requestid":
+                        pars.Add("newid()");
+                        break;
+                    default:
+                        pars.Add($"@{n}");
+                        break;
+                }
             }
-            else
-            {
-                this.commandText = string.Format(commandTemplate,
-                $",[{string.Join("],[", this.options.RuleFields.Keys)}]",
-                ",@" + string.Join(",@", this.options.RuleFields.Keys),
-                this.options.CommunicationTableName);
-            }
+            this.commandText = string.Format(commandTemplate, string.Join(",", cols), string.Join(",", pars), this.options.CommunicationTableName);
         }
 
-        protected override async Task<TaskResult> ExecuteAsync(TaskContext context, AsyncRequestInput input)
+        protected override async Task<TaskResult> ExecuteAsync(TaskContext context, T input)
         {
-            await SaveRequest(input, context.OrchestrationInstance);
+            await SaveRequest(input);
             return new TaskResult() { Code = 200 };
         }
 
-        public async Task SaveRequest(AsyncRequestInput input, OrchestrationInstance instance)
+        public async Task SaveRequest(T input)
         {
-            Dictionary<string, object> pars = new Dictionary<string, object>
-            {
-                { "InstanceId", instance.InstanceId },
-                { "ExecutionId", instance.ExecutionId },
-                { "EventName", input.EventName },
-                { "Status", (int)CommunicationJob.JobStatus.Pending },
-                { "RequestTo", input.RequestTo },
-                { "RequestOperation", input.RequestOperation },
-                { "RequestContent", input.RequestContent },
-                { "RequestProperty", input.RequestProperty },
-                { "Processor", input.Processor }
-            };
-            if (input.RuleField != null)
-            {
-                foreach (var item in input.RuleField)
-                {
-                    pars.Add(item.Key, item.Value);
-                }
-            }
-
             using var db = new SQLServerAccess(this.options.ConnectionString);
-            db.AddStatement(this.commandText, pars);
+            db.AddStatement(this.commandText, input);
             await db.ExecuteNonQueryAsync();
         }
-
         //{0} rule columns
         //{1} rule value
         //{2} Communication table name
@@ -68,11 +63,7 @@ namespace maskx.OrchestrationService.Activity
 MERGE {2} with (serializable) as TARGET
 USING (VALUES (@InstanceId,@ExecutionId,@EventName)) AS SOURCE ([InstanceId],[ExecutionId],[EventName])
 ON [Target].InstanceId = [Source].InstanceId AND [Target].ExecutionId = [Source].ExecutionId AND [Target].EventName = [Source].EventName
-WHEN NOT MATCHED THEN
-    INSERT
-        ([RequestId],[LockedUntilUtc],[CreateTime],[InstanceId],[ExecutionId],[EventName],[Status],[RequestTo],[RequestOperation],[RequestContent],[RequestProperty],[Processor]{0})
-    values
-        (newid(),getutcdate(),getutcdate(),@InstanceId,@ExecutionId,@EventName,@Status,@RequestTo,@RequestOperation,@RequestContent,@RequestProperty,@Processor {1})
+WHEN NOT MATCHED THEN INSERT ({0}) values ({1})
 ;";
     }
 }

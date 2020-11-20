@@ -17,7 +17,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
         private readonly DataConverter dataConverter = new JsonDataConverter();
         private readonly IHost workerHost = null;
         private readonly OrchestrationWorker orchestrationWorker;
-        readonly CommunicationWorker communicationWorker = null;
+        readonly CommunicationWorker<CustomCommunicationJob> communicationWorker = null;
         readonly IOrchestrationService SQLServerOrchestrationService = null;
         public RetryProcessorTest()
         {
@@ -25,11 +25,11 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
             orchestrationTypes.Add((typeof(TestOrchestration).FullName, "", typeof(TestOrchestration)));
             workerHost = TestHelpers.CreateHostBuilder(
                 hubName: "RetryProcessorTest",
-                orchestrationWorkerOptions: new maskx.OrchestrationService.Worker.OrchestrationWorkerOptions() { GetBuildInOrchestrators = (sp) => orchestrationTypes }
+                orchestrationWorkerOptions: new OrchestrationWorkerOptions() { GetBuildInOrchestrators = (sp) => orchestrationTypes }
                 ).Build();
             workerHost.RunAsync();
             orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
-            communicationWorker = workerHost.Services.GetService<CommunicationWorker>();
+            communicationWorker = workerHost.Services.GetService<CommunicationWorker<CustomCommunicationJob>>();
             SQLServerOrchestrationService = workerHost.Services.GetService<IOrchestrationService>();
         }
 
@@ -52,7 +52,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                 {
                     Name = typeof(TestOrchestration).FullName
                 },
-                Input = dataConverter.Serialize(new AsyncRequestInput()
+                Input = dataConverter.Serialize(new CustomCommunicationJob()
                 {
                     Processor = "MockRetryCommunicationProcessor"
                 })
