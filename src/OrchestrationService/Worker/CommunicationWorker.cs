@@ -169,7 +169,8 @@ namespace maskx.OrchestrationService.Worker
             //使用Task.Run包装CommunicationProcessor里的代码执行，避免CommunicationProcessor里有类似于Thread.Sleep这样阻塞线程的情况
             //CommunicationProcessor里不要使用Task.WaitAll,建议使用Task.WhenAll
             var response = await Task.Run(async () => await processor.ProcessAsync(jobs));
-            await Task.WhenAll(UpdateJobs(response), RaiseEvent(response));
+            await RaiseEvent(response);
+            await UpdateJobs(response);
         }
 
         public async Task UpdateJobs(params T[] jobs)
