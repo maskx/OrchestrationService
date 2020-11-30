@@ -1,10 +1,13 @@
 ﻿using maskx.OrchestrationService.Extensions;
+using maskx.OrchestrationService.SQL;
 using maskx.OrchestrationService.Worker;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -16,8 +19,16 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
     {
         readonly IHost workerHost;
         readonly CommunicationWorkerClient<CustomCommunicationJob> _CommunicationWorkerClient = null;
+        readonly CommunicationWorkerOptions _CommunicationWorkerOptions = null;
         public CommunicationWorkerClientTest()
         {
+            _CommunicationWorkerOptions = new CommunicationWorkerOptions()
+            {
+                AutoCreate = true,
+                SchemaName = "comm",
+                HubName = "client",
+                ConnectionString = TestHelpers.ConnectionString
+            };
             workerHost = Host.CreateDefaultBuilder()
                   .ConfigureAppConfiguration((hostingContext, config) =>
                   {
@@ -27,12 +38,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                   })
                   .ConfigureServices((hostContext, services) =>
                   {
-                      services.UsingCommunicationWorkerClient< CustomCommunicationJob>((sp) => new CommunicationWorkerOptions() {
-                          AutoCreate=true,
-                          SchemaName="comm",
-                          HubName = "client",
-                          ConnectionString=TestHelpers.ConnectionString
-                         });
+                      services.UsingCommunicationWorkerClient<CustomCommunicationJob>((sp) => _CommunicationWorkerOptions);
                   })
                   .Build();
             workerHost.RunAsync();
@@ -71,12 +77,152 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
         {
             var rtv = await _CommunicationWorkerClient.CreateFetchRuleAsync(new FetchRule()
             {
-                Name = "Rule1"
+                Name = "Rule1",
+                Scope = new List<string>() { "ManagementUnit" }
             });
             Assert.NotEqual(Guid.Empty, rtv.Id);
             Assert.Equal("Rule1", rtv.Name);
             Assert.Null(rtv.Description);
             return rtv;
+        }
+        [Fact(DisplayName = "InjectScope")]
+        public void InjectScope()
+        {
+            Assert.ThrowsAnyAsync<Exception>(() =>
+            {
+                var r = new FetchRule()
+                {
+                    Name = "Rule1",
+                    Scope = new List<string>() { "ManagementUnit' ; truncate table CustomCommunicationJob;" }
+                };
+
+                return _CommunicationWorkerClient.CreateFetchRuleAsync(r);
+            }).ContinueWith((ex) =>
+            {
+                Assert.EndsWith("is not a validate column name", ex.Result.Message);
+            });
+        }
+        [Fact(DisplayName = "InjectWhereName")]
+        public void InjectWhereName()
+        {
+            Assert.ThrowsAnyAsync<Exception>(() =>
+            {
+                var r = new FetchRule()
+                {
+                    Name = "Rule1",
+                    Scope = new List<string>() { "ManagementUnit" }
+                };
+                r.What.Add(new Where()
+                {
+                    Name = "column1' ; truncate table CustomCommunicationJob;",
+                    Operator = "=",
+                    Value = "1"
+                });
+
+                return _CommunicationWorkerClient.CreateFetchRuleAsync(r);
+            }).ContinueWith((ex) =>
+            {
+                Assert.EndsWith("is not a validate column name", ex.Result.Message);
+            });
+        }
+        [Fact(DisplayName = "InjectWhereOperator")]
+        public void InjectWhereOperator()
+        {
+            Assert.ThrowsAnyAsync<Exception>(() =>
+            {
+                var r = new FetchRule()
+                {
+                    Name = "Rule1",
+                    Scope = new List<string>() { "ManagementUnit" }
+                };
+                r.What.Add(new Where()
+                {
+                    Name = "ManagementUnit",
+                    Operator = "<>1; truncate table CustomCommunicationJob;",
+                    Value = "1"
+                });
+
+                return _CommunicationWorkerClient.CreateFetchRuleAsync(r);
+            }).ContinueWith((ex) =>
+            {
+                Assert.EndsWith("is not a validate operator", ex.Result.Message);
+            });
+        }
+        [Fact(DisplayName = "InjectWhereValue")]
+        public async Task InjectWhereValue()
+        {
+            var r = new FetchRule()
+            {
+                Name = "Rule1",
+                Scope = new List<string>() { "ManagementUnit" }
+            };
+            r.What.Add(new Where()
+            {
+                Name = "ManagementUnit",
+                Operator = "<>",
+                Value = "'1' ; truncate table CustomCommunicationJob;"
+            });
+            var r1 = await _CommunicationWorkerClient.CreateFetchRuleAsync(r);
+
+            using var db = new SQLServerAccess(TestHelpers.ConnectionString);
+            db.AddStatement($"select What from {_CommunicationWorkerOptions.FetchRuleTableName} where Id='{r1.Id}'");
+            var s = await db.ExecuteScalarAsync();
+            Assert.NotNull(s);
+            using var doc = JsonDocument.Parse(s.ToString());
+            var w = doc.RootElement.EnumerateArray().FirstOrDefault();
+            Assert.True(w.TryGetProperty("name", out JsonElement nameV));
+            Assert.Equal("ManagementUnit", nameV.GetString());
+            Assert.True(w.TryGetProperty("value", out JsonElement valueV));
+            Assert.Equal("N'''1'' ; truncate table CustomCommunicationJob;'", valueV.GetString());
+
+            var r2 = await _CommunicationWorkerClient.GetFetchRuleAsync(r1.Id);
+            Assert.Single(r2.What);
+            Assert.Equal("ManagementUnit", r2.What[0].Name);
+            Assert.Equal("'1' ; truncate table CustomCommunicationJob;", r2.What[0].Value);
+        }
+        [Fact(DisplayName = "WrongDateFormateInWhere")]
+        public void WrongDateFormateInWhere()
+        {
+            Assert.ThrowsAnyAsync<Exception>(() =>
+            {
+                var r = new FetchRule()
+                {
+                    Name = "Rule1",
+                    Scope = new List<string>() { "ManagementUnit" }
+                };
+                r.What.Add(new Where()
+                {
+                    Name = "CreatedTime",
+                    Operator = "<>",
+                    Value = "11/22/20202"
+                });
+
+                return _CommunicationWorkerClient.CreateFetchRuleAsync(r);
+            }).ContinueWith((ex) =>
+            {
+                Assert.EndsWith("need datetime value with format 'YYYY-MM-DD hh:mm:ss.nnnnnnn'", ex.Result.Message);
+            });
+        }
+        [Fact(DisplayName = "DateValueInWhere")]
+        public async Task DateValueInWhere()
+        {
+
+            var r = new FetchRule()
+            {
+                Name = "Rule1",
+                Scope = new List<string>() { "ManagementUnit" }
+            };
+            r.What.Add(new Where()
+            {
+                Name = "CreatedTime",
+                Operator = "<>",
+                Value = "2020-11-2"
+            });
+            await _CommunicationWorkerClient.CreateFetchRuleAsync(r);
+            var r1 = await _CommunicationWorkerClient.GetFetchRuleAsync(r.Id);
+            Assert.NotNull(r1);
+            Assert.Single(r1.What);
+            Assert.Equal("2020-11-2", r1.What[0].Value);
         }
         [Fact(DisplayName = "UpdateFetchRuleAsync")]
         public async Task UpdateFetchRuleAsync()
@@ -107,7 +253,9 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
             var r3 = await _CommunicationWorkerClient.GetFetchRuleAsync(r.Id);
             Assert.Equal("UpdateFetchRuleWhat", r3.Description);
             Assert.Equal(2, r3.What.Count);
-            Assert.Equal(r.What.SerializeWhat(), r3.What.SerializeWhat());
+            Assert.True(r.What.TrySerializeWhat(typeof(CustomCommunicationJob), out string s));
+            Assert.True(r3.What.TrySerializeWhat(typeof(CustomCommunicationJob), out string s3));
+            Assert.Equal(s, s3);
             Assert.Equal(r.Id, r3.Id);
         }
         [Fact(DisplayName = "UpdateFetchRuleScope")]
@@ -115,11 +263,12 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
         {
             var l = await CreateFetchRuleAsync();
             l.Concurrency = 99;
+            int count = l.Scope.Count;
             l.Scope.Add("EventName");
             await _CommunicationWorkerClient.UpdateFetchRuleAsync(l);
             var r = await _CommunicationWorkerClient.GetFetchRuleAsync(l.Id);
-            Assert.Single(r.Scope);
-            Assert.Equal("EventName", r.Scope[0]);
+            Assert.Equal(count + 1, r.Scope.Count);
+            Assert.Contains("EventName", r.Scope);
             Assert.Equal(99, r.Concurrency);
         }
         [Fact(DisplayName = "UpdateFetchRuleFetchOrder")]
@@ -165,7 +314,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
         {
             if (_CommunicationWorkerClient != null)
                 _CommunicationWorkerClient.DeleteCommunicationAsync().Wait();
-          
+
             GC.SuppressFinalize(this);
         }
     }

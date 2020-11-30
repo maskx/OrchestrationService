@@ -42,20 +42,25 @@ namespace maskx.OrchestrationService.Extensions
                     break;
                 case "Int32":
                     c = "int";
-                    break;
-                case "double":
+                    break; 
+                case "Int64":
                     c = "float";
                     break;
-                case "long":
+                case "Double":
                     c = "double";
                     break;
                 case "decimal":
                     c = "decimal(38,6)";
                     break;
+                case "Guid":
+                    c = "uniqueidentifier";
+                    break;
                 default:
                     if (propertyInfo.PropertyType.IsEnum) c = "int";
                     break;
             }
+            if (string.IsNullOrEmpty(c))
+                throw new System.Exception($"not support { propertyInfo.PropertyType.Name} convert to Database type");
             return c;
         }
     }

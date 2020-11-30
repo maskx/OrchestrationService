@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace maskx.OrchestrationService.Worker
+﻿namespace maskx.OrchestrationService.Worker
 {
     public class CommunicationWorkerOptions
     {
@@ -26,7 +23,6 @@ namespace maskx.OrchestrationService.Worker
         internal const string UpdateCommunicationSP = "UpdateCommunication";
         internal const string BuildFetchCommunicationJobSP = "BuildFetchCommunicationJobSP";
         internal const string FetchRuleTable = "FetchRule";
-        internal const string FetchRuleLimitationTable = "FetchRuleLimitation";
         internal const string ConfigCommunicationSettingSP = "ConfigCommunicationSetting";
         internal const string CommunicationSettingTable = "CommunicationSetting";
         internal const string FetchOrderConfigurationKey = "FetchOrder";
@@ -55,8 +51,7 @@ namespace maskx.OrchestrationService.Worker
         public string UpdateCommunicationSPName => $"[{SchemaName}].[{HubName}_{UpdateCommunicationSP}]";
         public string BuildFetchCommunicationJobSPName => $"[{SchemaName}].[{HubName}_{BuildFetchCommunicationJobSP}]";
         public string FetchRuleTableName => $"[{SchemaName}].[{HubName}_{FetchRuleTable}]";
-        public string FetchRuleLimitationTableName => $"[{SchemaName}].[{HubName}_{FetchRuleLimitationTable}]";
-        public string ConfigCommunicationSettingSPName => $"[{SchemaName}].[{HubName}_{ConfigCommunicationSettingSP}]";
+       public string ConfigCommunicationSettingSPName => $"[{SchemaName}].[{HubName}_{ConfigCommunicationSettingSP}]";
         public string CommunicationSettingTableName => $"[{SchemaName}].[{HubName}_{CommunicationSettingTable}]";
     }
 }

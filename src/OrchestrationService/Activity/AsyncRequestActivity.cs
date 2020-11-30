@@ -18,10 +18,9 @@ namespace maskx.OrchestrationService.Activity
         public AsyncRequestActivity(IOptions<CommunicationWorkerOptions> options)
         {
             this.options = options.Value;
-            var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
             List<string> cols = new List<string>();
             List<string> pars = new List<string>();
-            foreach (var p in properties)
+            foreach (var p in Utilities.Utility.GetPropertyInfos(typeof(T)).Values)
             {
                 if (p.GetCustomAttribute<NotMappedAttribute>() != null)
                     continue;

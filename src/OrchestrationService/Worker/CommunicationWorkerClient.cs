@@ -27,7 +27,7 @@ namespace maskx.OrchestrationService.Worker
                     Id = reader.GetGuid(0),
                     Name = reader["Name"].ToString(),
                     Description = reader["Description"]?.ToString(),
-                    What = reader.IsDBNull(3) ? new List<Where>() : reader.GetString(3).DeserializeWhat(),
+                    What = reader.IsDBNull(3) ? new List<Where>() : reader.GetString(3).DeserializeWhat(typeof(T)),
                     Scope = reader.IsDBNull(4) ? new List<string>() : reader.GetString(4).DeserializeScope(),
                     Concurrency = reader.GetInt32(5),
                     CreatedTimeUtc = reader.GetDateTime(6),
@@ -49,7 +49,7 @@ namespace maskx.OrchestrationService.Worker
                     Id = id,
                     Name = reader[1].ToString(),
                     Description = reader.IsDBNull(2) ? null : reader[2].ToString(),
-                    What = reader.IsDBNull(3) ? new List<Where>() : reader.GetString(3).DeserializeWhat(),
+                    What = reader.IsDBNull(3) ? new List<Where>() : reader.GetString(3).DeserializeWhat(typeof(T)),
                     Scope = reader.IsDBNull(4) ? new List<string>() : reader.GetString(4).DeserializeScope(),
                     Concurrency = reader.GetInt32(5),
                     CreatedTimeUtc = reader.GetDateTime(6),
@@ -67,17 +67,12 @@ namespace maskx.OrchestrationService.Worker
         }
         public async Task<FetchRule> CreateFetchRuleAsync(FetchRule fetchRule)
         {
+            var errorMsg = fetchRule.Validate(typeof(T), out Dictionary<string, object> par);
+            if (!string.IsNullOrEmpty(errorMsg))
+                throw new Exception(errorMsg);
             using var db = new SQLServerAccess(_Options.ConnectionString);
             db.AddStatement($"INSERT INTO {_Options.FetchRuleTableName} ([Name],[Description],[What],[Scope],[Concurrency],[FetchOrder]) OUTPUT inserted.Id,inserted.CreatedTimeUtc,inserted.UpdatedTimeUtc  VALUES (@Name,@Description,@What,@Scope,@Concurrency,@FetchOrder)",
-                new
-                {
-                    fetchRule.Name,
-                    fetchRule.Description,
-                    What = fetchRule.What.SerializeWhat(),
-                    Scope = fetchRule.Scope.SerializeScope(),
-                    fetchRule.Concurrency,
-                    FetchOrder = fetchRule.FetchOrder.Serialize()
-                });
+                par);
             await db.ExecuteReaderAsync((reader, index) =>
             {
                 fetchRule.Id = reader.GetGuid(0);
@@ -89,18 +84,13 @@ namespace maskx.OrchestrationService.Worker
         }
         public async Task<FetchRule> UpdateFetchRuleAsync(FetchRule fetchRule)
         {
+            var errorMsg = fetchRule.Validate(typeof(T), out Dictionary<string, object> par);
+            if (!string.IsNullOrEmpty(errorMsg))
+                throw new Exception(errorMsg);
+            par.Add("Id", fetchRule.Id);
             using var db = new SQLServerAccess(_Options.ConnectionString);
             db.AddStatement($"update {_Options.FetchRuleTableName} set Name=@Name,Description=@Description,What=@What,Scope=@Scope,Concurrency=@Concurrency,UpdatedTimeUtc=getutcdate(),FetchOrder=@FetchOrder where Id=@Id",
-                new
-                {
-                    fetchRule.Name,
-                    fetchRule.Description,
-                    What = fetchRule.What.SerializeWhat(),
-                    Scope = fetchRule.Scope.SerializeScope(),
-                    fetchRule.Concurrency,
-                    fetchRule.Id,
-                    FetchOrder = fetchRule.FetchOrder.Serialize()
-                });
+                par);
             await db.ExecuteNonQueryAsync();
             return fetchRule;
         }
@@ -115,12 +105,14 @@ namespace maskx.OrchestrationService.Worker
         }
         public async Task SetCommonFetchOrderAsyc(List<FetchOrder> fetchOrder)
         {
+            if (!fetchOrder.TrySerialize(typeof(T), out string order))
+                throw new Exception(order);
             using var db = new SQLServerAccess(_Options.ConnectionString);
             await db.ExecuteStoredProcedureASync(_Options.ConfigCommunicationSettingSPName,
                 new
                 {
                     Key = CommunicationWorkerOptions.FetchOrderConfigurationKey,
-                    Value = fetchOrder.Serialize()
+                    Value = order
                 });
         }
         public async Task<List<FetchOrder>> GetCommonFetchOrderAsync()
@@ -147,7 +139,7 @@ END
 GO
 IF  NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[{0}].[{1}_{2}]') AND type in (N'U'))
 BEGIN
-", _Options.SchemaName,_Options.HubName,CommunicationWorkerOptions.CommunicationTable);
+", _Options.SchemaName, _Options.HubName, CommunicationWorkerOptions.CommunicationTable);
             str += Utilities.Utility.BuildTableScript(typeof(T), $"{_Options.HubName}_{CommunicationWorkerOptions.CommunicationTable}", _Options.SchemaName);
             str += @"
 END

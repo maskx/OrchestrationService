@@ -2,6 +2,7 @@
 using maskx.OrchestrationService.Worker;
 using Microsoft.SqlServer.Management.Common;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -43,7 +44,20 @@ namespace maskx.OrchestrationService.Utilities
             using var reader = new StreamReader(resourceStream);
             return await reader.ReadToEndAsync();
         }
-
+        private static ConcurrentDictionary<Type, Dictionary<string, PropertyInfo>> _PropertyInfos=new ConcurrentDictionary<Type, Dictionary<string, PropertyInfo>>();
+        public static Dictionary<string, PropertyInfo> GetPropertyInfos(Type type)
+        {
+            if (!_PropertyInfos.TryGetValue(type, out Dictionary<string, PropertyInfo> ps))
+            {
+                ps = new Dictionary<string, PropertyInfo>();
+                foreach (var item in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+                {
+                    ps.Add(item.GetColumnName().ToLower(), item);
+                }
+                _PropertyInfos.TryAdd(type, ps);
+            }
+            return ps;
+        }
         public static JsonSerializerOptions DefaultJsonSerializerOptions { get; private set; } = new JsonSerializerOptions()
         {
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
@@ -57,8 +71,7 @@ namespace maskx.OrchestrationService.Utilities
                 tableName = type.GetTableName();
             if (string.IsNullOrEmpty(defaultSchema))
                 defaultSchema = type.GetSchemaName();
-            var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-            foreach (var p in properties)
+            foreach (var p in GetPropertyInfos(type).Values)
             {
                 string required;
                 if (p.GetCustomAttribute<NotMappedAttribute>() != null)
@@ -77,6 +90,9 @@ namespace maskx.OrchestrationService.Utilities
 {string.Join("," + Environment.NewLine, cols)}
 ) ON [PRIMARY]";
         }
-
+        public static bool IsValidateField(string name, Type type)
+        {
+            return Utility.GetPropertyInfos(type).ContainsKey(name.ToLower());
+        }
     }
 }
