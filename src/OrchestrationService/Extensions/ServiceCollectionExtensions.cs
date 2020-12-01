@@ -57,21 +57,26 @@ namespace maskx.OrchestrationService.Extensions
             return services;
         }
 
-        public static IServiceCollection UsingSQLServerOrchestration(this IServiceCollection services, SqlServerOrchestrationConfiguration configuration)
+        public static IServiceCollection UsingSQLServerOrchestration(this IServiceCollection services, Func<IServiceProvider, SqlServerOrchestrationConfiguration> config)
         {
-            var sqlServerStore = new SqlServerInstanceStore(new SqlServerInstanceStoreSettings()
+            SQLServerOrchestrationService GetOrchestrationService(IServiceProvider sp)
             {
-                HubName = configuration.HubName,
-                SchemaName = configuration.SchemaName,
-                ConnectionString = configuration.ConnectionString
-            });
-            var orchestrationService = new SQLServerOrchestrationService(
-                       configuration.ConnectionString,
-                       configuration.HubName,
-                       sqlServerStore,
-                       configuration);
-            services.AddSingleton<IOrchestrationService>(orchestrationService);
-            services.AddSingleton<IOrchestrationServiceClient>(orchestrationService);
+                var configuration = config(sp);
+                var sqlServerStore = new SqlServerInstanceStore(new SqlServerInstanceStoreSettings()
+                {
+                    HubName = configuration.HubName,
+                    SchemaName = configuration.SchemaName,
+                    ConnectionString = configuration.ConnectionString
+                });
+                return new SQLServerOrchestrationService(
+                           configuration.ConnectionString,
+                           configuration.HubName,
+                           sqlServerStore,
+                           configuration);
+            }
+
+            services.AddSingleton<IOrchestrationService>(sp => GetOrchestrationService(sp));
+            services.AddSingleton<IOrchestrationServiceClient>(sp => GetOrchestrationService(sp));
             return services;
         }
     }

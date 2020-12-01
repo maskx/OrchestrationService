@@ -51,7 +51,7 @@
         public string UpdateCommunicationSPName => $"[{SchemaName}].[{HubName}_{UpdateCommunicationSP}]";
         public string BuildFetchCommunicationJobSPName => $"[{SchemaName}].[{HubName}_{BuildFetchCommunicationJobSP}]";
         public string FetchRuleTableName => $"[{SchemaName}].[{HubName}_{FetchRuleTable}]";
-       public string ConfigCommunicationSettingSPName => $"[{SchemaName}].[{HubName}_{ConfigCommunicationSettingSP}]";
+        public string ConfigCommunicationSettingSPName => $"[{SchemaName}].[{HubName}_{ConfigCommunicationSettingSP}]";
         public string CommunicationSettingTableName => $"[{SchemaName}].[{HubName}_{CommunicationSettingTable}]";
     }
 }

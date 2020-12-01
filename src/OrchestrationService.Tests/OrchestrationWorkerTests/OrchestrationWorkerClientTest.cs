@@ -31,7 +31,7 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
                     })
                     .ConfigureServices((hostContext, services) =>
                     {
-                        services.UsingSQLServerOrchestration(new SqlServerOrchestrationConfiguration()
+                        services.UsingSQLServerOrchestration(sp=>new SqlServerOrchestrationConfiguration()
                         {
                             SchemaName = "comm",
                             HubName = "client",

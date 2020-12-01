@@ -190,7 +190,7 @@ namespace maskx.OrchestrationService.Worker
             }
         }
 
-        private async Task RaiseEvent(params CommunicationJob[] jobs)
+        private async Task RaiseEvent(params T[] jobs)
         {
             List<Task> tasks = new List<Task>();
             foreach (var job in jobs)

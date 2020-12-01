@@ -8,7 +8,7 @@
         public TaskResult(int code, object content)
         {
             this.Code = code;
-            this.ContentType = content.GetType().FullName;
+            this.ContentType = content?.GetType().FullName;
             this.Content = content;
         }
         public int Code { get; set; }

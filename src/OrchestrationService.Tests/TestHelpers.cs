@@ -86,7 +86,7 @@ namespace OrchestrationService.Tests
              {
                  if (string.IsNullOrEmpty(hubName)) hubName = TestHelpers.HubName;
                  config?.Invoke(hostContext, services);
-                 services.UsingSQLServerOrchestration(new SqlServerOrchestrationConfiguration()
+                 services.UsingSQLServerOrchestration(sp=>new SqlServerOrchestrationConfiguration()
                  {
                      ConnectionString = TestHelpers.ConnectionString,
                      HubName = hubName,

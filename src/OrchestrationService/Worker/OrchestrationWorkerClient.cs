@@ -16,8 +16,6 @@ namespace maskx.OrchestrationService.Worker
             this.taskHubClient = new TaskHubClient(orchestrationServiceClient);
         }
 
-       
-
         public async Task<OrchestrationInstance> JumpStartOrchestrationAsync(Job job)
         {
             try

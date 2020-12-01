@@ -25,7 +25,7 @@ namespace maskx.OrchestrationService.Activity
                 if (p.GetCustomAttribute<NotMappedAttribute>() != null)
                     continue;
                 string n = p.GetColumnName();
-                cols.Add(n);
+                cols.Add($"[{n}]");
                 switch (n.ToLowerInvariant())
                 {
                     case "createdtime":
