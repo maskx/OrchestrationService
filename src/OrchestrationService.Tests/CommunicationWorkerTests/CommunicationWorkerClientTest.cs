@@ -203,6 +203,29 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                 Assert.EndsWith("need datetime value with format 'YYYY-MM-DD hh:mm:ss.nnnnnnn'", ex.Result.Message);
             });
         }
+        [Fact(DisplayName = "InjectDateFormateInWhere")]
+        public void InjectDateFormateInWhere()
+        {
+            Assert.ThrowsAnyAsync<Exception>(() =>
+            {
+                var r = new FetchRule()
+                {
+                    Name = "Rule1",
+                    Scope = new List<string>() { "ManagementUnit" }
+                };
+                r.What.Add(new Where()
+                {
+                    Name = "CreatedTime",
+                    Operator = "<>",
+                    Value = "2020-11-2 11:10:10:1234567'; truncate talbe communication;"
+                });
+
+                return _CommunicationWorkerClient.CreateFetchRuleAsync(r);
+            }).ContinueWith((ex) =>
+            {
+                Assert.EndsWith("need datetime value with format 'YYYY-MM-DD hh:mm:ss.nnnnnnn'", ex.Result.Message);
+            });
+        }
         [Fact(DisplayName = "DateValueInWhere")]
         public async Task DateValueInWhere()
         {

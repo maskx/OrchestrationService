@@ -9,9 +9,9 @@ namespace maskx.OrchestrationService.Extensions
         public static string GetSchemaName(this Type type, string defaultSchema = "dbo")
         {
             var table = type.GetCustomAttribute<TableAttribute>();
-            if (table != null && string.IsNullOrEmpty(table.Schema))
-                return table.Schema;
-            return string.IsNullOrEmpty(defaultSchema) ? "dbo" : defaultSchema; ;
+            if (table == null || string.IsNullOrEmpty(table.Schema))
+                return defaultSchema;
+            return table.Schema;
         }
         public static string GetTableName(this Type type)
         {

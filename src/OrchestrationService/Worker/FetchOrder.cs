@@ -45,12 +45,8 @@ namespace maskx.OrchestrationService.Worker
         public static List<FetchOrder> DeserializeFetchOrderList(this string rawString)
         {
             if (string.IsNullOrEmpty(rawString))
-                return null;
+                return new List<FetchOrder>();
             return JsonSerializer.Deserialize<List<FetchOrder>>(rawString, Utility.DefaultJsonSerializerOptions);
-        }
-        public static bool IsValid(this List<FetchOrder> fetchOder)
-        {
-            return true;
         }
     }
 }

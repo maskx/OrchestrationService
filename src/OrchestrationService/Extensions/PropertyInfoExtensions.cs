@@ -20,7 +20,7 @@ namespace maskx.OrchestrationService.Extensions
                 return column.TypeName;
             return GetDbType(propertyInfo);
         }
-        static string GetDbType(PropertyInfo propertyInfo)
+        static string GetDbType(this PropertyInfo propertyInfo)
         {
             string c = string.Empty;
             switch (propertyInfo.PropertyType.Name)
@@ -34,7 +34,7 @@ namespace maskx.OrchestrationService.Extensions
                     else c += "max";
                     c += ")";
                     break;
-                case "bool":
+                case "Boolean":
                     c = "bit";
                     break;
                 case "DateTime":
@@ -49,11 +49,14 @@ namespace maskx.OrchestrationService.Extensions
                 case "Double":
                     c = "double";
                     break;
-                case "decimal":
+                case "Decimal":
                     c = "decimal(38,6)";
                     break;
                 case "Guid":
                     c = "uniqueidentifier";
+                    break;
+                case "Byte[]":
+                    c = "varbinary(max)";
                     break;
                 default:
                     if (propertyInfo.PropertyType.IsEnum) c = "int";

@@ -26,10 +26,11 @@ namespace maskx.OrchestrationService.Activity
                     continue;
                 string n = p.GetColumnName();
                 cols.Add($"[{n}]");
+                // todo: try to find a way support set default value in class define
                 switch (n.ToLowerInvariant())
                 {
                     case "createdtime":
-                    case "LockedUntilUtc":
+                    case "lockeduntilutc":
                         pars.Add("getutcdate()");
                         break;
                     case "requestid":
@@ -55,9 +56,7 @@ namespace maskx.OrchestrationService.Activity
             db.AddStatement(this.commandText, input);
             await db.ExecuteNonQueryAsync();
         }
-        //{0} rule columns
-        //{1} rule value
-        //{2} Communication table name
+
         private const string commandTemplate = @"
 MERGE {2} with (serializable) as TARGET
 USING (VALUES (@InstanceId,@ExecutionId,@EventName)) AS SOURCE ([InstanceId],[ExecutionId],[EventName])

@@ -54,8 +54,8 @@ namespace maskx.OrchestrationService.Worker
                 if (vp.ValueKind == JsonValueKind.String)
                 {
                     value = vp.GetString();
-                    if (p.PropertyType.Name == "String") value = value.Substring(2, value.Length - 3).Replace("''", "'");
-                    else value = value.Substring(1, value.Length - 2);
+                    if (p.PropertyType.Name == "String") value = value[2..^1].Replace("''", "'");
+                    else value = value[1..^1];
                 }
                 else if (vp.ValueKind == JsonValueKind.Number)
                 {
@@ -104,7 +104,7 @@ namespace maskx.OrchestrationService.Worker
                     case "String":
                         writer.WriteStringValue(JsonEncodedText.Encode($"N'{w.Value.Replace("'", "''")}'", JavaScriptEncoder.UnsafeRelaxedJsonEscaping));
                         break;
-                    case "Bool":
+                    case "Boolean":
                     case "Int32":
                         if (!int.TryParse(w.Value, out int int32))
                         {
@@ -127,7 +127,7 @@ namespace maskx.OrchestrationService.Worker
                             result = $"{w.Name} need a decimal value";
                             return false;
                         }
-                        writer.WriteNumberValue(decimal.Parse(w.Value));
+                        writer.WriteNumberValue(dec);
                         break;
                     case "Double":
                         if (!double.TryParse(w.Value, out double dou))
@@ -138,12 +138,12 @@ namespace maskx.OrchestrationService.Worker
                         writer.WriteNumberValue(dou);
                         break;
                     case "DateTime":
-                        if (!Regex.IsMatch(w.Value, @"^\d{4}-\d{1,2}-\d{1,2}[\s\d{1,2}:\d{1,2}[:\d{1,2}[.\d{1,7}]{0,1}]{0,1}]{0,1}"))
+                        if (!Regex.IsMatch(w.Value, @"^\d{4}-(0?[1-9]|1[0-2])-(0?[1-9]|[12][0-9]|3[01])( (00|[0-9]|1[0-9]|2[0-3]):([0-9]|[0-5][0-9])((:([0-9]|[0-5][0-9])(.\d{1,7})?)?)?)?$"))
                         {
                             result = $"{w.Name} need datetime value with format 'YYYY-MM-DD hh:mm:ss.nnnnnnn'";
                             return false;
                         }
-                        writer.WriteStringValue(JsonEncodedText.Encode($"'{w.Value}'", JavaScriptEncoder.UnsafeRelaxedJsonEscaping));
+                        writer.WriteStringValue($"'{w.Value}'");
                         break;
                     case "Guid":
                         if (w.Value.Length != 36 || !Guid.TryParse(w.Value, out Guid g))
@@ -151,13 +151,12 @@ namespace maskx.OrchestrationService.Worker
                             result = $"{w.Name} need Guid value";
                             return false;
                         }
-                        writer.WriteStringValue(JsonEncodedText.Encode($"'{w.Value}'", JavaScriptEncoder.UnsafeRelaxedJsonEscaping));
-
+                        writer.WriteStringValue($"'{w.Value}'");
                         break;
                     default:
-                        if (p.PropertyType.IsEnum)
+                        if (p.PropertyType.IsEnum && int.TryParse(w.Value,out int enumInt))
                         {
-                            writer.WriteNumberValue(int.Parse(w.Value));
+                            writer.WriteNumberValue(enumInt);
                         }
                         else
                         {
@@ -204,6 +203,10 @@ namespace maskx.OrchestrationService.Worker
         public static string Validate(this FetchRule rule, Type type, out Dictionary<string, object> par)
         {
             par = new Dictionary<string, object>();
+            if (string.IsNullOrEmpty(rule.Name))
+                return "Name cannot be empty";
+            if(rule.What.Count==0 && rule.Scope.Count==0)
+                return "What and Scope cannot be empty at same time";
             if (!rule.What.TrySerializeWhat(type, out string what))
                 return what;
             if (!rule.Scope.TrySerializeScope(type, out string scope))

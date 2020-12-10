@@ -19,16 +19,14 @@ namespace maskx.OrchestrationService.Extensions
                 foreach (var property in properties)
                 {
                     if (!property.CanWrite) continue;
-                    propertyDictionary.Add(property.Name, property);
+                    propertyDictionary.Add(property.GetColumnName(), property);
                 }
                 _PropertyInofCache.TryAdd(type, propertyDictionary);
             }
             for (var i = 0; i < dataReader.FieldCount; i++)
             {
-                var n = dataReader.GetName(i);
-                if (!propertyDictionary.TryGetValue(n, out PropertyInfo prop)) continue;
-                var val = dataReader.IsDBNull(i) ? null : dataReader.GetValue(i);
-                prop.SetValue(newOjbect, val, null);
+                if (!propertyDictionary.TryGetValue(dataReader.GetName(i), out PropertyInfo prop)) continue;
+                prop.SetValue(newOjbect, dataReader.IsDBNull(i) ? default : dataReader.GetValue(i), null);
             }
             return newOjbect;
         }

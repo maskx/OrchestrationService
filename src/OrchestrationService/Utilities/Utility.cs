@@ -44,7 +44,7 @@ namespace maskx.OrchestrationService.Utilities
             using var reader = new StreamReader(resourceStream);
             return await reader.ReadToEndAsync();
         }
-        private static ConcurrentDictionary<Type, Dictionary<string, PropertyInfo>> _PropertyInfos=new ConcurrentDictionary<Type, Dictionary<string, PropertyInfo>>();
+        private static ConcurrentDictionary<Type, Dictionary<string, PropertyInfo>> _PropertyInfos = new ConcurrentDictionary<Type, Dictionary<string, PropertyInfo>>();
         public static Dictionary<string, PropertyInfo> GetPropertyInfos(Type type)
         {
             if (!_PropertyInfos.TryGetValue(type, out Dictionary<string, PropertyInfo> ps))
@@ -63,14 +63,13 @@ namespace maskx.OrchestrationService.Utilities
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
-        public static string BuildTableScript(Type type, string tableName = "", string defaultSchema = "")
+        public static string BuildTableScript(Type type, string tableName = "", string defaultSchema = "dbo")
         {
             List<string> cols = new List<string>();
             List<string> keys = new List<string>();
             if (string.IsNullOrEmpty(tableName))
                 tableName = type.GetTableName();
-            if (string.IsNullOrEmpty(defaultSchema))
-                defaultSchema = type.GetSchemaName();
+            defaultSchema = type.GetSchemaName(defaultSchema);
             foreach (var p in GetPropertyInfos(type).Values)
             {
                 string required;
@@ -80,7 +79,7 @@ namespace maskx.OrchestrationService.Utilities
                 else required = "NULL";
                 cols.Add($"[{p.GetColumnName()}] {p.GetColumnType()} {required}");
                 if (p.GetCustomAttribute<KeyAttribute>() != null)
-                    keys.Add(p.GetColumnName());
+                    keys.Add($"[{p.GetColumnName()}]");
             }
             if (keys.Count > 0)
             {
@@ -89,10 +88,6 @@ namespace maskx.OrchestrationService.Utilities
             return $@"create table [{defaultSchema}].[{tableName}](
 {string.Join("," + Environment.NewLine, cols)}
 ) ON [PRIMARY]";
-        }
-        public static bool IsValidateField(string name, Type type)
-        {
-            return Utility.GetPropertyInfos(type).ContainsKey(name.ToLower());
         }
     }
 }
