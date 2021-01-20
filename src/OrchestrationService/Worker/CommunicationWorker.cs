@@ -5,6 +5,7 @@ using maskx.OrchestrationService.Orchestration;
 using maskx.OrchestrationService.SQL;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
@@ -20,6 +21,7 @@ namespace maskx.OrchestrationService.Worker
         private readonly TaskHubClient taskHubClient;
         private readonly CommunicationWorkerOptions options;
         private readonly Dictionary<string, ICommunicationProcessor<T>> processors;
+        private readonly ILoggerFactory _LoggerFactory;
         // todo: communication table add agentId column
         string _AgentId;
         private string AgentId
@@ -43,8 +45,10 @@ namespace maskx.OrchestrationService.Worker
         public CommunicationWorker(
             IServiceProvider serviceProvider,
             IOrchestrationServiceClient orchestrationServiceClient,
-            IOptions<CommunicationWorkerOptions> options)
+            IOptions<CommunicationWorkerOptions> options,
+            ILoggerFactory loggerFactory)
         {
+            this._LoggerFactory = loggerFactory;
             this.serviceProvider = serviceProvider;
             this.options = options?.Value;
             this.taskHubClient = new TaskHubClient(orchestrationServiceClient);
@@ -149,7 +153,7 @@ namespace maskx.OrchestrationService.Worker
             {
                 return jobs;
             }
-            using (var db = new SQLServerAccess(this.options.ConnectionString))
+            using (var db = new SQLServerAccess(this.options.ConnectionString,_LoggerFactory))
             {
                 await db.ExecuteStoredProcedureASync(this.options.FetchCommunicationJobSPName, (reader, index) =>
                  {
@@ -175,7 +179,7 @@ namespace maskx.OrchestrationService.Worker
 
         public async Task UpdateJobs(params T[] jobs)
         {
-            using var db = new SQLServerAccess(this.options.ConnectionString);
+            using var db = new SQLServerAccess(this.options.ConnectionString,_LoggerFactory);
             foreach (var job in jobs)
             {
                 await db.ExecuteStoredProcedureASync(options.UpdateCommunicationSPName, new

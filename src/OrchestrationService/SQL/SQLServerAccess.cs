@@ -1,23 +1,18 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Data.SqlClient;
 
 namespace maskx.OrchestrationService.SQL
 {
     public class SQLServerAccess : DbAccess
     {
-        public SQLServerAccess(string connectionString) : base(SqlClientFactory.Instance, connectionString)
+        public SQLServerAccess(string connectionString,ILoggerFactory loggerFactory) : base(SqlClientFactory.Instance, connectionString,loggerFactory)
         {
-        }
-
-        protected override void OnReconnecting()
-        {
-            if (!(connection is SqlConnection conn))
-                return;
-            SqlConnection.ClearPool(conn);
         }
 
         protected override RetryAction OnContextLost(Exception dbException)
         {
+            // https://github.com/dotnet/efcore/blob/main/src/EFCore.SqlServer/Storage/Internal/SqlServerTransientExceptionDetector.cs
             var retryAction = RetryAction.None;
             if (connection is SqlConnection)
             {
@@ -29,6 +24,8 @@ namespace maskx.OrchestrationService.SQL
                         case 233:
                         case -2:
                         case 10054:
+                        case 10053:
+                        case 10060:
                             retryAction = RetryAction.Reconnect;
                             break;
 

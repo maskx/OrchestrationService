@@ -5,7 +5,7 @@ namespace maskx.OrchestrationService.Worker
 {
     public class OrchestrationEventListener : EventListener
     {
-        private OrchestrationWorker worker = null;
+        private readonly OrchestrationWorker worker = null;
 
         public OrchestrationEventListener(OrchestrationWorker worker)
         {
@@ -27,8 +27,8 @@ namespace maskx.OrchestrationService.Worker
                         {
                             InstanceId = eventData.Payload[1].ToString(),
                             ExecutionId = eventData.Payload[2].ToString(),
-                            Status = eventData.Level == EventLevel.Informational ? true : false,
-                            Result = msg.Substring(msg.IndexOf("result:") + 8)
+                            Status = eventData.Level == EventLevel.Informational,
+                            Result = msg[(msg.IndexOf("result:") + 8)..]
                         };
                         if (this.worker.jobProvider != null && !args.IsSubOrchestration)
                         {

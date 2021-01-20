@@ -2,6 +2,7 @@
 using maskx.OrchestrationService.Extensions;
 using maskx.OrchestrationService.SQL;
 using maskx.OrchestrationService.Worker;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -14,9 +15,11 @@ namespace maskx.OrchestrationService.Activity
     {
         private readonly CommunicationWorkerOptions options;
         private readonly string commandText;
+        private readonly ILoggerFactory _LoggerFactory;
 
-        public AsyncRequestActivity(IOptions<CommunicationWorkerOptions> options)
+        public AsyncRequestActivity(IOptions<CommunicationWorkerOptions> options,ILoggerFactory loggerFactory)
         {
+            this._LoggerFactory = loggerFactory;
             this.options = options.Value;
             List<string> cols = new List<string>();
             List<string> pars = new List<string>();
@@ -52,7 +55,7 @@ namespace maskx.OrchestrationService.Activity
 
         public async Task SaveRequest(T input)
         {
-            using var db = new SQLServerAccess(this.options.ConnectionString);
+            using var db = new SQLServerAccess(this.options.ConnectionString,_LoggerFactory);
             db.AddStatement(this.commandText, input);
             await db.ExecuteNonQueryAsync();
         }

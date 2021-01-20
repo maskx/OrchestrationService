@@ -1,4 +1,5 @@
 ﻿using maskx.OrchestrationService.SQL;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
@@ -9,15 +10,17 @@ namespace maskx.OrchestrationService.Worker
     public class CommunicationWorkerClient<T> where T : CommunicationJob, new()
     {
         private readonly CommunicationWorkerOptions _Options;
-        public CommunicationWorkerClient(IOptions<CommunicationWorkerOptions> options)
+        private readonly ILoggerFactory _LoggerFactory;
+        public CommunicationWorkerClient(IOptions<CommunicationWorkerOptions> options,ILoggerFactory loggerFactory)
         {
+            _LoggerFactory = loggerFactory;
             _Options = options?.Value;
             if (_Options.AutoCreate)
                 CreateIfNotExistsAsync(false).Wait();
         }
         public async Task<List<FetchRule>> GetFetchRuleAsync()
         {
-            using var db = new SQLServerAccess(_Options.ConnectionString);
+            using var db = new SQLServerAccess(_Options.ConnectionString,_LoggerFactory);
             db.AddStatement($"select Id,Name,Description,What,Scope,Concurrency,CreatedTimeUtc,UpdatedTimeUtc,FetchOrder from {_Options.FetchRuleTableName}");
             List<FetchRule> rules = new List<FetchRule>();
             await db.ExecuteReaderAsync((reader, index) =>
@@ -39,7 +42,7 @@ namespace maskx.OrchestrationService.Worker
         }
         public async Task<FetchRule> GetFetchRuleAsync(Guid id)
         {
-            using var db = new SQLServerAccess(_Options.ConnectionString);
+            using var db = new SQLServerAccess(_Options.ConnectionString,_LoggerFactory);
             db.AddStatement($"select Id,Name,Description,What,Scope,Concurrency,CreatedTimeUtc,UpdatedTimeUtc,FetchOrder from {_Options.FetchRuleTableName} where Id=@Id", new { Id = id });
             FetchRule rule = null;
             await db.ExecuteReaderAsync((reader, index) =>
@@ -61,7 +64,7 @@ namespace maskx.OrchestrationService.Worker
         }
         public async Task DeleteFetchRuleAsync(Guid id)
         {
-            using var db = new SQLServerAccess(_Options.ConnectionString);
+            using var db = new SQLServerAccess(_Options.ConnectionString,_LoggerFactory);
             db.AddStatement($"delete {_Options.FetchRuleTableName} where Id=@Id", new { Id = id });
             await db.ExecuteNonQueryAsync();
         }
@@ -70,7 +73,7 @@ namespace maskx.OrchestrationService.Worker
             var errorMsg = fetchRule.Validate(typeof(T), out Dictionary<string, object> par);
             if (!string.IsNullOrEmpty(errorMsg))
                 throw new Exception(errorMsg);
-            using var db = new SQLServerAccess(_Options.ConnectionString);
+            using var db = new SQLServerAccess(_Options.ConnectionString,_LoggerFactory);
             db.AddStatement($"INSERT INTO {_Options.FetchRuleTableName} ([Name],[Description],[What],[Scope],[Concurrency],[FetchOrder]) OUTPUT inserted.Id,inserted.CreatedTimeUtc,inserted.UpdatedTimeUtc  VALUES (@Name,@Description,@What,@Scope,@Concurrency,@FetchOrder)",
                 par);
             await db.ExecuteReaderAsync((reader, index) =>
@@ -88,7 +91,7 @@ namespace maskx.OrchestrationService.Worker
             if (!string.IsNullOrEmpty(errorMsg))
                 throw new Exception(errorMsg);
             par.Add("Id", fetchRule.Id);
-            using var db = new SQLServerAccess(_Options.ConnectionString);
+            using var db = new SQLServerAccess(_Options.ConnectionString,_LoggerFactory);
             db.AddStatement($"update {_Options.FetchRuleTableName} set Name=@Name,Description=@Description,What=@What,Scope=@Scope,Concurrency=@Concurrency,UpdatedTimeUtc=getutcdate(),FetchOrder=@FetchOrder where Id=@Id",
                 par);
             await db.ExecuteNonQueryAsync();
@@ -100,14 +103,14 @@ namespace maskx.OrchestrationService.Worker
         /// <returns></returns>
         public async Task BuildFetchCommunicationJobSPAsync()
         {
-            using var db = new SQLServerAccess(_Options.ConnectionString);
+            using var db = new SQLServerAccess(_Options.ConnectionString,_LoggerFactory);
             await db.ExecuteStoredProcedureASync(_Options.BuildFetchCommunicationJobSPName);
         }
         public async Task SetCommonFetchOrderAsyc(List<FetchOrder> fetchOrder)
         {
             if (!fetchOrder.TrySerialize(typeof(T), out string order))
                 throw new Exception(order);
-            using var db = new SQLServerAccess(_Options.ConnectionString);
+            using var db = new SQLServerAccess(_Options.ConnectionString,_LoggerFactory);
             await db.ExecuteStoredProcedureASync(_Options.ConfigCommunicationSettingSPName,
                 new
                 {
@@ -117,7 +120,7 @@ namespace maskx.OrchestrationService.Worker
         }
         public async Task<List<FetchOrder>> GetCommonFetchOrderAsync()
         {
-            using var db = new SQLServerAccess(_Options.ConnectionString);
+            using var db = new SQLServerAccess(_Options.ConnectionString,_LoggerFactory);
             db.AddStatement($"select [Value] from {_Options.CommunicationSettingTableName} where [Key]=N'{CommunicationWorkerOptions.FetchOrderConfigurationKey}'");
             var r = await db.ExecuteScalarAsync();
             if (r == null)

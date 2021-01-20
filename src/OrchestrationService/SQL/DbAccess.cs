@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -33,11 +34,12 @@ namespace maskx.OrchestrationService.SQL
             Reconnect = 1,
             RefreshParameters = 2
         }
-
-        public DbAccess(DbProviderFactory dbProviderFactory, string connectionString)
+        private readonly ILogger<DbAccess> _Logger;
+        public DbAccess(DbProviderFactory dbProviderFactory, string connectionString,ILoggerFactory loggerFactory)
         {
             connection = dbProviderFactory.CreateConnection();
             connection.ConnectionString = connectionString;
+            _Logger = loggerFactory.CreateLogger<DbAccess>();
         }
 
         #region CommandType.Text
@@ -116,28 +118,55 @@ namespace maskx.OrchestrationService.SQL
 
         #region CommandType.StoredProcedure
 
+        #region ExecuteScalarAsync
+        public async Task<object> ExecuteScalarAsync(string spname,int commandTimeout = 0)
+        {
+            Command = CreateStoredProcedureCommand(spname, commandTimeout);
+            var result = await ExcuteWithRetry(() => Command.ExecuteScalarAsync());
+            return result;
+        }
+        public async Task<object> ExecuteScalarAsync(string spname, object parameters, int commandTimeout = 0)
+        {
+            Command = CreateStoredProcedureCommand(spname, commandTimeout, parameters);
+            var result = await ExcuteWithRetry(() => Command.ExecuteScalarAsync());
+            return result;
+        }
+        public async Task<object> ExecuteScalarAsync(string spname, Dictionary<string, object> parameters, int commandTimeout = 0)
+        {
+            Command = CreateStoredProcedureCommand(spname, commandTimeout, parameters);
+            var result = await ExcuteWithRetry(() => Command.ExecuteScalarAsync());
+            return result;
+        }
+        public async Task<object> ExecuteScalarAsync(string spname, DbParameter[] parameters, int commandTimeout = 0)
+        {
+            Command = CreateStoredProcedureCommand(spname, commandTimeout, parameters);
+            var result = await ExcuteWithRetry(() => Command.ExecuteScalarAsync());
+            return result;
+        }
+        #endregion
+
         #region ExecuteNonQueryAsync
-        public async Task<int> ExecuteStoredProcedureASync(string spnmae, int commandTimeout = 0)
+        public async Task<int> ExecuteStoredProcedureASync(string spname, int commandTimeout = 0)
         {
-            Command = CreateStoredProcedureCommand(spnmae, commandTimeout);
+            Command = CreateStoredProcedureCommand(spname, commandTimeout);
             var recordsAffected = await ExcuteWithRetry(() => Command.ExecuteNonQueryAsync());
             return recordsAffected;
         }
-        public async Task<int> ExecuteStoredProcedureASync(string spnmae, object parameters, int commandTimeout = 0)
+        public async Task<int> ExecuteStoredProcedureASync(string spname, object parameters, int commandTimeout = 0)
         {
-            Command = CreateStoredProcedureCommand(spnmae, commandTimeout, parameters);
+            Command = CreateStoredProcedureCommand(spname, commandTimeout, parameters);
             var recordsAffected = await ExcuteWithRetry(() => Command.ExecuteNonQueryAsync());
             return recordsAffected;
         }
-        public async Task<int> ExecuteStoredProcedureASync(string spnmae, Dictionary<string, object> parameters, int commandTimeout = 0)
+        public async Task<int> ExecuteStoredProcedureASync(string spname, Dictionary<string, object> parameters, int commandTimeout = 0)
         {
-            Command = CreateStoredProcedureCommand(spnmae, commandTimeout, parameters);
+            Command = CreateStoredProcedureCommand(spname, commandTimeout, parameters);
             var recordsAffected = await ExcuteWithRetry(() => Command.ExecuteNonQueryAsync());
             return recordsAffected;
         }
-        public async Task<int> ExecuteStoredProcedureASync(string commandText, DbParameter[] parameters, int commandTimeout = 0)
+        public async Task<int> ExecuteStoredProcedureASync(string spname, DbParameter[] parameters, int commandTimeout = 0)
         {
-            Command = CreateStoredProcedureCommand(commandText, commandTimeout, parameters);
+            Command = CreateStoredProcedureCommand(spname, commandTimeout, parameters);
             var recordsAffected = await ExcuteWithRetry(() => Command.ExecuteNonQueryAsync());
             return recordsAffected;
         }
@@ -280,14 +309,30 @@ namespace maskx.OrchestrationService.SQL
         {
             if (connection == null)
                 return;
-            if (connection.State == ConnectionState.Closed)
-                connection.Open();
-            else
+            try
             {
-                OnReconnecting();
-                connection.Close();
-                connection.Open();
+                if (connection.State == ConnectionState.Closed)
+                    connection.Open();
+                else
+                {
+                    OnReconnecting();
+                    connection.Close();
+                    connection.Open();
+                }
             }
+            catch(Exception ex)
+            {
+                if (ex is DbException dbException)
+                {
+                    _Logger.LogWarning(@$"Reconnect faild,
+ErrorCode:{dbException.ErrorCode};
+Message:{dbException.Message};
+StackTrace:{dbException.StackTrace}");
+                }
+                else
+                    throw;
+            }
+            
         }
         private async Task<T> ExcuteWithRetry<T>(Func<Task<T>> func, bool closeConnection = true)
         {
