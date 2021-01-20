@@ -35,11 +35,11 @@ namespace maskx.OrchestrationService.SQL
             RefreshParameters = 2
         }
         private readonly ILogger<DbAccess> _Logger;
-        public DbAccess(DbProviderFactory dbProviderFactory, string connectionString,ILoggerFactory loggerFactory)
+        public DbAccess(DbProviderFactory dbProviderFactory, string connectionString, ILoggerFactory loggerFactory)
         {
             connection = dbProviderFactory.CreateConnection();
             connection.ConnectionString = connectionString;
-            _Logger = loggerFactory.CreateLogger<DbAccess>();
+            _Logger = loggerFactory?.CreateLogger<DbAccess>();
         }
 
         #region CommandType.Text
@@ -119,7 +119,7 @@ namespace maskx.OrchestrationService.SQL
         #region CommandType.StoredProcedure
 
         #region ExecuteScalarAsync
-        public async Task<object> ExecuteScalarAsync(string spname,int commandTimeout = 0)
+        public async Task<object> ExecuteScalarAsync(string spname, int commandTimeout = 0)
         {
             Command = CreateStoredProcedureCommand(spname, commandTimeout);
             var result = await ExcuteWithRetry(() => Command.ExecuteScalarAsync());
@@ -320,11 +320,12 @@ namespace maskx.OrchestrationService.SQL
                     connection.Open();
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 if (ex is DbException dbException)
                 {
-                    _Logger.LogWarning(@$"Reconnect faild,
+                    if (_Logger != null)
+                        _Logger.LogWarning(@$"Reconnect faild,
 ErrorCode:{dbException.ErrorCode};
 Message:{dbException.Message};
 StackTrace:{dbException.StackTrace}");
@@ -332,7 +333,7 @@ StackTrace:{dbException.StackTrace}");
                 else
                     throw;
             }
-            
+
         }
         private async Task<T> ExcuteWithRetry<T>(Func<Task<T>> func, bool closeConnection = true)
         {
