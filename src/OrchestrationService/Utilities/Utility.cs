@@ -16,7 +16,7 @@ namespace maskx.OrchestrationService.Utilities
 {
     public static class Utility
     {
-        internal static async Task ExecuteSqlScriptAsync(string scriptContent, string connectionString)
+        public static async Task ExecuteSqlScriptAsync(string scriptContent, string connectionString)
         {
             await using Microsoft.Data.SqlClient.SqlConnection scriptRunnerConnection = new Microsoft.Data.SqlClient.SqlConnection(connectionString);
             var serverConnection = new ServerConnection(scriptRunnerConnection);
@@ -31,7 +31,7 @@ namespace maskx.OrchestrationService.Utilities
         {
             return string.Format(await GetScriptTextAsync(scriptName), schemaName, hubName);
         }
-        internal static async Task<string> GetScriptTextAsync(string scriptName)
+        public static async Task<string> GetScriptTextAsync(string scriptName)
         {
             var assembly = typeof(Utility).Assembly;
             string assemblyName = assembly.GetName().Name;
@@ -44,7 +44,7 @@ namespace maskx.OrchestrationService.Utilities
             using var reader = new StreamReader(resourceStream);
             return await reader.ReadToEndAsync();
         }
-        private static ConcurrentDictionary<Type, Dictionary<string, PropertyInfo>> _PropertyInfos = new ConcurrentDictionary<Type, Dictionary<string, PropertyInfo>>();
+        private static readonly ConcurrentDictionary<Type, Dictionary<string, PropertyInfo>> _PropertyInfos = new ConcurrentDictionary<Type, Dictionary<string, PropertyInfo>>();
         public static Dictionary<string, PropertyInfo> GetPropertyInfos(Type type)
         {
             if (!_PropertyInfos.TryGetValue(type, out Dictionary<string, PropertyInfo> ps))

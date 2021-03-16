@@ -1,12 +1,11 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Data.SqlClient;
 
 namespace maskx.OrchestrationService.SQL
 {
     public class SQLServerAccess : DbAccess
     {
-        public SQLServerAccess(string connectionString,ILoggerFactory loggerFactory) : base(SqlClientFactory.Instance, connectionString,loggerFactory)
+        public SQLServerAccess(string connectionString) : base(SqlClientFactory.Instance, connectionString)
         {
         }
 

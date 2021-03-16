@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using DurableTask.Core.Tracing;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -34,12 +34,10 @@ namespace maskx.OrchestrationService.SQL
             Reconnect = 1,
             RefreshParameters = 2
         }
-        private readonly ILogger<DbAccess> _Logger;
-        public DbAccess(DbProviderFactory dbProviderFactory, string connectionString, ILoggerFactory loggerFactory)
+        public DbAccess(DbProviderFactory dbProviderFactory, string connectionString)
         {
             connection = dbProviderFactory.CreateConnection();
             connection.ConnectionString = connectionString;
-            _Logger = loggerFactory?.CreateLogger<DbAccess>();
         }
 
         #region CommandType.Text
@@ -324,11 +322,7 @@ namespace maskx.OrchestrationService.SQL
             {
                 if (ex is DbException dbException)
                 {
-                    if (_Logger != null)
-                        _Logger.LogWarning(@$"Reconnect faild,
-ErrorCode:{dbException.ErrorCode};
-Message:{dbException.Message};
-StackTrace:{dbException.StackTrace}");
+                    TraceHelper.TraceException(System.Diagnostics.TraceEventType.Warning, "OrchestrationService-DbAccess", ex,@$"Reconnect failed,ErrorCode:{dbException.ErrorCode}");
                 }
                 else
                     throw;
@@ -355,6 +349,7 @@ StackTrace:{dbException.StackTrace}");
                             case RetryAction.Reconnect:
                                 await Task.Delay(retry * _IncreasingDelayRetry);
                                 ReConnect();
+                                TraceHelper.Trace(System.Diagnostics.TraceEventType.Warning, "OrchestrationService-DbAccess", $"database RConnect {retry + 1} times");
                                 break;
 
                             case RetryAction.RefreshParameters:
@@ -365,9 +360,11 @@ StackTrace:{dbException.StackTrace}");
                     }
                 }
             }
+            catch { throw; }
             finally
             {
-                try { if (closeConnection) connection.Close(); } catch { }
+                try { if (closeConnection) connection?.Close(); }
+                catch { }
             }
         }
         protected virtual RetryAction OnContextLost(Exception dbException)
