@@ -134,7 +134,7 @@ namespace maskx.OrchestrationService.Worker
             var str = string.Format(@"
 IF(SCHEMA_ID('{0}') IS NULL)
 BEGIN
-    CREATE SCHEMA [{0}]
+    EXEC sp_executesql N'CREATE SCHEMA [{0}]'
 END
 GO
 IF  NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[{0}].[{1}_{2}]') AND type in (N'U'))

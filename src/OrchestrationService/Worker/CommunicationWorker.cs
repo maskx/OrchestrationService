@@ -149,18 +149,26 @@ namespace maskx.OrchestrationService.Worker
             {
                 return jobs;
             }
-            using (var db = new SQLServerAccess(this.options.ConnectionString))
+            try
             {
-                await db.ExecuteStoredProcedureASync(this.options.FetchCommunicationJobSPName, (reader, index) =>
-                 {
-                     jobs.Add(reader.CreateObject<T>());
-                 }, new
-                 {
-                     LockedBy = AgentId,
-                     this.options.MessageLockedSeconds,
-                     MaxCount = options.MaxConcurrencyRequest - RunningTaskCount
-                 });
+                using (var db = new SQLServerAccess(this.options.ConnectionString))
+                {
+                    await db.ExecuteStoredProcedureASync(this.options.FetchCommunicationJobSPName, (reader, index) =>
+                    {
+                        jobs.Add(reader.CreateObject<T>());
+                    }, new
+                    {
+                        LockedBy = AgentId,
+                        this.options.MessageLockedSeconds,
+                        MaxCount = options.MaxConcurrencyRequest - RunningTaskCount
+                    });
+                }
             }
+            catch (Exception ex)
+            {
+                CommunicationEventSource.Log.Critical("FetchJob", ex.Message, ex.StackTrace, "Error");
+            }
+
             return jobs;
         }
 
@@ -168,9 +176,23 @@ namespace maskx.OrchestrationService.Worker
         {
             //使用Task.Run包装CommunicationProcessor里的代码执行，避免CommunicationProcessor里有类似于Thread.Sleep这样阻塞线程的情况
             //CommunicationProcessor里不要使用Task.WaitAll,建议使用Task.WhenAll
-            var response = await Task.Run(async () => await processor.ProcessAsync(jobs));
-            await RaiseEvent(response);
-            await UpdateJobs(response);
+            T[] response = null;
+            try
+            {
+                response = await Task.Run(async () => await processor.ProcessAsync(jobs));
+            }
+            catch (Exception ex)
+            {
+                CommunicationEventSource.Log.Critical("ProcessJobs", ex.Message, ex.StackTrace, "Error");
+            }
+            if (response != null)
+            {
+                foreach (var item in response)
+                {
+                    if (await RaiseEvent(item)) await UpdateJobs(item);
+                }
+            }
+
         }
 
         public async Task UpdateJobs(params T[] jobs)
@@ -178,19 +200,26 @@ namespace maskx.OrchestrationService.Worker
             using var db = new SQLServerAccess(this.options.ConnectionString);
             foreach (var job in jobs)
             {
-                await db.ExecuteStoredProcedureASync(options.UpdateCommunicationSPName, new
+                try
                 {
-                    Status = (int)job.Status,
-                    job.Context,
-                    job.ResponseCode,
-                    job.RequestId,
-                    job.ResponseContent,
-                    MessageLockedSeconds = job.NextTryAfterSecond ?? options.MessageLockedSeconds
-                });
+                    await db.ExecuteStoredProcedureASync(options.UpdateCommunicationSPName, new
+                    {
+                        Status = (int)job.Status,
+                        job.Context,
+                        job.ResponseCode,
+                        job.RequestId,
+                        job.ResponseContent,
+                        MessageLockedSeconds = job.NextTryAfterSecond ?? options.MessageLockedSeconds
+                    });
+                }
+                catch (Exception ex)
+                {
+                    CommunicationEventSource.Log.Critical("UpdateJobs", ex.Message, ex.StackTrace, "Error");
+                }
             }
         }
 
-        private async Task RaiseEvent(params T[] jobs)
+        private async Task<bool> RaiseEvent(params T[] jobs)
         {
             List<Task> tasks = new List<Task>();
             foreach (var job in jobs)
@@ -209,6 +238,7 @@ namespace maskx.OrchestrationService.Worker
                 }
             }
             await Task.WhenAll(tasks);
+            return null == tasks.FirstOrDefault(t => !t.IsCompletedSuccessfully);
         }
         public async Task DeleteCommunicationAsync()
         {
