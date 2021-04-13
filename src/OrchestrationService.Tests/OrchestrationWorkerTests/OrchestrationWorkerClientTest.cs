@@ -1,4 +1,5 @@
 ﻿using DurableTask.Core;
+using DurableTask.SqlServer;
 using maskx.OrchestrationService;
 using maskx.OrchestrationService.Extensions;
 using maskx.OrchestrationService.Worker;
@@ -31,11 +32,9 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
                     })
                     .ConfigureServices((hostContext, services) =>
                     {
-                        services.UsingSQLServerOrchestration(sp=>new SqlServerOrchestrationConfiguration()
+                        services.UsingSQLServerOrchestration(sp => new SqlOrchestrationServiceSettings(TestHelpers.ConnectionString, "client")
                         {
-                            SchemaName = "comm",
-                            HubName = "client",
-                            ConnectionString = TestHelpers.ConnectionString,
+                            AppName = "comm"
                         });
                         services.AddSingleton<OrchestrationWorkerClient>();
                     }).Build();
@@ -47,8 +46,6 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
 
         public void Dispose()
         {
-            if (_OrchestrationService != null)
-                _OrchestrationService.DeleteAsync(true).Wait();
             GC.SuppressFinalize(this);
         }
 

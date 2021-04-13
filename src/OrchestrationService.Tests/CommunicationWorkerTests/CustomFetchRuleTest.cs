@@ -1,7 +1,6 @@
 ﻿using DurableTask.Core;
 using DurableTask.Core.Serializing;
 using maskx.OrchestrationService;
-using maskx.OrchestrationService.Activity;
 using maskx.OrchestrationService.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -17,8 +16,7 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
         private readonly DataConverter dataConverter = new JsonDataConverter();
         private readonly IHost workerHost = null;
         private readonly OrchestrationWorker orchestrationWorker;
-        readonly CommunicationWorker<CustomCommunicationJob> communicationWorker = null;
-        readonly IOrchestrationService SQLServerOrchestrationService = null;
+ 
         readonly CommunicationWorkerClient<CustomCommunicationJob> _CommunicationWorkerClient = null;
         public CustomFetchRuleTest()
         {
@@ -34,17 +32,12 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
                    ).Build();
             workerHost.RunAsync();
             orchestrationWorker = workerHost.Services.GetService<OrchestrationWorker>();
-            communicationWorker = workerHost.Services.GetService<CommunicationWorker<CustomCommunicationJob>>();
-            SQLServerOrchestrationService = workerHost.Services.GetService<IOrchestrationService>();
             _CommunicationWorkerClient = workerHost.Services.GetService<CommunicationWorkerClient<CustomCommunicationJob>>();
         }
 
         public void Dispose()
         {
-            if (communicationWorker != null)
-                communicationWorker.DeleteCommunicationAsync().Wait();
-            if (SQLServerOrchestrationService != null)
-                SQLServerOrchestrationService.DeleteAsync(true).Wait();
+           
             GC.SuppressFinalize(this);
         }
 

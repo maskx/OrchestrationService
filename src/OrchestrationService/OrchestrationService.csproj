@@ -22,10 +22,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="maskx.DurableTask.SQLServer" Version="0.1.2" />
-    <PackageReference Include="Microsoft.Azure.DurableTask.Core" Version="2.4.1" />
+    <PackageReference Include="Microsoft.Azure.DurableTask.Core" Version="2.5.2" />
+    <PackageReference Include="Microsoft.DurableTask.SqlServer" Version="0.7.0-alpha" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0" />
-    <PackageReference Include="Microsoft.SqlServer.SqlManagementObjects" Version="161.44091.28" />
+    <PackageReference Include="Microsoft.SqlServer.SqlManagementObjects" Version="161.46041.41" />
     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.2" />
   </ItemGroup>

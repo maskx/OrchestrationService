@@ -14,11 +14,9 @@ namespace OrchestrationService.Tests
     [Trait("c", "NameVersionDICreatorTest")]
     public class NameVersionDICreatorTest : IDisposable
     {
-        private readonly DataConverter dataConverter = new JsonDataConverter();
         private readonly IHost workerHost = null;
         private readonly OrchestrationWorkerClient orchestrationWorkerClient;
-        readonly CommunicationWorker<CustomCommunicationJob> communicationWorker = null;
-        readonly IOrchestrationService SQLServerOrchestrationService = null;
+
         public NameVersionDICreatorTest()
         {
             List<(string Name, string Version, Type Type)> orchestrationTypes = new();
@@ -38,8 +36,6 @@ namespace OrchestrationService.Tests
                ).Build();
             workerHost.RunAsync();
             orchestrationWorkerClient = workerHost.Services.GetService<OrchestrationWorkerClient>();
-            communicationWorker = workerHost.Services.GetService<CommunicationWorker<CustomCommunicationJob>>();
-            SQLServerOrchestrationService = workerHost.Services.GetService<IOrchestrationService>();
         }
 
         [Fact(DisplayName = "OrchestarionVersion")]
@@ -66,7 +62,7 @@ namespace OrchestrationService.Tests
             var client = new TaskHubClient(workerHost.Services.GetService<IOrchestrationServiceClient>());
             while (true)
             {
-                var r1 = client.WaitForOrchestrationAsync(t1, TimeSpan.FromSeconds(30)).Result;
+                var r1 = client.WaitForOrchestrationAsync(t1, TimeSpan.FromSeconds(60)).Result;
                 if (r1 != null)
                 {
                     Assert.Equal(OrchestrationStatus.Completed, r1.OrchestrationStatus);
@@ -76,7 +72,7 @@ namespace OrchestrationService.Tests
             }
             while (true)
             {
-                var r2 = client.WaitForOrchestrationAsync(t2, TimeSpan.FromSeconds(30)).Result;
+                var r2 = client.WaitForOrchestrationAsync(t2, TimeSpan.FromSeconds(60)).Result;
                 if (r2 != null)
                 {
                     Assert.Equal(OrchestrationStatus.Completed, r2.OrchestrationStatus);
@@ -96,7 +92,7 @@ namespace OrchestrationService.Tests
                 {
                     Name = typeof(TestOrchestration).FullName
                 },
-                Input = dataConverter.Serialize(1)
+                Input = 1
             }).Result;
             var t2 = orchestrationWorkerClient.JumpStartOrchestrationAsync(new Job()
             {
@@ -105,12 +101,12 @@ namespace OrchestrationService.Tests
                 {
                     Name = typeof(TestOrchestration).FullName
                 },
-                Input = dataConverter.Serialize(2)
+                Input = 2
             }).Result;
             var client = new TaskHubClient(workerHost.Services.GetService<IOrchestrationServiceClient>());
             while (true)
             {
-                var r1 = client.WaitForOrchestrationAsync(t1, TimeSpan.FromSeconds(30)).Result;
+                var r1 = client.WaitForOrchestrationAsync(t1, TimeSpan.FromSeconds(60)).Result;
                 if (r1 != null)
                 {
                     Assert.Equal(OrchestrationStatus.Completed, r1.OrchestrationStatus);
@@ -120,7 +116,7 @@ namespace OrchestrationService.Tests
             }
             while (true)
             {
-                var r2 = client.WaitForOrchestrationAsync(t2, TimeSpan.FromSeconds(30)).Result;
+                var r2 = client.WaitForOrchestrationAsync(t2, TimeSpan.FromSeconds(60)).Result;
                 if (r2 != null)
                 {
                     Assert.Equal(OrchestrationStatus.Completed, r2.OrchestrationStatus);
@@ -132,10 +128,6 @@ namespace OrchestrationService.Tests
 
         public void Dispose()
         {
-            if (communicationWorker != null)
-                communicationWorker.DeleteCommunicationAsync().Wait();
-            if (SQLServerOrchestrationService != null)
-                SQLServerOrchestrationService.DeleteAsync(true).Wait();
             GC.SuppressFinalize(this);
         }
 
@@ -159,7 +151,7 @@ namespace OrchestrationService.Tests
         {
             public override async Task<int> RunTask(OrchestrationContext context, int input)
             {
-                int r = await context.ScheduleTask<int>("TestActivity", input.ToString());
+                int r = await context.ScheduleTask<int>("TestActivity", input.ToString(), 123);
                 return r;
             }
         }

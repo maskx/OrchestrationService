@@ -1,6 +1,5 @@
 ﻿using DurableTask.Core;
-using maskx.DurableTask.SQLServer;
-using maskx.DurableTask.SQLServer.Tracking;
+using DurableTask.SqlServer;
 using maskx.OrchestrationService.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -57,22 +56,12 @@ namespace maskx.OrchestrationService.Extensions
             return services;
         }
 
-        public static IServiceCollection UsingSQLServerOrchestration(this IServiceCollection services, Func<IServiceProvider, SqlServerOrchestrationConfiguration> config)
+        public static IServiceCollection UsingSQLServerOrchestration(this IServiceCollection services, Func<IServiceProvider, SqlOrchestrationServiceSettings> config)
         {
-            SQLServerOrchestrationService GetOrchestrationService(IServiceProvider sp)
+            SqlOrchestrationService GetOrchestrationService(IServiceProvider sp)
             {
                 var configuration = config(sp);
-                var sqlServerStore = new SqlServerInstanceStore(new SqlServerInstanceStoreSettings()
-                {
-                    HubName = configuration.HubName,
-                    SchemaName = configuration.SchemaName,
-                    ConnectionString = configuration.ConnectionString
-                });
-                return new SQLServerOrchestrationService(
-                           configuration.ConnectionString,
-                           configuration.HubName,
-                           sqlServerStore,
-                           configuration);
+                return  new SqlOrchestrationService(configuration);
             }
 
             services.AddSingleton<IOrchestrationService>(sp => GetOrchestrationService(sp));

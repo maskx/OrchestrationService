@@ -39,10 +39,6 @@ namespace OrchestrationService.Tests.CommunicationWorkerTests
 
         public void Dispose()
         {
-            if (communicationWorker != null)
-                communicationWorker.DeleteCommunicationAsync().Wait();
-            if (SQLServerOrchestrationService != null)
-                SQLServerOrchestrationService.DeleteAsync(true).Wait();
             GC.SuppressFinalize(this);
         }
 

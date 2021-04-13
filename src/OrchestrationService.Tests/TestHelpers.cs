@@ -1,8 +1,6 @@
 ﻿using DurableTask.Core;
 using DurableTask.Core.Serializing;
-using maskx.DurableTask.SQLServer;
-using maskx.DurableTask.SQLServer.Settings;
-using maskx.DurableTask.SQLServer.Tracking;
+using DurableTask.SqlServer;
 using maskx.OrchestrationService.Extensions;
 using maskx.OrchestrationService.Worker;
 using Microsoft.Extensions.Configuration;
@@ -42,20 +40,13 @@ namespace OrchestrationService.Tests
                 .AddUserSecrets("D2705D0C-A231-4B0D-84B4-FD2BFC6AD8F0")
                 .Build();
         }
-        public static SqlServerInstanceStore CreateSQLServerInstanceStore()
-        {
-            return new SqlServerInstanceStore(new SqlServerInstanceStoreSettings()
-            {
-                HubName = TestHelpers.HubName,
-                ConnectionString = TestHelpers.ConnectionString
-            });
-        }
 
-        public static SQLServerOrchestrationServiceSettings CreateOrchestrationServiceSettings()
+
+        public static SqlOrchestrationServiceSettings CreateOrchestrationServiceSettings()
         {
-            var settings = new SQLServerOrchestrationServiceSettings
+            var settings = new SqlOrchestrationServiceSettings(ConnectionString, HubName)
             {
-                TaskOrchestrationDispatcherSettings = { CompressOrchestrationState = true }
+                AppName = SchemaName
             };
 
             return settings;
@@ -63,11 +54,7 @@ namespace OrchestrationService.Tests
 
         public static IOrchestrationServiceClient CreateOrchestrationClient()
         {
-            return new SQLServerOrchestrationService(
-                         TestHelpers.ConnectionString,
-                         TestHelpers.HubName,
-                         CreateSQLServerInstanceStore(),
-                         CreateOrchestrationServiceSettings());
+            return new SqlOrchestrationService(CreateOrchestrationServiceSettings());
         }
         public static IHostBuilder CreateHostBuilder(
            Action<HostBuilderContext, IServiceCollection> config = null,
@@ -86,11 +73,9 @@ namespace OrchestrationService.Tests
              {
                  if (string.IsNullOrEmpty(hubName)) hubName = TestHelpers.HubName;
                  config?.Invoke(hostContext, services);
-                 services.UsingSQLServerOrchestration(sp=>new SqlServerOrchestrationConfiguration()
+                 services.UsingSQLServerOrchestration(sp => new SqlOrchestrationServiceSettings(TestHelpers.ConnectionString, hubName)
                  {
-                     ConnectionString = TestHelpers.ConnectionString,
-                     HubName = hubName,
-                     SchemaName = TestHelpers.SchemaName
+                     AppName = TestHelpers.SchemaName
                  });
                  if (orchestrationWorkerOptions == null)
                      orchestrationWorkerOptions = new OrchestrationWorkerOptions();

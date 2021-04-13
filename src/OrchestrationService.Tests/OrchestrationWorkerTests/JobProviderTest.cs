@@ -93,10 +93,7 @@ namespace OrchestrationService.Tests.OrchestrationWorkerTests
 
         public void Dispose()
         {
-            if (orchestrationService != null)
-                orchestrationService.DeleteAsync(true).Wait();
-            if (communicationWorker != null)
-                communicationWorker.DeleteCommunicationAsync().Wait();
+        
             GC.SuppressFinalize(this);
         }
     }
